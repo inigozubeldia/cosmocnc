@@ -13,7 +13,7 @@ class cosmo_params_default:
 
 class cosmology_model:
 
-    def __init__(self,cosmo_params=None,power_spectrum_type="cosmopower"):
+    def __init__(self,cosmo_params=None,power_spectrum_type="cosmopower",path_to_cosmopower="/rds-d4/user/iz221/hpc-work/cosmopower/"):
 
         if cosmo_params is None:
 
@@ -33,7 +33,7 @@ class cosmology_model:
 
         if self.power_spectrum_type == "cosmopower":
 
-            self.power_spectrum = ps.cosmopower(cosmo_model="lcdm")
+            self.power_spectrum = ps.cosmopower(cosmo_model="lcdm",path_to_cosmopower=path_to_cosmopower)
             self.power_spectrum.set_cosmology(H0=self.cosmo_params["h"]*100.,Ob0=self.cosmo_params["Ob0"],
             Oc0=self.cosmo_params["Om0"]-self.cosmo_params["Ob0"],ln10A_s=np.log(self.cosmo_params["A_s"]*1e10),
             n_s=self.cosmo_params["n_s"])

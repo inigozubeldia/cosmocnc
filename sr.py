@@ -3,11 +3,13 @@ import pylab as pl
 
 class scaling_relations:
 
-    def __init__(self):
+    def __init__(self,observable="q_mmf3"):
 
-        a = 1.
+        self.observable = observable
 
-    def get_n_layers(self,observable="q_mmf3"):
+    def get_n_layers(self):
+
+        observable = self.observable
 
         if observable == "q_mmf3" or observable == "q_mmf3_mean":
 
@@ -15,7 +17,9 @@ class scaling_relations:
 
         return n_layers
 
-    def initialise_scaling_relation(self,observable="q_mmf3",params=None):
+    def initialise_scaling_relation(self,params=None):
+
+        observable = self.observable
 
         if params is None:
 
@@ -46,7 +50,9 @@ class scaling_relations:
             self.sigma_matrix = sigma_matrix_0
             self.skyfracs = np.array([np.sum(self.skyfracs)])
 
-    def precompute_scaling_relation(self,observable="q_mmf3",other_params=None,layer=0,patch_index=0):
+    def precompute_scaling_relation(self,other_params=None,layer=0,patch_index=0):
+
+        observable = self.observable
 
         if observable == "q_mmf3" or observable == "q_mmf3_mean":
 
@@ -58,6 +64,8 @@ class scaling_relations:
             self.prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*((1.-self.params["b"])/3e14)**(1./3.)*E_z**(-2./3.)*(500./D_A)
 
     def eval_scaling_relation(self,x0,observable="q_mmf3",layer=0,patch_index=0,other_params=None):
+
+        observable = self.observable
 
         if observable == "q_mmf3" or observable == "q_mmf3_mean":
 
@@ -83,9 +91,22 @@ class scaling_relations:
 
                 #x1 is q_true
 
+        if observable == "m_lens":
+
+            if layer == 0:
+
+                lensing_bias = 0.9
+                x1 = np.log(lensing_bias) + x0 - np.log(1e15)
+
+            if layer == 1:
+
+                x1 = np.exp(x0)
+
         return x1
 
     def eval_derivative_scaling_relation(self,x0,observable="q_mmf3",layer=0,patch_index=0):
+
+        observable = self.observable
 
         if observable == "q_mmf3" or observable == "q_mmf3_mean":
 
@@ -99,6 +120,16 @@ class scaling_relations:
             if layer == 1:
 
                 #x0 is log q_true, x1 is q_true, returns q_true
+
+                dx1_dx0 = np.exp(x0)
+
+        if observable == "m_lens":
+
+            if layer == 0:
+
+                dx1_dx0 = 1.
+
+            elif layer == 1:
 
                 dx1_dx0 = np.exp(x0)
 
@@ -137,6 +168,18 @@ class scatter:
 
                 cov = 0.173**2
 
+            elif observable1 == "m_lens" and observable2 == "m_lens":
+
+                cov = 0.2**2
+
+            elif (observable1 == "q_mmf3_mean" and observable2 == "m_lens") or (observable1 == "m_lens" and observable2 == "q_mmf3_mean"):
+
+                cov = 0.
+
+            else:
+
+                cov = 0.
+
         elif layer == 1:
 
             if observable1 == "q_mmf3" and observable2 == "q_mmf3":
@@ -146,5 +189,13 @@ class scatter:
             elif observable1 == "q_mmf3_mean" and observable2 == "q_mmf3_mean":
 
                 cov = 1.
+
+            elif observable1 == "m_lens" and observable2 == "m_lens":
+
+                cov = 0.05**2
+
+            else:
+
+                cov = 0.
 
         return cov
