@@ -1,5 +1,6 @@
 import numpy as np
 import pylab as pl
+from .config import *
 
 class scaling_relations:
 
@@ -29,15 +30,15 @@ class scaling_relations:
 
         if observable == "q_mmf3" or observable == "q_mmf3_mean":
 
-            f = open("data/noise_planck.txt","r")
+            f = open(root_path+"/data/noise_planck.txt","r")
             sigma_matrix_flat = np.array(f.readlines()).astype(np.float)
             f.close()
 
-            f = open("data/thetas_planck_arcmin.txt","r")
+            f = open(root_path+"/data/thetas_planck_arcmin.txt","r")
             self.theta_500_vec = np.array(f.readlines()).astype(np.float)
             f.close()
 
-            f = open("data/skyfracs_planck.txt","r")
+            f = open(root_path+"/data/skyfracs_planck.txt","r")
             self.skyfracs = np.array(f.readlines()).astype(np.float)
             f.close()
 

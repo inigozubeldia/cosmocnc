@@ -1,9 +1,9 @@
 import numpy as np
 import pylab as pl
 from multiprocessing import Pool
-import cosmo
-import hmf
-import sr
+from .cosmo import *
+from .hmf import *
+from .sr import *
 import scipy.signal as signal
 import scipy.integrate as integrate
 import scipy.interpolate as interpolate
@@ -48,7 +48,8 @@ class cluster_number_counts:
 
         if cosmo_params is None:
 
-            cosmo_params = cosmo.cosmo_params_default().params
+            # cosmo_params = cosmo.cosmo_params_default().params
+            cosmo_params = cosmo_params_default().params
 
         if cnc_params is None:
 
@@ -56,7 +57,8 @@ class cluster_number_counts:
 
         if cosmology is None:
 
-            self.cosmology = cosmo.cosmology_model(cosmo_params=cosmo_params,
+            # self.cosmology = cosmo.cosmology_model(cosmo_params=cosmo_params,
+            self.cosmology = cosmology_model(cosmo_params=cosmo_params,
             power_spectrum_type=cnc_params["power_spectrum_type"],path_to_cosmopower=cnc_aprams["path_to_cosmopower"])
 
         else:
@@ -77,7 +79,8 @@ class cluster_number_counts:
         self.D_A = self.cosmology.background_cosmology.angular_diameter_distance(self.redshift_vec).value
         self.E_z = self.cosmology.background_cosmology.H(self.redshift_vec).value/(self.cosmology.cosmo_params["h"]*100.)
 
-        self.halo_mass_function = hmf.halo_mass_function(cosmology=self.cosmology,hmf_type=cnc_params["hmf_type"],
+        # self.halo_mass_function = hmf.halo_mass_function(cosmology=self.cosmology,hmf_type=cnc_params["hmf_type"],
+        self.halo_mass_function = halo_mass_function(cosmology=self.cosmology,hmf_type=cnc_params["hmf_type"],
         mass_definition=cnc_params["mass_definition"],M_min=cnc_params["M_min"],
         M_max=cnc_params["M_max"],n_points=cnc_params["n_points"],type_deriv=cnc_params["hmf_type_deriv"])
 
@@ -120,7 +123,8 @@ class cluster_number_counts:
 
         self.scal_rel_selection = self.scaling_relations[self.cnc_params["obs_select"]]
 
-        self.scatter = sr.scatter()
+        # self.scatter = sr.scatter()
+        self.scatter = scatter()
 
         indices_split = np.array_split(np.arange(self.cnc_params["n_patches"]),self.cnc_params["number_cores"])
         ranks = np.arange(self.cnc_params["number_cores"])

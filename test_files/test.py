@@ -34,7 +34,8 @@ print("N m lens",n_m_lens)
 
 t0 = time.time()
 
-number_counts = cnc.cluster_number_counts(cosmology=cosmology,catalogue=catalogue_planck,scaling_relations=scaling_relations)
+number_counts = cnc.cluster_number_counts(cosmology=cosmology,catalogue=catalogue_planck,
+                                          scaling_relations=scaling_relations)
 number_counts.get_number_counts()
 
 t1 = time.time()
