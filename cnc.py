@@ -1,5 +1,6 @@
 import numpy as np
 import pylab as pl
+# from pathos.multiprocessing import ProcessingPool as Pool
 from multiprocessing import Pool
 import cosmo
 import hmf
@@ -8,6 +9,10 @@ import scipy.signal as signal
 import scipy.integrate as integrate
 import scipy.interpolate as interpolate
 import time
+
+def parallel_eval_hmf(arg):
+    # return cluster_number_counts.eval_hmf_redshift(*arg)
+    return arg
 
 class cluster_number_counts_params:
 
@@ -85,12 +90,15 @@ class cluster_number_counts:
         self.abundance_matrix = None
         self.n_obs_matrix = None
 
+        # self.map = Pool().map
+
         rank = 0
 
         t0 = time.time()
 
-        if 1 > 0:
 
+        if 1 > 0:
+        # this is the stuff we want to parallelize:
         #def f(rank):
 
             for i in range(0,len(indices_split[rank])):
@@ -102,11 +110,33 @@ class cluster_number_counts:
         t1 = time.time()
 
         print("Time hmf",t1-t0)
+    def get_hmf(self):
+        t0 = time.time()
+        pool = Pool()
+        # argin = zip([self]*len(self.redshift_vec), range(len(self.redshift_vec)))
+        argin = range(len(self.redshift_vec))
+        print('argin:',argin[49],np.shape(argin))
+        # exit(0)
+        self.hmf_results = pool.map(parallel_eval_hmf, argin)
+        pool.close()
+        t1 = time.time()
+        # for i in range(0,len(self.redshift_vec)):
+        #     self.ln_M, self.hmf_matrix[i,:] =  self.eval_hmf_redshift(i)
+
+        # print(self.hmf_matrix)
+        print(self.hmf_results)
+        print("Time hmf parallel",t1-t0)
+        return self.hmf_results
 
         #if __name__ == '__main__':
 
         #    ranks = np.arange(n_core)
         #    res = Pool().map(f,ranks)
+
+    def eval_hmf_redshift(self,redshiftid):
+        # lnmass_vec,hmf_eval = self.halo_mass_function.eval_hmf(self.redshift_vec[redshiftid],log=True,volume_element=True)
+        # return lnmass_vec,hmf_eval
+        return redshiftid
 
     def get_cluster_abundance(self):
 

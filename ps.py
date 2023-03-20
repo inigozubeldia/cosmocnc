@@ -14,7 +14,7 @@ class cosmopower:
 
     def __init__(self,cosmo_model="lcdm"):
 
-        path_to_cosmopower_organization = "/rds-d4/user/iz221/hpc-work/cosmopower/"
+        path_to_cosmopower_organization = "/Users/boris/Work/CLASS-SZ/SO-SZ/cosmopower-organization/"
 
         path_to_emulators = path_to_cosmopower_organization + cosmo_model + "/"
         str_cmd_subprocess = ["ls",path_to_emulators]
