@@ -41,7 +41,7 @@ t1 = time.time()
 
 print("Time total number counts",time.time()-t0)
 
-#number_counts.get_loglik_data(observables=["q_mmf3_mean","m_lens"])
+number_counts.get_loglik_data(observables=["q_mmf3_mean","m_lens"])
 
 t2 = time.time()
 
