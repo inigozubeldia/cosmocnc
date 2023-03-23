@@ -1,5 +1,6 @@
 import numpy as np
 import pylab as pl
+# if __name__ ==  '__main__':
 import cnc
 import time
 

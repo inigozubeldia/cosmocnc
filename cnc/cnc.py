@@ -16,8 +16,8 @@ import multiprocessing as mp
 
 cluster_number_counts_params_default = {
 
-    "number_cores": 10,
-    "number_cores_hmf": 8,
+    "number_cores": 1,
+    "number_cores_hmf": 1,
 
     "n_points": 2**12,#2**7,
     "M_min": 1e13,

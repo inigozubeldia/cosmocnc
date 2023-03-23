@@ -19,8 +19,8 @@ class cluster_catalogue:
 
             threshold = 6.
 
-            fit_union = fits.open('/rds-d4/user/iz221/hpc-work/data/planck_data/HFI_PCCS_SZ-union_R2.08.fits')
-            fit_mmf3 = fits.open('/rds-d4/user/iz221/hpc-work/data/planck_data/HFI_PCCS_SZ-MMF3_R2.08.fits')
+            fit_union = fits.open(root_path +  'data/HFI_PCCS_SZ-union_R2.08.fits')
+            fit_mmf3 = fits.open(root_path +  'data/HFI_PCCS_SZ-MMF3_R2.08.fits')
 
             data_union = fit_union[1].data
             data_mmf3 = fit_mmf3[1].data
