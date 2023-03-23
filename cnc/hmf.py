@@ -68,10 +68,13 @@ class halo_mass_function:
             hmf = -fsigma*rho_m/M_vec/dMdR*dsigmadR/sigma
             M_eval = M_vec
 
+            hmf = hmf*1e14
+            M_eval = M_eval/1e14
+
         if log == True:
 
             hmf = hmf*M_eval
-            M_eval = np.log(M_vec)
+            M_eval = np.log(M_eval)
 
         if volume_element == True:
 

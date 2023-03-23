@@ -18,27 +18,21 @@ class scaling_relations:
 
         return n_layers
 
-    def initialise_scaling_relation(self,params=None):
+    def initialise_scaling_relation(self):
 
         observable = self.observable
 
-        if params is None:
-
-            params = scaling_relation_params(observable=observable).params
-
-        self.params = params
-
         if observable == "q_mmf3" or observable == "q_mmf3_mean":
 
-            f = open(root_path+"/data/noise_planck.txt","r")
+            f = open(root_path + "data/noise_planck.txt","r")
             sigma_matrix_flat = np.array(f.readlines()).astype(np.float)
             f.close()
 
-            f = open(root_path+"/data/thetas_planck_arcmin.txt","r")
+            f = open(root_path + "data/thetas_planck_arcmin.txt","r")
             self.theta_500_vec = np.array(f.readlines()).astype(np.float)
             f.close()
 
-            f = open(root_path+"/data/skyfracs_planck.txt","r")
+            f = open(root_path + "data/skyfracs_planck.txt","r")
             self.skyfracs = np.array(f.readlines()).astype(np.float)
             f.close()
 
@@ -51,7 +45,13 @@ class scaling_relations:
             self.sigma_matrix = sigma_matrix_0
             self.skyfracs = np.array([np.sum(self.skyfracs)])
 
-    def precompute_scaling_relation(self,other_params=None,layer=0,patch_index=0):
+    def precompute_scaling_relation(self,params=None,other_params=None,layer=0,patch_index=0):
+
+        if params is None:
+
+            params = scaling_relation_params_default
+
+        self.params = params
 
         observable = self.observable
 
@@ -61,8 +61,8 @@ class scaling_relations:
             E_z = other_params["E_z"]
             D_A = other_params["D_A"]
 
-            self.prefactor_Y_500 = ((1.-self.params["b"])/6e14)**self.params["alpha"]*(H0/70.)**(-2.+self.params["alpha"])*self.params["Y_star"]*E_z**self.params["beta"]*0.00472724*(D_A/500.)**(-2.)
-            self.prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*((1.-self.params["b"])/3e14)**(1./3.)*E_z**(-2./3.)*(500./D_A)
+            self.prefactor_Y_500 = ((1.-self.params["b"])/6.)**self.params["alpha"]*(H0/70.)**(-2.+self.params["alpha"])*self.params["Y_star"]*E_z**self.params["beta"]*0.00472724*(D_A/500.)**(-2.)
+            self.prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*((1.-self.params["b"])/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
 
     def eval_scaling_relation(self,x0,observable="q_mmf3",layer=0,patch_index=0,other_params=None):
 
@@ -96,8 +96,8 @@ class scaling_relations:
 
             if layer == 0:
 
-                lensing_bias = 0.9
-                x1 = np.log(lensing_bias) + x0 - np.log(1e15)
+                lensing_bias = 1.
+                x1 = np.log(lensing_bias) + x0
 
             if layer == 1:
 
@@ -136,26 +136,23 @@ class scaling_relations:
 
         return dx1_dx0
 
-
-class scaling_relation_params:
-
-    def __init__(self,observable="q_mmf3"):
-
-        print("observable",observable)
-
-        if observable == "q_mmf3" or observable == "q_mmf3_mean":
-
-            self.params = {"alpha":1.78,
-            "beta":0.66,
-            "Y_star":10.**(-0.186),
-            "sigma_lnY":0.173,
-            "b":0.2}
+scaling_relation_params_default = {"alpha":1.78,
+"beta":0.66,
+"Y_star":10.**(-0.186),
+"sigma_lnq":0.173,
+"b":0.2,
+"sigma_lnmlens":0.173,
+"sigma_mlens":0.2}
 
 class scatter:
 
-    def __init__(self):
+    def __init__(self,params=None):
 
-        a = 1.
+        if params is None:
+
+            params = scaling_relation_params_default
+
+        self.params = params
 
     def get_cov(self,observable1="q_mmf3",observable2="q_mmf3",patch1=0,patch2=0,layer=0):
 
@@ -163,15 +160,15 @@ class scatter:
 
             if observable1 == "q_mmf3" and observable2 == "q_mmf3":
 
-                cov = 0.173**2
+                cov = self.params["sigma_lnq"]**2
 
             elif observable1 == "q_mmf3_mean" and observable2 == "q_mmf3_mean":
 
-                cov = 0.173**2
+                cov = self.params["sigma_lnq"]**2
 
             elif observable1 == "m_lens" and observable2 == "m_lens":
 
-                cov = 0.2**2
+                cov =  self.params["sigma_lnmlens"]**2
 
             elif (observable1 == "q_mmf3_mean" and observable2 == "m_lens") or (observable1 == "m_lens" and observable2 == "q_mmf3_mean"):
 
@@ -193,7 +190,7 @@ class scatter:
 
             elif observable1 == "m_lens" and observable2 == "m_lens":
 
-                cov = 0.05**2
+                cov = 1.#self.params["sigma_mlens"]**2
 
             else:
 

@@ -18,5 +18,5 @@ root_path = os.path.dirname(os.path.abspath(__file__)) + '/../'
 # root_path = os.path.abspath("")
 # assuming cosmopower organization codes are one level up:
 # path_to_cosmopower_organization = root_path + '/../cosmopower-organization/'
-path_to_cosmopower_organization = '/Users/boris/Work/CLASS-SZ/SO-SZ/cosmopower-organization/'
+path_to_cosmopower_organization = '/rds-d4/user/iz221/hpc-work/cosmopower/'
 # print(path_to_cosmopower_organization)
