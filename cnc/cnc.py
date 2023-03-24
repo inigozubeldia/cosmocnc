@@ -19,7 +19,7 @@ cluster_number_counts_params_default = {
     "number_cores": 1,
     "number_cores_hmf": 1,
 
-    "n_points": 2**12,#2**7,
+    "n_points": 2**16,#2**7, #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
     "M_min": 1e13,
     "M_max": 1e16,
     "hmf_type": "Tinker08",
@@ -27,23 +27,21 @@ cluster_number_counts_params_default = {
     "hmf_type_deriv": "numerical",
     "power_spectrum_type": "cosmopower",
 
-    #"path_to_cosmopower": "/rds-d4/user/iz221/hpc-work/cosmopower/",
-
     "obs_select_min": 6.,
     "obs_select_max": 100.,
-    "n_obs_select": 10000,
+    "n_obs_select": 100000,
     "z_min": 0.01,
     "z_max": 1.01,
-    "n_z": 50,
+    "n_z": 500,
 
-    "obs_select": "q_mmf3", #"q_mmf3_mean",
-    "n_patches": 417,
+    "obs_select": "q_mmf3_mean", #"q_mmf3_mean",
+    "n_patches": 1,
     "cov_patch_dependent":False,
     "obs_select_uncorrelated":False,
     "all_layers_uncorrelated":False, #if True, all observables have uncorrelated scatter
     "last_layer_uncorrelated":False, #if True, it means that the last layer of the observables is uncorrelated
     "first_layer_power_law":False,
-    "obs_mass": ["q_mmf3"],
+    "obs_mass": ["q_mmf3_mean"],
     "cluster_catalogue":"Planck_MMF3_cosmo",
 
     "bins_edges_z": np.linspace(0.01,1.01,11),
@@ -143,12 +141,10 @@ class cluster_number_counts:
 
             for i in range(0,len(indices_split[rank])):
 
-                lnmass_vec,hmf_eval = self.halo_mass_function.eval_hmf(self.redshift_vec[indices_split[rank][i]],log=True,volume_element=True)
-                ln_M = lnmass_vec
+                ln_M,hmf_eval = self.halo_mass_function.eval_hmf(self.redshift_vec[indices_split[rank][i]],log=True,volume_element=True)
 
                 return_dict[str(indices_split[rank][i])] = hmf_eval
                 return_dict["ln_M"] = ln_M
-
 
         return_dict = launch_multiprocessing(f_mp,n_cores)
 
@@ -637,17 +633,26 @@ class covariance_matrix:
 
 def launch_multiprocessing(function,n_cores):
 
-    processes = []
-    manager = mp.Manager()
-    return_dict = manager.dict()
+    if n_cores > 1:
 
-    for rank in range(n_cores):
+        processes = []
+        manager = mp.Manager()
+        return_dict = manager.dict()
 
-        p = mp.Process(target=function, args=(rank,return_dict,))
-        processes.append(p)
+        for rank in range(n_cores):
 
-    [x.start() for x in processes]
-    [x.join() for x in processes]
+            p = mp.Process(target=function, args=(rank,return_dict,))
+            processes.append(p)
+
+        [x.start() for x in processes]
+        [x.join() for x in processes]
+
+    elif n_cores == 1:
+
+        print("no multiprocessing")
+
+        return_dict = {}
+        function(0,return_dict)
 
     return return_dict
 

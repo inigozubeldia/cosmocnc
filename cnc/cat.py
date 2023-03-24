@@ -19,8 +19,8 @@ class cluster_catalogue:
 
             threshold = 6.
 
-            fit_union = fits.open(root_path +  'data/HFI_PCCS_SZ-union_R2.08.fits')
-            fit_mmf3 = fits.open(root_path +  'data/HFI_PCCS_SZ-MMF3_R2.08.fits')
+            fit_union = fits.open(root_path + 'data/HFI_PCCS_SZ-union_R2.08.fits')
+            fit_mmf3 = fits.open(root_path + 'data/HFI_PCCS_SZ-MMF3_R2.08.fits')
 
             data_union = fit_union[1].data
             data_mmf3 = fit_mmf3[1].data
@@ -35,7 +35,7 @@ class cluster_catalogue:
                     indices_union.append(data_mmf3["INDEX"][i]-1)
                     indices_mmf3.append(i)
 
-            observable = "q_mmf3"
+            observable = "q_mmf3_mean"
 
             self.catalogue[observable] = data_mmf3["SNR"][indices_mmf3]
             self.catalogue["z"] = data_union["REDSHIFT"][indices_union]
