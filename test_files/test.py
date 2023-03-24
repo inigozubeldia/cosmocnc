@@ -1,6 +1,5 @@
 import numpy as np
 import pylab as pl
-# if __name__ ==  '__main__':
 import cnc
 import time
 
@@ -23,7 +22,7 @@ print("Time binned",t11-t1)
 
 #pl.plot(number_counts.obs_select_vec,number_counts.abundance_matrix[5,:])
 
-number_counts.get_loglik_data(observables=["q_mmf3"])
+#number_counts.get_loglik_data()
 
 t2 = time.time()
 
@@ -37,8 +36,12 @@ n_q = number_counts.n_obs
 z = number_counts.redshift_vec
 q = number_counts.obs_select_vec
 
-print(n_z)
-print(n_q)
+n_tot = number_counts.n_tot
+
+np.savetxt("n_z.txt",np.c_[z,n_z])
+np.savetxt("n_q.txt",np.c_[q,n_q])
+
+print("N tot",n_tot)
 
 pl.plot(z,n_z)
 pl.plot(z,np.zeros(len(z)))
