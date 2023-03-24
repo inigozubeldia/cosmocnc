@@ -2,6 +2,79 @@ import numpy as np
 import pylab as pl
 from mcfit import TophatVar
 
+from classy_sz import Class
+hparam = 67.66/100.
+cosmo_params_comparison = {
+'omega_b': 0.0224178568132,
+'omega_cdm':  0.11933148326520002,
+'H0': 67.66,
+'tau_reio': 0.0561,
+'ln10^{10}A_s': 2.9799585,
+'n_s': 0.96,
+
+
+# 'k_pivot': 0.05,
+# 'N_ncdm': 1,
+# 'N_ur': 2.0328,
+# 'm_ncdm': 0.06
+
+}
+
+szcounts_param ={
+
+
+'output': 'dndlnM',
+# 'use_skyaveraged_noise': 1,
+#
+# 'signal-to-noise_cut-off_for_survey_cluster_completeness':6.,
+# 'experiment' : 0, # planck
+# 'y_m_relation' : 0, # planck
+# 'm_pivot_ym_[Msun]': 3e14,
+
+'M_min' : 1e13*67.66/100.,
+'M_max' : 1e16*67.66/100.,
+
+# 'ndim_masses' : 2000, # now muted/set by k's in cosmopower emulator.
+'ndim_redshifts' :4850,
+# tabulation of mass function:
+'n_z_dndlnM' : 4850,
+# 'szcounts_fft_nz' : 4850,
+# 'n_m_dndlnM' : 2000,
+
+'sigmaM_ym' : 0.173,
+
+# 'N_samp_fftw' : 2**12,
+
+
+
+'z_min' : 0.0001,
+'z_max' : 1.02,
+#
+# 'szcounts_fft_z_min' : 0.001,
+# 'szcounts_fft_z_max' : 1.01,
+
+'B':1.25,
+
+#
+# 'tol_dlnm_dlnq':0.2,
+# 'ntab_dlnm_dlnq':1000,
+#
+# 'szcounts_qmax_fft_padded':200.,
+
+
+'sigma_derivative': 0,
+'HMF_prescription_NCDM': 1,
+
+'no_spline_in_tinker': 1
+}
+
+common_params = {
+
+
+'mass function' : 'M500',
+
+}
+
 class constants:
 
     def __init__(self):
@@ -26,6 +99,15 @@ class halo_mass_function:
         self.type_deriv = type_deriv
 
         self.const = constants()
+
+        # do class_sz stuff
+        M = Class()
+        M.set(common_params)
+        M.set(cosmo_params_comparison)
+        M.set(szcounts_param)
+        # M.set({'output':''})
+        M.compute_class_szfast()
+        self.classy_sz_object = M
 
         if self.hmf_type == "Tinker08":
 
@@ -78,7 +160,17 @@ class halo_mass_function:
 
         if volume_element == True:
 
+
+            # print('hmf at z ',redshift)
+            # print(hmf[:10],np.exp(M_eval[:10])*1e14)
+            # print(np.shape(hmf),np.shape(M_eval))
+            hmf_class = np.vectorize(self.classy_sz_object.get_dndlnM_at_z_and_M)(redshift,np.exp(M_eval)*1e14*hparam)
+            hmf_class *= hparam**3
+            # print('hmfclass:',hmf_class[:10])
+            hmf = hmf_class
             hmf = hmf*self.cosmology.background_cosmology.differential_comoving_volume(redshift).value
+
+        # exit(0)
 
         return M_eval,hmf
 

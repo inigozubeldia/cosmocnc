@@ -32,7 +32,7 @@ cluster_number_counts_params_default = {
     "n_obs_select": 100000,
     "z_min": 0.01,
     "z_max": 1.01,
-    "n_z": 500,
+    "n_z": 2000,
 
     "obs_select": "q_mmf3_mean", #"q_mmf3_mean",
     "n_patches": 1,

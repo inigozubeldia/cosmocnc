@@ -10,7 +10,7 @@ class cosmo_params_default:
 
     def __init__(self):
 
-        self.params = {"Om0":0.3096,"Ob0":0.04897,"h":0.6766,"A_s":1.9687e-9,"n_s":0.96,"m_nu":0.06}
+        self.params = {"Om0":0.3096,"Ob0":0.04897,"h":0.6766,"A_s":1.9687e-9,"n_s":0.96,"m_nu":0.0}
 
 class cosmology_model:
 
