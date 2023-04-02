@@ -29,10 +29,10 @@ cluster_number_counts_params_default = {
 
     "obs_select_min": 6.,
     "obs_select_max": 100.,
-    "n_obs_select": 100000,
+    "n_obs_select": 10000,
     "z_min": 0.01,
     "z_max": 1.01,
-    "n_z": 2000,
+    "n_z": 200,
 
     "obs_select": "q_mmf3_mean", #"q_mmf3_mean",
     "n_patches": 1,

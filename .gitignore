@@ -3,3 +3,6 @@ data/HFI_PCCS_SZ-MMF3_R2.08.fits
 data/HFI_PCCS_SZ-union_R2.08.fits
 .DS_Store
 cnc.egg*
+n_q.txt
+n_z.txt
+mcmcs/cobaya/chains
