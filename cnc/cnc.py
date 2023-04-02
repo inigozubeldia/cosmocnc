@@ -19,7 +19,7 @@ cluster_number_counts_params_default = {
     "number_cores": 1,
     "number_cores_hmf": 1,
 
-    "n_points": 2**16,#2**7, #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
+    "n_points": 2**13,#2**7, #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
     "M_min": 1e13,
     "M_max": 1e16,
     "hmf_type": "Tinker08",
@@ -29,10 +29,10 @@ cluster_number_counts_params_default = {
 
     "obs_select_min": 6.,
     "obs_select_max": 100.,
-    "n_obs_select": 10000,
+    "n_obs_select": 500,
     "z_min": 0.01,
     "z_max": 1.01,
-    "n_z": 200,
+    "n_z": 50,
 
     "obs_select": "q_mmf3_mean", #"q_mmf3_mean",
     "n_patches": 1,
@@ -75,6 +75,8 @@ class cluster_number_counts:
             self.scaling_relations[self.cnc_params["obs_mass"][i]].initialise_scaling_relation()
 
         cosmo_params = cosmo_params_default().params
+        # print(cosmo_params)
+        self.cosmo_params = cosmo_params
         self.cosmology = cosmology_model(cosmo_params=cosmo_params,
         power_spectrum_type=self.cnc_params["power_spectrum_type"])
 
@@ -158,7 +160,7 @@ class cluster_number_counts:
 
         t1 = time.time()
 
-        print("Time hmf",t1-t0)
+        # print("Time hmf",t1-t0)
 
     #Computes the cluster abundance across selection observable and redshift
 
@@ -242,10 +244,10 @@ class cluster_number_counts:
 
         t1 = time.time()
 
-        print("Time abundance",t1-t0)
+        # print("Time abundance",t1-t0)
 
         self.abundance_matrix = np.sum(self.abundance_tensor,axis=0)
-        print("Time average",time.time()-t1)
+        # print("Time average",time.time()-t1)
 
     def get_loglik_data(self,observables=None):
 
@@ -649,7 +651,7 @@ def launch_multiprocessing(function,n_cores):
 
     elif n_cores == 1:
 
-        print("no multiprocessing")
+        # print("no multiprocessing")
 
         return_dict = {}
         function(0,return_dict)

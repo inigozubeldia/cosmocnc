@@ -1,6 +1,6 @@
 # run with:
-# cobaya-run /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/input_files/cobaya_soliket_cnc_unbinned_cluster_counts_planck_template.yaml -f
-output: /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/chains/cnc_unbinned_cluster_counts_planck
+# cobaya-run /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/input_files/cobaya_soliket_cnc_unbinned_cluster_counts_planck_evaluate_template.yaml -f
+output: /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/chains/cnc_unbinned_cluster_counts_planck_evaluate
 likelihood:
   soliket.sz_binned_cluster_counts.binned_cc.unbinned_cc_likelihood:
     tcat_file: 'SZ_cat.txt'
@@ -165,18 +165,29 @@ params:
 
 sampler:
   #settings for covmat see https://cobaya.readthedocs.io/en/latest/sampler_mcmc.html
-  mcmc:
-    covmat: /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/covmats/cluster_counts_planck.covmat
-    # covmat: /Users/boris/Work/CLASS-SZ/SO-SZ/SOLikeT/soliket/sz_binned_cluster_counts/chains/so_sz_binned_cluster_counts_planck_test_alice_ev.covmat #auto
-    Rminus1_stop: 0.08
-    burn_in: 0
-    # drag: true
-    proposal_scale: 1.
-    learn_proposal: True
-    learn_every: 40
-    learn_proposal_Rminus1_max: 100.
-    max_tries : 100000
-    learn_proposal_Rminus1_max_early: 100.
+  # mcmc:
+  #   covmat: /Users/boris/Work/CLASS-SZ/SO-SZ/class_sz/class_sz_mcmcs/covmats/class_sz_unbinned_cluster_counts_planck.covmat
+  #   # covmat: /Users/boris/Work/CLASS-SZ/SO-SZ/SOLikeT/soliket/sz_binned_cluster_counts/chains/so_sz_binned_cluster_counts_planck_test_alice_ev.covmat #auto
+  #   Rminus1_stop: 0.08
+  #   burn_in: 0
+  #   # drag: true
+  #   proposal_scale: 1.
+  #   learn_proposal: True
+  #   learn_every: 40
+  #   learn_proposal_Rminus1_max: 100.
+  #   max_tries : 100000
+  #   learn_proposal_Rminus1_max_early: 100.
+
+  evaluate:
+    override:
+  #    # #parameter values:
+       omega_cdm: 0.12
+       omega_b: 0.02
+       logA: 3.1
+       n_s: 0.96
+  #     # H0: 69.
+       H0: 70.
+
   #
   # evaluate:
   #   override:
@@ -191,4 +202,4 @@ sampler:
 
 
 # debug : True
-# timing: true
+timing: true
