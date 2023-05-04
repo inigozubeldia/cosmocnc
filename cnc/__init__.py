@@ -5,3 +5,5 @@ from .ps import *
 from .sr import *
 from .cosmo import *
 from .hmf import *
+from .sim import *
+from .params import *
