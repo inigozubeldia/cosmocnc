@@ -1,102 +1,26 @@
 import numpy as np
 import pylab as pl
+import copy
 from mcfit import TophatVar
-
-#from classy_sz import Class
-#hparam = 67.66/100.
-# cosmo_params_comparison = {
-# 'omega_b': 0.0224178568132,
-# 'omega_cdm':  0.11933148326520002,
-# 'H0': 67.66,
-# 'tau_reio': 0.0561,
-# 'ln10^{10}A_s': 2.9799585,
-# 'n_s': 0.96,
-#
-#
-# # 'k_pivot': 0.05,
-# # 'N_ncdm': 1,
-# # 'N_ur': 2.0328,
-# # 'm_ncdm': 0.06
-#
-# }
-#
-# szcounts_param ={
-#
-#
-# 'output': 'dndlnM',
-# # 'use_skyaveraged_noise': 1,
-# #
-# # 'signal-to-noise_cut-off_for_survey_cluster_completeness':6.,
-# # 'experiment' : 0, # planck
-# # 'y_m_relation' : 0, # planck
-# # 'm_pivot_ym_[Msun]': 3e14,
-#
-# 'M_min' : 1e13*67.66/100.,
-# 'M_max' : 1e16*67.66/100.,
-#
-# # 'ndim_masses' : 2000, # now muted/set by k's in cosmopower emulator.
-# 'ndim_redshifts' :4850,
-# # tabulation of mass function:
-# 'n_z_dndlnM' : 4850,
-# # 'szcounts_fft_nz' : 4850,
-# # 'n_m_dndlnM' : 2000,
-#
-# 'sigmaM_ym' : 0.173,
-#
-# # 'N_samp_fftw' : 2**12,
-#
-#
-#
-# 'z_min' : 0.0001,
-# 'z_max' : 1.02,
-# #
-# # 'szcounts_fft_z_min' : 0.001,
-# # 'szcounts_fft_z_max' : 1.01,
-#
-# 'B':1.25,
-#
-# #
-# # 'tol_dlnm_dlnq':0.2,
-# # 'ntab_dlnm_dlnq':1000,
-# #
-# # 'szcounts_qmax_fft_padded':200.,
-#
-#
-# 'sigma_derivative': 0,
-# 'HMF_prescription_NCDM': 1,
-#
-# 'no_spline_in_tinker': 1
-# }
-#
-# common_params = {
-#
-#
-# 'mass function' : 'M500',
-#
-# }
-
-class constants:
-
-    def __init__(self):
-
-        self.c_light = 2.997924581e8
-        self.G = 6.674*1e-11
-        self.solar = 1.98855*1e30
-        self.mpc = 3.08567758149137*1e22
+import time
 
 class halo_mass_function:
 
     def __init__(self,cosmology=None,hmf_type="Tinker08",
-    mass_definition="500c",M_min=1e13,M_max=1e16,n_points=1000,type_deriv="numerical"):
+    mass_definition="500c",M_min=1e13,M_max=1e16,n_points=1000,type_deriv="numerical",
+    hmf_calc="cnc",extra_params=None):
 
         self.hmf_type = hmf_type
         self.mass_definition = mass_definition
         self.cosmology = cosmology
+        self.h = self.cosmology.background_cosmology.H0.value/100.
 
         self.M_min = M_min
         self.M_max = M_max
         self.n_points = n_points
         self.type_deriv = type_deriv
+        self.hmf_calc = hmf_calc
+        self.extra_params = extra_params
 
         self.const = constants()
 
@@ -113,52 +37,119 @@ class halo_mass_function:
 
             self.rho_c_0 = self.cosmology.background_cosmology.critical_density(0.).value*self.const.mpc**3/self.const.solar*1e3
 
+        if self.hmf_calc == "hmf":
+
+            import hmf as hmf_package
+
+            if self.mass_definition[-1] == "c":
+
+                md = "SOCritical"
+
+            elif self.mass_definition[-1] == "m":
+
+                md = "SOMean"
+
+            self.massfunc_hmf = hmf_package.MassFunction(Mmax=np.log10(self.M_max*self.h),Mmin=np.log10(self.M_min*self.h),z=0.,
+            mdef_model=md,mdef_params={"overdensity":float(self.mass_definition[0:-1])},cosmo_model=self.cosmology.background_cosmology,
+            dlog10m=0.005,sigma_8=cosmology.cosmo_params["sigma_8"],n=cosmology.cosmo_params["n_s"])
+
     def eval_hmf(self,redshift,log=False,volume_element=False):
 
-        if self.hmf_type == "Tinker08":
+        if log == False:
 
-            k,ps = self.cosmology.power_spectrum.get_linear_power_spectrum(redshift)
+            M_vec = np.linspace(self.M_min,self.M_max,self.n_points)
 
-            if log == False:
+        elif log == True:
+
+            M_vec = np.exp(np.linspace(np.log(self.M_min),np.log(self.M_max),self.n_points))
+
+        if self.hmf_calc == "cnc":
+
+            if self.hmf_type == "Tinker08":
+
+                k,ps = self.cosmology.power_spectrum.get_linear_power_spectrum(redshift)
+
+                rho_m = self.rho_c_0*self.cosmology.cosmo_params["Om0"]
+
+                sigma_r = sigma_R((k,ps),cosmology=self.cosmology)
+                sigma_r.get_derivative(type_deriv=self.type_deriv)
+                (sigma,dsigmadR) = sigma_r.get_sigma_M(M_vec,rho_m,get_deriv=True)
+
+                self.sigma = sigma
+                self.dsigmadR = dsigmadR
+                self.R = sigma_r.R_eval
+
+                dMdR = 4.*np.pi*rho_m*self.R**2
+
+                if self.mass_definition[-1] == "c":
+
+                    rescale = self.cosmology.cosmo_params["Om0"]*(1.+redshift)**3/(self.cosmology.background_cosmology.H(redshift).value/(self.cosmology.cosmo_params["h"]*100.))**2
+
+                elif self.mass_definition[-1] == "m":
+
+                    rescale = 1
+
+                Delta = float(self.mass_definition[0:-1])/rescale
+
+                fsigma = f_sigma(sigma,redshift=redshift,hmf_type=self.hmf_type,Delta=Delta,mass_definition=self.mass_definition)
+                self.fsigma = fsigma
+
+                hmf = -fsigma*rho_m/M_vec/dMdR*dsigmadR/sigma
+                M_eval = M_vec
+
+                hmf = hmf*1e14
+                M_eval = M_eval/1e14
+
+                if log == True:
+
+                    hmf = hmf*M_eval
+                    M_eval = np.log(M_eval)
+
+        elif self.hmf_calc == "hmf":
+
+            self.massfunc_hmf.update(z=redshift)
+            hmf = self.massfunc_hmf.dndm*1e14*self.h**4
+            M_eval = self.massfunc_hmf.m/self.h/1e14
+
+            hmf = np.interp(M_vec/1e14,M_eval,hmf)
+            M_eval = M_vec/1e14
+
+            if log == True:
+
+                hmf = hmf*M_eval
+                M_eval = np.log(M_eval)
+
+        elif self.hmf_calc == "MiraTitan": #only works if log == True, note that returns a matrix instead of a vector
+
+            t0 = time.time()
+
+            if log == True:
+
+                MT_emulator = self.extra_params["emulator"]
 
                 M_vec = np.linspace(self.M_min,self.M_max,self.n_points)
 
-            elif log == True:
+                cosmology_emulator = {
+                "h": self.h,
+                "Ommh2": self.cosmology.cosmo_params["Om0"]*self.h**2,
+                "Ombh2": self.cosmology.cosmo_params["Ob0"]*self.h**2,
+                "Omnuh2": self.cosmology.background_cosmology.Onu0*self.h**2,
+                "sigma_8": self.cosmology.cosmo_params["sigma_8"],
+                "n_s": self.cosmology.cosmo_params["n_s"],
+                "w_0": -1.,
+                "w_a": 0.
+                }
 
-                M_vec = np.exp(np.linspace(np.log(self.M_min),np.log(self.M_max),self.n_points))
+                hmf = np.array(MT_emulator.predict(cosmology_emulator,redshift,M_vec*self.h))[0,:,:]*self.h**3/np.log(10.)
+                M_eval = np.log(M_vec/1e14)
 
-            rho_m = self.rho_c_0*self.cosmology.cosmo_params["Om0"]
+                if volume_element == True:
 
-            sigma_r = sigma_R((k,ps),cosmology=self.cosmology)
-            sigma_r.get_derivative(type_deriv=self.type_deriv)
-            (sigma,dsigmadR) = sigma_r.get_sigma_M(M_vec,rho_m,get_deriv=True)
+                    for i in range(0,hmf.shape[0]):
 
-            self.sigma = sigma
-            self.dsigmadR = dsigmadR
-            self.R = sigma_r.R_eval
+                        hmf[i,:] = hmf[i,:]*self.cosmology.background_cosmology.differential_comoving_volume(redshift[i]).value
 
-            dMdR = 4.*np.pi*rho_m*self.R**2
-
-            if self.mass_definition == "500c":
-
-                rescale = self.cosmology.cosmo_params["Om0"]*(1.+redshift)**3/(self.cosmology.background_cosmology.H(redshift).value/(self.cosmology.cosmo_params["h"]*100.))**2
-                Delta = 500./rescale
-
-            fsigma = f_sigma(sigma,redshift=redshift,hmf_type=self.hmf_type,Delta=Delta,mass_definition=self.mass_definition)
-            self.fsigma = fsigma
-
-            hmf = -fsigma*rho_m/M_vec/dMdR*dsigmadR/sigma
-            M_eval = M_vec
-
-            hmf = hmf*1e14
-            M_eval = M_eval/1e14
-
-        if log == True:
-
-            hmf = hmf*M_eval
-            M_eval = np.log(M_eval)
-
-        if volume_element == True:
+        if volume_element == True and self.hmf_calc != "MiraTitan":
 
 
             # print('hmf at z ',redshift)
@@ -258,3 +249,13 @@ class hmf_params:
             ret = np.interp(Delta,self.params["Delta"],self.params[param])
 
         return ret
+
+class constants:
+
+    def __init__(self):
+
+        self.c_light = 2.997924581e8
+        self.G = 6.674*1e-11
+        self.solar = 1.98855*1e30
+        self.mpc = 3.08567758149137*1e22
+        self.gamma =  self.G/self.c_light**2*self.solar/self.mpc

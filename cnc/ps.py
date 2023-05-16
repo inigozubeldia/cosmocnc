@@ -8,6 +8,7 @@ import subprocess
 from cosmopower import cosmopower_NN
 from cosmopower import cosmopower_PCAplusNN
 from .config import *
+import scipy.optimize as optimize
 
 #cosmo_model = "lcdm", "mnu", "neff", "wcdm"
 
@@ -69,6 +70,12 @@ class cosmopower:
         self.cp_pkl_nn[self.mp] = cosmopower_NN(restore=True,
                                   restore_filename=path_to_emulators + 'PK/' + emulator_dict[self.mp]['PKL'])
 
+        self.cp_der_nn = cosmopower_NN(restore=True,restore_filename=path_to_emulators + 'derived-parameters/DER_v1',)
+
+    def get_sigma_8(self):
+
+        return self.cp_der_nn.ten_to_predictions_np(self.params_cp)[0][1]
+
     def set_cosmology(self,H0=67.37,Ob0=0.02233/0.6737**2,Oc0=0.1198/0.6737**2,ln10A_s=3.043,tau_reio=0.0540,n_s=0.9652): # LambdaCDM parameters last column of Table 1 of https://arxiv.org/pdf/1807.06209.pdf:
 
         h = H0/100.
@@ -87,6 +94,20 @@ class cosmopower:
         for key,value in self.params_settings.items():
 
             self.params_cp[key] = [value]
+
+    def find_As(self,sigma_8):
+
+        params_cp = self.params_cp
+
+        def to_root(ln10_10_As):
+
+            params_cp["ln10^{10}A_s"] = ln10_10_As
+
+            return self.cp_der_nn.ten_to_predictions_np(params_cp)[0][1]-sigma_8
+
+        A_s = np.exp(optimize.root(to_root,x0=3.04,method="hybr").x)/1e10
+
+        return A_s[0]
 
     def get_linear_power_spectrum(self,redshift):
 
