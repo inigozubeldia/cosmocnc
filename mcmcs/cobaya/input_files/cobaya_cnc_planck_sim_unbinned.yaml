@@ -1,0 +1,140 @@
+# run with:
+# cobaya-run /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/input_files/cobaya_soliket_cnc_unbinned_cluster_counts_planck_template.yaml -f
+
+output: /home/iz221/cnc/mcmcs/cobaya/chains_paper/cnc_planck_sim_unbinned
+
+likelihood:
+
+  soliket.sz_binned_cluster_counts.binned_cc.unbinned_cc_likelihood:
+    tcat_file: 'SZ_cat.txt'
+    snrcut: 6.
+    experiment: 'Planck'
+
+    bin_z_min_cluster_counts : 0.
+    bin_z_max_cluster_counts : 1.
+    bin_dz_cluster_counts : 0.1
+    bin_dlog10_snr: 0.25
+    debug: False
+    stop_at_error: True
+
+theory:
+  cnc.cnc_cobaya_theory.cnc:
+
+params:
+
+  H0:
+    prior:
+      min: 40.
+      max: 100.
+    ref:
+      dist: norm
+      loc: 67.4
+      scale: 1.
+    proposal: 1.
+    latex: H_0
+
+  sigma_8:
+    prior:
+      min: 0.1
+      max: 2.
+    ref:
+      dist: norm
+      loc: 0.81
+      scale: 0.01
+    proposal: 0.01
+    latex: \sigma_8
+
+  n_s:
+    prior:
+      min: 0.8812
+      max: 1.0492
+    ref:
+      dist: norm
+      loc: 0.96
+      scale: 0.004
+    proposal: 0.004
+    latex: n_\mathrm{s}
+
+  Om0:
+    prior:
+      min: 0.08
+      max: 0.5
+    ref:
+      dist: norm
+      loc: 0.31
+      scale: 0.05
+    proposal: 0.05
+    latex: \Omega_\mathrm{m}
+
+  Ob0:
+    prior:
+      min: 0.01
+      max: 0.2
+    ref:
+      dist: norm
+      loc: 0.048
+      scale: 0.005
+    proposal: 0.005
+    latex: \Omega_\mathrm{b}
+
+  alpha:
+    prior:
+      min: 0.5
+      max: 3.
+    ref:
+      dist: norm
+      loc: 1.79
+      scale: 0.05
+    proposal: 0.05
+    latex: \alpha
+
+  log10_Y_star:
+    prior:
+      min: -1.
+      max: 1.
+    ref:
+      dist: norm
+      loc: -0.19
+      scale: 0.03
+    proposal: 0.03
+    latex: \log (Y_{\ast})
+
+  bias_sz:
+    prior:
+      min: 0.1
+      max: 1.5
+    ref:
+      dist: norm
+      loc: 0.62
+      scale: 0.05
+    proposal: 0.05
+    latex: 1-b_{\mathrm{SZ}}
+
+  sigma_lnq:
+    prior:
+      min: 0.05
+      max: 0.3
+    ref:
+      dist: norm
+      loc: 0.179
+      scale: 0.01
+    proposal: 0.01
+    latex: \sigma_{\mathrm{SZ}}
+
+
+sampler:
+
+  #settings for covmat see https://cobaya.readthedocs.io/en/latest/sampler_mcmc.html
+
+  mcmc:
+
+    #covmat: /home/iz221/cnc/mcmcs/cobaya/covmats/cluster_counts_planck.covmat
+    Rminus1_stop: 0.01
+    burn_in: 0
+    # drag: true
+    proposal_scale: 1.
+    learn_proposal: True
+    learn_every: 40
+    learn_proposal_Rminus1_max: 100.
+    max_tries : 1000000
+    learn_proposal_Rminus1_max_early: 100.

@@ -131,5 +131,6 @@ class cosmopower:
 
         k_arr_re = k_arr
         pkl_re = pkl
+        # print('got pkl_re',pkl_re)
 
         return (k_arr_re,pkl_re)

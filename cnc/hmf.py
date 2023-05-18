@@ -66,7 +66,6 @@ class halo_mass_function:
         if self.hmf_calc == "cnc":
 
             if self.hmf_type == "Tinker08":
-
                 k,ps = self.cosmology.power_spectrum.get_linear_power_spectrum(redshift)
 
                 rho_m = self.rho_c_0*self.cosmology.cosmo_params["Om0"]

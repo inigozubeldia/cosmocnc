@@ -101,103 +101,107 @@ cosmo_params_default = {
 
 }
 
-class priors:
-
-    def __init__(self,prior_params=None):
-
-        self.prior_params = prior_params
-
-        #Flat priors (i.e., parameter limits if other priors are also chosen).
-
-        self.flat_priors = {
-        "Om0":[0.001,0.8],
-        "Ob0":[0.001,0.8],
-        "h":[0.01,5.],
-        "A_s":[1e-11,1e-7],
-        "n_s":[0.1,2.],
-        "m_nu":[0.,2.],
-        "sigma_8":[0.01,2.],
-
-        "alpha":[0.1,10.],
-        "beta":[0.01,10.],
-        "log10_Y_star":[-2,2.],
-        "sigma_lnq":[0.001,2.],
-        "bias_sz":[0.01,2.],
-        "sigma_lnmlens":[0.001,2.],
-        "sigma_mlens":[0.001,2.],
-        "bias_cmblens":[0.01,2.],
-        "sigma_lnp":[0.01,2.],
-        "corr_lnq_lnp":[0.,0.999]
-        }
-
-        #Gaussian prior, list is mean and std
-
-        self.gaussian_priors = {
-        "bias_cmblens":[0.93,0.05], #prior width from ZC19
-        "sigma_lnp":[0.22,0.05],
-        "corr_lnq_lnp":[0.77,0.1],
-        "alpha":[1.79,0.08], #prior from Planck15 cnc analysis and ZC19
-        "log10_Y_star":[-0.19,0.02],
-        "n_s":[0.96,0.0042], #std from Planck18
-        "sigma_lnq":[0.173,0.023], #prior from Planck15 cnc analysis
-        "bias_sz":[0.62,0.08]
-        }
-
-    def eval_priors(self,cosmo_params,scal_rel_params):
-
-        params = dict(cosmo_params)
-        params.update(scal_rel_params)
-
-        log_prior = 0.
-
-        for key in params.keys():
-
-            param_value = params[key]
-
-            #Unnormalised flat priors (effectively, boundaries imposed to parameters)
-
-            if key in self.flat_priors.keys():
-
-                if param_value < self.flat_priors[key][0] or param_value > self.flat_priors[key][1]:
-
-                    print(key,param_value)
-
-                    log_prior = -np.inf
-
-            #Gaussian priors
-
-            if key in self.gaussian_priors:
-
-                log_prior = log_prior + np.log(gaussian_1d(self.gaussian_priors[key][0]-param_value,self.gaussian_priors[key][1]))
-
-        #Custom priors:
-
-        #Theta MC prior
-
-        if self.prior_params["theta_mc_prior"] == True:
-
-            cosmology = self.prior_params["cosmology"]
-
-            theta_mc = cosmology.get_theta_mc()
-
-            theta_mc_planck = 1.04093/100.
-            theta_mc_planck_sigma = 0.00030/100.
-            theta_mc_sim = 0.0104199189394683
-
-            print("theta mc",theta_mc,theta_mc_sim)
-
-            log_prior = log_prior + np.log(gaussian_1d(theta_mc-theta_mc_sim,theta_mc_planck_sigma))
-
-        #Baryon density Planck prior
-
-        Ob0h2_Planck = 0.02237 #Planck18
-        Ob0h2_sim = 0.022245895
-        Ob0h2_Planck_sigma = 0.00015
-
-        log_prior = log_prior + np.log(gaussian_1d(cosmo_params["Ob0"]*cosmo_params["h"]**2-Ob0h2_sim,Ob0h2_Planck_sigma))
-
-        return log_prior
-
-def gaussian_1d(x,sigma):
-
-    return np.exp(-x**2/(2.*sigma**2))/(np.sqrt(2.*np.pi)*sigma)
+# class priors:
+#
+#     def __init__(self,prior_params=None):
+#
+#         self.prior_params = prior_params
+#
+#         #Flat priors (i.e., parameter limits if other priors are also chosen).
+#
+#         self.flat_priors = {
+#         "Om0":[0.001,0.8],
+#         "Ob0":[0.001,0.8],
+#         "h":[0.01,5.],
+#         "A_s":[1e-11,1e-7],
+#         "n_s":[0.1,2.],
+#         "m_nu":[0.,2.],
+#         "sigma_8":[0.01,2.],
+#
+#         "alpha":[0.1,10.],
+#         "beta":[0.01,10.],
+#         "log10_Y_star":[-2,2.],
+#         "sigma_lnq":[0.001,2.],
+#         "bias_sz":[0.01,2.],
+#         "sigma_lnmlens":[0.001,2.],
+#         "sigma_mlens":[0.001,2.],
+#         "bias_cmblens":[0.01,2.],
+#         "sigma_lnp":[0.01,2.],
+#         "corr_lnq_lnp":[0.,0.999]
+#         }
+#
+#         #Gaussian prior, list is mean and std
+#         ### we want to move all of these in the yaml file.
+#         self.gaussian_priors = {
+#         "bias_cmblens":[0.93,0.05], #prior width from ZC19
+#         "sigma_lnp":[0.22,0.05],
+#         "corr_lnq_lnp":[0.77,0.1],
+#         "alpha":[1.79,0.08], #prior from Planck15 cnc analysis and ZC19
+#         "log10_Y_star":[-0.19,0.02],
+#         "n_s":[0.96,0.0042], #std from Planck18
+#         "sigma_lnq":[0.173,0.023], #prior from Planck15 cnc analysis
+#         "bias_sz":[0.62,0.08]
+#         }
+#
+#     def eval_priors(self,cosmo_params,scal_rel_params):
+#
+#         params = dict(cosmo_params)
+#         params.update(scal_rel_params)
+#
+#         log_prior = 0.
+#
+#         for key in params.keys():
+#
+#             param_value = params[key]
+#
+#             #Unnormalised flat priors (effectively, boundaries imposed to parameters)
+#
+#             if key in self.flat_priors.keys():
+#
+#                 if param_value < self.flat_priors[key][0] or param_value > self.flat_priors[key][1]:
+#
+#                     print(key,param_value)
+#
+#                     log_prior = -np.inf
+#
+#             #Gaussian priors
+#
+#             if key in self.gaussian_priors:
+#
+#                 log_prior = log_prior + np.log(gaussian_1d(self.gaussian_priors[key][0]-param_value,self.gaussian_priors[key][1]))
+#
+#         #Custom priors:
+#
+#         #Theta MC prior
+#         # print('log_prior',log_prior)
+#
+#         if self.prior_params["theta_mc_prior"] == True:
+#
+#             cosmology = self.prior_params["cosmology"]
+#             print(cosmology)
+#
+#             theta_mc = cosmology.get_theta_mc()
+#
+#             theta_mc_planck = 1.04093/100.
+#             theta_mc_planck_sigma = 0.00030/100.
+#             theta_mc_sim = 0.0104199189394683
+#
+#             # print("theta mc",theta_mc,theta_mc_sim)
+#             g1d = gaussian_1d(theta_mc-theta_mc_sim,theta_mc_planck_sigma)
+#             # print('g1d',g1d)
+#
+#             log_prior = log_prior + np.log(gaussian_1d(theta_mc-theta_mc_sim,theta_mc_planck_sigma))
+#
+#         #Baryon density Planck prior
+#         # print('log_prior2',log_prior)
+#         Ob0h2_Planck = 0.02237 #Planck18
+#         Ob0h2_sim = 0.022245895
+#         Ob0h2_Planck_sigma = 0.00015
+#
+#         log_prior = log_prior + np.log(gaussian_1d(cosmo_params["Ob0"]*cosmo_params["h"]**2-Ob0h2_sim,Ob0h2_Planck_sigma))
+#
+#         return log_prior
+#
+# def gaussian_1d(x,sigma):
+#
+#     return np.exp(-x**2/(2.*sigma**2))/(np.sqrt(2.*np.pi)*sigma)

@@ -47,7 +47,6 @@ class cluster_number_counts:
 
                 self.scaling_relations[observable] = scaling_relations(observable=observable)
                 self.scaling_relations[observable].initialise_scaling_relation()
-
         self.cosmology = cosmology_model(cosmo_params=self.cosmo_params,
         power_spectrum_type=self.cnc_params["power_spectrum_type"],amplitude_parameter=self.cnc_params["cosmo_amplitude_parameter"])
 
@@ -56,7 +55,7 @@ class cluster_number_counts:
         observables=self.cnc_params["observables"],obs_select=self.cnc_params["obs_select"])
 
         self.scatter = scatter(params=self.scal_rel_params)
-        self.priors = priors(prior_params={"cosmology":self.cosmology,"theta_mc_prior":self.cnc_params["theta_mc_prior"]})
+        # self.priors = priors(prior_params={"cosmology":self.cosmology,"theta_mc_prior":self.cnc_params["theta_mc_prior"]})
 
         if self.cnc_params["hmf_calc"] == "MiraTitan":
 
@@ -123,6 +122,7 @@ class cluster_number_counts:
 
         t0 = time.time()
 
+
         if self.cnc_params["hmf_calc"] == "cnc" or self.cnc_params["hmf_calc"] == "hmf":
 
             self.hmf_matrix = np.zeros((self.cnc_params["n_z"],self.cnc_params["n_points"]))
@@ -159,6 +159,7 @@ class cluster_number_counts:
             self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=True)
 
         t1 = time.time()
+        # print('self.hmf_matrix',self.hmf_matrix)
 
         self.t_hmf = t1-t0
 
@@ -189,6 +190,7 @@ class cluster_number_counts:
         self.n_obs_matrix = np.zeros((self.n_patches,self.cnc_params["n_obs_select"]))
 
         n_cores = self.cnc_params["number_cores"]
+        # print('number of cores:',n_cores)
 
         def f_mp(rank,out_q):
 
@@ -264,6 +266,7 @@ class cluster_number_counts:
         self.t_abundance = t1-t0
 
         self.abundance_matrix = np.sum(self.abundance_tensor,axis=0)
+        # print('self.abundance_matrix',self.abundance_matrix)
 
     #Computes the data (or "mass calibration") part of the unbinned likelihood
 
@@ -613,35 +616,22 @@ class cluster_number_counts:
     def get_log_lik(self):
 
         t0 = time.time()
+        log_lik = 0.
+        if self.cnc_params["likelihood_type"] == "unbinned":
+            log_lik = log_lik + self.get_log_lik_unbinned()
 
-        if self.cnc_params["priors"] == True:
+        elif self.cnc_params["likelihood_type"] == "binned":
 
-            log_lik = self.priors.eval_priors(self.cosmo_params,self.scal_rel_params)
+            log_lik = log_lik + self.get_log_lik_binned()
 
-        elif self.cnc_params["priors"] == False:
+        elif self.cnc_params["likelihood_type"] == "extreme_value":
 
-            log_lik = 0.
-
-        if np.isinf(log_lik) == False:
-
-            if self.cnc_params["likelihood_type"] == "unbinned":
-
-                log_lik = log_lik + self.get_log_lik_unbinned()
-
-            elif self.cnc_params["likelihood_type"] == "binned":
-
-                log_lik = log_lik + self.get_log_lik_binned()
-
-            elif self.cnc_params["likelihood_type"] == "extreme_value":
-
-                log_lik = log_lik + self.get_log_lik_extreme_value()
+            log_lik = log_lik + self.get_log_lik_extreme_value()
 
         self.t_total = time.time()-t0
 
-        print("T total",time.time()-t0)#self.t_total)
-
+        # print("T total",time.time()-t0)#self.t_total)
         if np.isnan(log_lik) == True:
-
             log_lik = -np.inf
 
         return log_lik
@@ -649,7 +639,6 @@ class cluster_number_counts:
     #Computes the unbinned log likelihood
 
     def get_log_lik_unbinned(self):
-
         t0 = time.time()
 
         if self.n_tot is None:

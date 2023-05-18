@@ -54,7 +54,7 @@ class scaling_relations:
 
         if observable == "p_zc19":
 
-            self.sigma_theta_lens_vec = np.load("/home/iz221/bayesian_bias/sigma_theta_lens/sigma_theta_lens_vec.npy") #first index is patch index, from 0 to 432
+            self.sigma_theta_lens_vec = np.load(root_path + "data/sigma_theta_lens_vec.npy") #first index is patch index, from 0 to 432
             self.sigma_theta_lens_vec[:,0,:] = self.sigma_theta_lens_vec[:,0,:]*180.*60./np.pi #in arcmin
 
     def precompute_scaling_relation(self,params=None,other_params=None,layer=0,patch_index=0):

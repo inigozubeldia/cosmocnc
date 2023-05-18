@@ -12,9 +12,8 @@ import time
 class cosmology_model:
 
     def __init__(self,cosmo_params=None,power_spectrum_type="cosmopower",amplitude_parameter="sigma_8"):
-
+        # print('cosmo_params',cosmo_params)
         if cosmo_params is None:
-
             cosmo_params = cosmo_params_default
 
         self.cosmo_params = cosmo_params
@@ -32,7 +31,6 @@ class cosmology_model:
         self.D_CMB = self.background_cosmology.angular_diameter_distance(self.z_CMB).value
 
         if self.power_spectrum_type == "cosmopower":
-
             self.power_spectrum = cosmopower(cosmo_model="lcdm")
             self.power_spectrum.set_cosmology(H0=self.cosmo_params["h"]*100.,Ob0=self.cosmo_params["Ob0"],
             Oc0=self.cosmo_params["Om0"]-self.cosmo_params["Ob0"],ln10A_s=np.log(self.cosmo_params["A_s"]*1e10),
@@ -62,7 +60,6 @@ class cosmology_model:
         self.D_CMB = self.background_cosmology.angular_diameter_distance(self.z_CMB).value
 
         if self.power_spectrum_type == "cosmopower":
-
             self.power_spectrum.set_cosmology(H0=self.cosmo_params["h"]*100.,Ob0=self.cosmo_params["Ob0"],
             Oc0=self.cosmo_params["Om0"]-self.cosmo_params["Ob0"],ln10A_s=np.log(self.cosmo_params["A_s"]*1e10),
             n_s=self.cosmo_params["n_s"])
@@ -71,7 +68,7 @@ class cosmology_model:
 
                 self.sigma_8 = self.cosmo_params["sigma_8"]
                 self.cosmo_params["A_s"] = self.power_spectrum.find_As(self.sigma_8)
-
+                # print('got:',self.cosmo_params["A_s"])
                 self.power_spectrum.set_cosmology(H0=self.cosmo_params["h"]*100.,Ob0=self.cosmo_params["Ob0"],
                 Oc0=self.cosmo_params["Om0"]-self.cosmo_params["Ob0"],ln10A_s=np.log(self.cosmo_params["A_s"]*1e10),
                 n_s=self.cosmo_params["n_s"])
@@ -80,8 +77,11 @@ class cosmology_model:
 
                 self.sigma_8 = self.power_spectrum.get_sigma_8()
 
-    def get_theta_mc(self):
+        # print('computing thetamc for params:',self.cosmo_params)
+        theta_mc = self.get_theta_mc()
+        # print('got: ',theta_mc)
 
+    def get_theta_mc(self):
         Ogamma0 = 2.47282*10.**(-5)/self.cosmo_params["h"]**2
         Orad0 =  4.18343*10.**(-5)/self.cosmo_params["h"]**2
         Om0 = self.cosmo_params["Om0"]
