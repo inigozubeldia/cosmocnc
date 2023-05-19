@@ -5,6 +5,8 @@ from .cosmo import *
 from .hmf import *
 
 cnc_params_default = {
+    # what to use to compute cosmology?
+    "cosmology_tool": "astropy",
 
     #Number of cores
 
@@ -97,8 +99,8 @@ cosmo_params_default = {
 "A_s":1.9687e-9, #if amplitude_parameter == "sigma_8", this is overriden by the value given to "sigma_8" in this dictionary
 "n_s":0.96,
 "m_nu":0.06, #m_nu is sum of the three neutrino masses
-"sigma_8":0.811 #if amplitude_paramter == "A_s", this is overriden; the amplitude is taken by the value given to "A_s" in this dictionary
-
+"sigma_8":0.811, #if amplitude_paramter == "A_s", this is overriden; the amplitude is taken by the value given to "A_s" in this dictionary
+"tau_reio": 0.0544
 }
 
 # class priors:

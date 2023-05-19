@@ -48,11 +48,16 @@ class cluster_number_counts:
                 self.scaling_relations[observable] = scaling_relations(observable=observable)
                 self.scaling_relations[observable].initialise_scaling_relation()
         self.cosmology = cosmology_model(cosmo_params=self.cosmo_params,
-        power_spectrum_type=self.cnc_params["power_spectrum_type"],amplitude_parameter=self.cnc_params["cosmo_amplitude_parameter"])
+                                         cosmology_tool = self.cnc_params["cosmology_tool"],
+                                         power_spectrum_type=self.cnc_params["power_spectrum_type"],
+                                         amplitude_parameter=self.cnc_params["cosmo_amplitude_parameter"],
+                                         )
 
-        self.catalogue = cluster_catalogue(catalogue_name=self.cnc_params["cluster_catalogue"],precompute_cnc_quantities=True,
-        bins_obs_select_edges=self.cnc_params["bins_edges_obs_select"],bins_z_edges=self.cnc_params["bins_edges_z"],
-        observables=self.cnc_params["observables"],obs_select=self.cnc_params["obs_select"])
+        self.catalogue = cluster_catalogue(catalogue_name=self.cnc_params["cluster_catalogue"],
+                                           precompute_cnc_quantities=True,
+                                           bins_obs_select_edges=self.cnc_params["bins_edges_obs_select"],
+                                           bins_z_edges=self.cnc_params["bins_edges_z"],
+                                           observables=self.cnc_params["observables"],obs_select=self.cnc_params["obs_select"])
 
         self.scatter = scatter(params=self.scal_rel_params)
         # self.priors = priors(prior_params={"cosmology":self.cosmology,"theta_mc_prior":self.cnc_params["theta_mc_prior"]})
@@ -78,7 +83,7 @@ class cluster_number_counts:
     def update_params(self,cosmo_params,scal_rel_params):
 
         self.cosmo_params = cosmo_params
-        self.cosmology.update_cosmology(cosmo_params)
+        self.cosmology.update_cosmology(cosmo_params,cosmology_tool = self.cnc_params["cosmology_tool"])
         self.scal_rel_params = {}
 
         for key in scal_rel_params.keys():
@@ -104,12 +109,20 @@ class cluster_number_counts:
         self.obs_select_vec = np.linspace(self.cnc_params["obs_select_min"],self.cnc_params["obs_select_max"],self.cnc_params["n_obs_select"])
 
         #Evaluate some useful quantities (to be passed potentially to scaling relations)
-
+        # print('self.redshift_vec:',type(self.redshift_vec))
+        # self.cosmology.background_cosmology.angular_diameter_distance(0.)
         self.D_A = self.cosmology.background_cosmology.angular_diameter_distance(self.redshift_vec).value
+        # print('self.D_A:',self.D_A)
+        # exit(0)
         self.E_z = self.cosmology.background_cosmology.H(self.redshift_vec).value/(self.cosmology.cosmo_params["h"]*100.)
+        # print('self.E_z:',self.E_z)
+        # exit(0)
         self.D_l_CMB = self.cosmology.background_cosmology.angular_diameter_distance_z1z2(self.redshift_vec,self.cosmology.z_CMB).value
+        # print('self.D_l_CMB :',self.D_l_CMB )
+        # exit(0)
         self.rho_c = self.cosmology.background_cosmology.critical_density(self.redshift_vec).value*1000.*self.const.mpc**3/self.const.solar
-
+        # print('self.rho_c :',self.rho_c )
+        # exit(0)
         #Evaluate the halo mass function
 
         self.halo_mass_function = halo_mass_function(cosmology=self.cosmology,hmf_type=self.cnc_params["hmf_type"],

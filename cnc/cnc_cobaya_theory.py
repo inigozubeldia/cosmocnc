@@ -7,6 +7,7 @@ import os
 import numpy as np
 
 class cnc(classy):
+    cosmology_tool:  Optional[str] = "astropy" # current options are astropy (and cosmopower), classy, and classy_sz (fast-mode)
     number_cores : Optional[str] = 8
     number_cores_hmf : Optional[str] = 8
     parallelise_type : Optional[str] = "redshift" #"patch" or "redshift"
@@ -78,7 +79,7 @@ class cnc(classy):
         from cnc import cluster_number_counts
 
         self.cnc = cluster_number_counts()
-
+        self.cnc.cnc_params["cosmology_tool"] = self.cosmology_tool
         self.cnc.cnc_params["number_cores"] = self.number_cores
         self.cnc.cnc_params["number_cores_hmf"] = self.number_cores_hmf # 8,
         self.cnc.cnc_params["parallelise_type"] = self.parallelise_type # "redshift", #"patch" or "redshift"
@@ -240,7 +241,7 @@ class cnc(classy):
         params_values = params_values_dict.copy()
 
         cosmo_params = self.cnc.cosmo_params
-
+        assign_parameter_value(cosmo_params,params_values,"tau_reio")
         assign_parameter_value(cosmo_params,params_values,"Om0")
         assign_parameter_value(cosmo_params,params_values,"Ob0")
         assign_parameter_value(cosmo_params,params_values,"h")
@@ -290,6 +291,7 @@ class cnc(classy):
         return load_module('cnc')
 
 def assign_parameter_value(lik_dict,cobaya_dict,parameter):
+    # print("cobaya_dict:",cobaya_dict)
 
     if parameter in cobaya_dict:
 

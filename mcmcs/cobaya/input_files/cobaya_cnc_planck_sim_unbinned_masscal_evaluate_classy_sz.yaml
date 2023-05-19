@@ -12,7 +12,7 @@ likelihood:
 
 theory:
   cnc.cnc_cobaya_theory.cnc:
-    cosmology_tool: "astropy"
+    cosmology_tool: "classy_sz"
     number_cores : 10
     number_cores_hmf : 10
     # n_points : 2000000
@@ -37,6 +37,9 @@ params:
       scale: 1.
     proposal: 1.
     latex: H_0
+    
+  tau_reio:
+    value: 0.06
 
   sigma_8:
     prior:
