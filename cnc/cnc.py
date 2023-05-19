@@ -27,6 +27,7 @@ class cluster_number_counts:
         self.n_obs_matrix = None
         self.hmf_matrix = None
         self.n_tot = None
+        self.n_binned = None
 
         self.hmf_extra_params = {}
 
@@ -206,6 +207,8 @@ class cluster_number_counts:
                     dn_dx0 = self.hmf_matrix[redshift_index,:]
                     x0 = self.ln_M
 
+                    t0 = time.time()
+
                     for k in range(0,self.scal_rel_selection.get_n_layers()):
 
                         self.scal_rel_selection.precompute_scaling_relation(params=self.scal_rel_params,
@@ -233,6 +236,10 @@ class cluster_number_counts:
 
                     dn_dx1_interp = np.interp(self.obs_select_vec,x0,dn_dx0)
                     abundance = dn_dx1_interp*4.*np.pi*self.scal_rel_selection.skyfracs[patch_index] #number counts per patch
+
+                    t1 = time.time()
+
+                #    print("t",t1-t0)
 
                     return_dict[str(patch_index) + "_" + str(redshift_index)] = abundance  #number counts per patch
 
@@ -688,23 +695,31 @@ class cluster_number_counts:
 
         t0 = time.time()
 
+        if self.hmf_matrix is None:
+
+            self.get_hmf()
+
+        t1 = time.time()
+
+        self.time_hmf = t1-t0
+
         if self.n_tot is None:
 
             self.get_number_counts()
 
-        #Poisson term
+        #Abundance term
 
         log_lik = -self.n_tot
 
-        t1 = time.time()
+        t2 = time.time()
 
-        self.t_poisson = t1-t0
+        self.t_abundance = t2-t1
 
         #Cluster data term
 
         log_lik = log_lik + self.get_log_lik_data()
 
-        self.t_data = time.time()-t1
+        self.t_data = time.time()-t2
 
         return log_lik
 
@@ -720,6 +735,9 @@ class cluster_number_counts:
 
         if self.cnc_params["binned_lik_type"] == "z_and_obs_select":
 
+            self.n_binned = np.zeros((len(self.cnc_params["bins_edges_z"])-1,len(self.cnc_params["bins_edges_obs_select"])-1))
+            self.n_binned_obs = np.zeros((len(self.cnc_params["bins_edges_z"])-1,len(self.cnc_params["bins_edges_obs_select"])-1))
+
             for i in range(0,len(self.cnc_params["bins_edges_z"])-1):
 
                 for j in range(0,len(self.cnc_params["bins_edges_obs_select"])-1):
@@ -734,13 +752,17 @@ class cluster_number_counts:
                     n_theory = integrate.simps(integrate.simps(abundance_matrix_interp,redshift_vec_interp),obs_select_vec_interp)
                     n_observed = self.catalogue.number_counts[i,j]
 
+                    self.n_binned[i,j] = n_theory
+                    self.n_binned_obs[i,j] = n_observed
+
                     log_lik = log_lik - n_theory + n_observed*np.log(n_theory)
+
 
         elif self.cnc_params["binned_lik_type"] == "obs_select":
 
             self.n_obs = integrate.simps(np.transpose(self.abundance_matrix),self.redshift_vec)
-            self.n_obs_binned = np.zeros(len(self.cnc_params["bins_edges_obs_select"])-1)
-            self.n_obs_binned_obs = np.zeros(len(self.cnc_params["bins_edges_obs_select"])-1)
+            self.n_binned = np.zeros(len(self.cnc_params["bins_edges_obs_select"])-1)
+            self.n_binned_obs = np.zeros(len(self.cnc_params["bins_edges_obs_select"])-1)
 
             for i in range(0,len(self.cnc_params["bins_edges_obs_select"])-1):
 
@@ -749,16 +771,16 @@ class cluster_number_counts:
 
                 n_theory = integrate.simps(n_interp,obs_select_vec_interp)
                 n_observed = np.sum(self.catalogue.number_counts[:,i])
-                self.n_obs_binned_obs[i] = n_observed
-                self.n_obs_binned[i] = n_theory
+                self.n_binned_obs[i] = n_observed
+                self.n_binned[i] = n_theory
 
                 log_lik = log_lik - n_theory + n_observed*np.log(n_theory)
 
         elif self.cnc_params["binned_lik_type"] == "z":
 
             self.n_z = integrate.simps(self.abundance_matrix,self.obs_select_vec)
-            self.n_z_binned = np.zeros(len(self.cnc_params["bins_edges_z"])-1)
-            self.n_z_binned_obs = np.zeros(len(self.cnc_params["bins_edges_z"])-1)
+            self.n_binned = np.zeros(len(self.cnc_params["bins_edges_z"])-1)
+            self.n_binned_obs = np.zeros(len(self.cnc_params["bins_edges_z"])-1)
 
             for i in range(0,len(self.cnc_params["bins_edges_z"])-1):
 
@@ -773,3 +795,16 @@ class cluster_number_counts:
                 log_lik = log_lik - n_theory + n_observed*np.log(n_theory)
 
         return log_lik
+
+    def get_c_statistic(self):
+
+        if self.n_binned is None:
+
+            self.get_log_lik_binned()
+
+        n_binned_mean = self.n_binned.flatten()
+        n_binned_obs = self.n_binned_obs.flatten()
+
+        self.C,self.C_mean,self.C_std = get_cash_statistic(n_binned_obs,n_binned_mean)
+
+        return (self.C,self.C_mean,self.C_std)

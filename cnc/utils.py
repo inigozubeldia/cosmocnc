@@ -3,6 +3,7 @@ import multiprocess as mp
 import scipy.signal as signal
 import scipy.stats as stats
 import functools
+import math
 
 def convolve_1d_b(x,dn_dx,sigma_scatter): #alternative convolution function, slower
 
@@ -85,23 +86,29 @@ def get_cash_statistic(n_obs_vec,n_mean_vec):
 
     C = eval_cash_statistic(n_obs_vec,n_mean_vec)
 
-    C_mean = 0.
-    C_var = 0.
+    C_mean = np.zeros(len(C))
+    C_var = np.zeros(len(C))
 
-    for i in range(0,len(n_obs)):
+    for i in range(0,len(n_mean_vec)):
 
-        C_mean_i,C_var_i = eval_cash_statistic_expected(n_mean_vec[i])
+        C_mean[i],C_var[i] = eval_cash_statistic_expected(n_mean_vec[i])
 
-        C_mean = C_mean + C_mean_i
-        C_var = C_var + C_var_i
+    indices_nonnan = ~np.isnan(C)
 
+    C = C[indices_nonnan]
+    C_var = C_var[indices_nonnan]
+    C_mean = C_mean[indices_nonnan]
+
+    C = np.sum(C)
+    C_var = np.sum(C_var)
+    C_mean = np.sum(C_mean)
     C_std = np.sqrt(C_var)
 
     return (C,C_mean,C_std)
 
 def eval_cash_statistic(n_obs,n_mean):
 
-    return 2.*np.sum(n_mean - n_obs + n_obs*np.log(n_obs/n_mean))
+    return 2.*(n_mean - n_obs + n_obs*np.log(n_obs/n_mean))
 
 def eval_cash_statistic_expected(n_mean):
 
