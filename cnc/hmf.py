@@ -6,9 +6,15 @@ import time
 
 class halo_mass_function:
 
-    def __init__(self,cosmology=None,hmf_type="Tinker08",
-    mass_definition="500c",M_min=1e13,M_max=1e16,n_points=1000,type_deriv="numerical",
-    hmf_calc="cnc",extra_params=None):
+    def __init__(self,
+                 cosmology=None,
+                 hmf_type="Tinker08",
+                 mass_definition="500c",
+                 M_min=1e13,M_max=1e16,
+                 n_points=1000,
+                 type_deriv="numerical",
+                 hmf_calc="cnc",
+                 extra_params=None):
 
         self.hmf_type = hmf_type
         self.mass_definition = mass_definition
@@ -40,9 +46,15 @@ class halo_mass_function:
 
                 md = "SOMean"
 
-            self.massfunc_hmf = hmf_package.MassFunction(Mmax=np.log10(self.M_max*self.h),Mmin=np.log10(self.M_min*self.h),z=0.,
-            mdef_model=md,mdef_params={"overdensity":float(self.mass_definition[0:-1])},cosmo_model=self.cosmology.background_cosmology,
-            dlog10m=0.005,sigma_8=cosmology.cosmo_params["sigma_8"],n=cosmology.cosmo_params["n_s"])
+            self.massfunc_hmf = hmf_package.MassFunction(Mmax=np.log10(self.M_max*self.h),
+                                                         Mmin=np.log10(self.M_min*self.h),
+                                                         z=0.,
+                                                         mdef_model=md,
+                                                         mdef_params={"overdensity":float(self.mass_definition[0:-1])},
+                                                         cosmo_model=self.cosmology.background_cosmology,
+                                                         dlog10m=0.005,
+                                                         sigma_8=cosmology.cosmo_params["sigma_8"],
+                                                         n=cosmology.cosmo_params["n_s"])
 
     def eval_hmf(self,redshift,log=False,volume_element=False):
 
@@ -57,7 +69,6 @@ class halo_mass_function:
         if self.hmf_calc == "cnc":
 
             if self.hmf_type == "Tinker08":
-
                 k,ps = self.cosmology.power_spectrum.get_linear_power_spectrum(redshift)
 
                 rho_m = self.rho_c_0*self.cosmology.cosmo_params["Om0"]

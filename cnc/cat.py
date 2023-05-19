@@ -91,7 +91,7 @@ class cluster_catalogue:
             self.catalogue["p_zc19"] = catalogue["p_zc19"]
             self.catalogue_patch["p_zc19"] = catalogue["p_zc19_patch"]
             self.catalogue["z"] = catalogue["z"]
-            self.catalogue["z_std"] = np.ones(len(self.catalogue["z"]))*0.02
+            self.catalogue["z_std"] = np.ones(len(self.catalogue["z"]))*1e-2
 
             self.obs_select = "q_mmf3_mean"
 

@@ -9,6 +9,7 @@ class scaling_relations:
     def __init__(self,observable="q_mmf3"):
 
         self.observable = observable
+        self.preprecompute = False
 
     def get_n_layers(self):
 
@@ -54,8 +55,23 @@ class scaling_relations:
 
         if observable == "p_zc19":
 
-            self.sigma_theta_lens_vec = np.load("/home/iz221/bayesian_bias/sigma_theta_lens/sigma_theta_lens_vec.npy") #first index is patch index, from 0 to 432
+            self.sigma_theta_lens_vec = np.load(root_path + "data/sigma_theta_lens_vec.npy") #first index is patch index, from 0 to 417
             self.sigma_theta_lens_vec[:,0,:] = self.sigma_theta_lens_vec[:,0,:]*180.*60./np.pi #in arcmin
+
+    def preprecompute_scaling_relation(self,params=None,other_params=None):
+
+        if params is None:
+
+            params = scaling_relation_params_default
+
+        self.params = params
+        self.preprecompute = True
+
+        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean":
+
+            self.M_500 = np.exp(other_params["lnM"])
+            self.M_500_alpha = self.M_500**self.params["alpha"]
+            self.M_500_13 = self.M_500**(1./3.)
 
     def precompute_scaling_relation(self,params=None,other_params=None,layer=0,patch_index=0):
 
@@ -107,9 +123,17 @@ class scaling_relations:
 
                 #x0 is ln M_500
 
-                self.M_500 = np.exp(x0)
-                Y_500 = self.prefactor_Y_500*self.M_500**self.params["alpha"]
-                self.theta_500 = self.prefactor_M_500_to_theta*self.M_500**(1./3.)
+                if self.preprecompute == False:
+
+                    self.M_500 = np.exp(x0)
+                    Y_500 = self.prefactor_Y_500*self.M_500**self.params["alpha"]
+                    self.theta_500 = self.prefactor_M_500_to_theta*self.M_500**(1./3.)
+
+                elif self.preprecompute == True:
+
+                    Y_500 = self.prefactor_Y_500*self.M_500_alpha
+                    self.theta_500 = self.prefactor_M_500_to_theta*self.M_500_13
+
                 sigma_vec = self.sigma_matrix[:,patch_index]
 
                 sigma = np.interp(self.theta_500,self.theta_500_vec,sigma_vec)
@@ -206,6 +230,29 @@ class scaling_relations:
 
         return dx1_dx0
 
+class covariance_matrix:
+
+    def __init__(self,scatter,observables,observable_patches,layer=[0,1]):#
+
+        self.layer = layer
+        self.cov = []
+        self.inv_cov = []
+
+        for k in range(0,len(self.layer)):
+
+            cov_matrix = np.zeros((len(observables),len(observables)))
+
+            for i in range(0,len(observables)):
+
+                for j in range(0,len(observables)):
+
+                    cov_matrix[i,j] = scatter.get_cov(observable1=observables[i],
+                    observable2=observables[j],patch1=observable_patches[observables[i]],
+                    patch2=observable_patches[observables[j]],layer=self.layer[k])
+
+            self.cov.append(cov_matrix)
+            self.inv_cov.append(np.linalg.inv(cov_matrix))
+
 class scatter:
 
     def __init__(self,params=None):
@@ -262,11 +309,9 @@ class scatter:
 
                 cov = 1.
 
-                #cov = 0.001
-
             elif observable1 == "m_lens" and observable2 == "m_lens":
 
-                cov = 10.#self.params["sigma_mlens"]**2
+                cov = self.params["sigma_mlens"]**2
 
             elif observable1 == "p_zc19" and observable2 == "p_zc19":
 
