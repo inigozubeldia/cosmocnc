@@ -8,18 +8,19 @@ import numpy as np
 
 class cnc(classy):
 
-    cosmology_tool:  Optional[str] = "astropy" # current options are astropy (and cosmopower), classy, and classy_sz (fast-mode)
-    number_cores : Optional[str] = 8
-    number_cores_hmf : Optional[str] = 8
+    number_cores_hmf : Optional[str] = 1
+    number_cores_abundance : Optional[str] = 1
+    number_cores_data : Optional[str] = 8
+
     parallelise_type : Optional[str] = "redshift" #"patch" or "redshift"
 
     #Precision parameters
 
-    n_points : Optional[str] = 2**13 #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
-    n_obs_select : Optional[str] =  2**13
-    n_z : Optional[str] =  100
+    n_points : Optional[str] = 2048 #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
+    n_obs_select : Optional[str] =  2048
+    n_z : Optional[str] =  50
 
-    n_points_data_lik : Optional[str] =  128 #number of points for the computation of the cluster data part of the likelihood
+    n_points_data_lik : Optional[str] =  64 #number of points for the computation of the cluster data part of the likelihood
     sigma_mass_prior : Optional[str] =  5.
 
     #Observables and catalogue
@@ -27,7 +28,6 @@ class cnc(classy):
     likelihood_type : Optional[str] =  "unbinned" #"unbinned", "binned", or "extreme_value"
     obs_select : Optional[str] =  "q_mmf3_mean" #"q_mmf3_mean",
     observables : Optional[str] =  [["q_mmf3_mean","p_zc19"]]
-    observables_mass_estimation : Optional[str] =  ["q_mmf3_mean"]
     cluster_catalogue :Optional[str] =  "zc19_simulated_12"
 
     data_lik_from_abundance :Optional[str] =  True #if True, and if the only observable is the selection observable,
@@ -41,8 +41,8 @@ class cnc(classy):
 
     #hmf parameters
 
-    M_min : Optional[str] =  1e13
-    M_max : Optional[str] =  1e16
+    M_min : Optional[str] =  5e13
+    M_max : Optional[str] =  5e15
     hmf_calc : Optional[str] =  "cnc" #"cnc", "hmf", or "MiraTitan"
     hmf_type : Optional[str] =  "Tinker08"
     mass_definition : Optional[str] =  "500c"
@@ -50,6 +50,7 @@ class cnc(classy):
     power_spectrum_type : Optional[str] =  "cosmopower"
     cosmo_amplitude_parameter : Optional[str] =  "sigma_8" #"sigma_8" or "A_s"
     scalrel_type_deriv : Optional[str] =  "analytical" #"analytical" or "numerical"
+    cosmology_tool:  Optional[str] = "astropy" # current options are astropy (and cosmopower), classy, and classy_sz (fast-mode)
 
     #Redshift errors parameters
 
@@ -66,8 +67,8 @@ class cnc(classy):
 
     #Priors
 
-    priors: Optional[str] =  True
-    theta_mc_prior: Optional[str] =  True
+    priors: Optional[str] =  False
+    theta_mc_prior: Optional[str] =  False
 
     def initialize(self):
 
@@ -80,8 +81,9 @@ class cnc(classy):
 
         self.cnc = cluster_number_counts()
         self.cnc.cnc_params["cosmology_tool"] = self.cosmology_tool
-        self.cnc.cnc_params["number_cores"] = self.number_cores
-        self.cnc.cnc_params["number_cores_hmf"] = self.number_cores_hmf # 8,
+        self.cnc.cnc_params["number_cores_abundance"] = self.number_cores_abundance
+        self.cnc.cnc_params["number_cores_hmf"] = self.number_cores_hmf
+        self.cnc.cnc_params["number_cores_data"] = self.number_cores_data
         self.cnc.cnc_params["parallelise_type"] = self.parallelise_type # "redshift", #"patch" or "redshift"
 
         #Precision parameters
@@ -99,7 +101,6 @@ class cnc(classy):
         self.cnc.cnc_params["obs_select"] = self.obs_select # "q_mmf3_mean", #"q_mmf3_mean",
         self.cnc.cnc_params["observables"] = self.observables # [["q_mmf3_mean","p_zc19"]],
     #    "observables": [["q_mmf3_mean"]],
-        self.cnc.cnc_params["observables_mass_estimation"] = self.observables_mass_estimation # ["q_mmf3_mean"],
         self.cnc.cnc_params["cluster_catalogue"] = self.cluster_catalogue #"zc19_simulated_12",
         #"cluster_catalogue":"zc19_simulated_12",#"Planck_MMF3_cosmo",
         #"cluster_catalogue":"q_mlens_simulated",
@@ -298,7 +299,7 @@ def assign_parameter_value(lik_dict,cobaya_dict,parameter):
     if parameter in cobaya_dict:
 
         lik_dict[parameter] = cobaya_dict[parameter]
-        
+
     if parameter == 'h' and 'H0' in cobaya_dict.keys():
         # print('cobaya dict:',cobaya_dict.keys())
         lik_dict[parameter] = cobaya_dict['H0']/100.

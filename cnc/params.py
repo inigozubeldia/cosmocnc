@@ -8,29 +8,30 @@ cnc_params_default = {
 
     #Number of cores
 
-    "number_cores": 1,
     "number_cores_hmf": 1,
-    "parallelise_type": "redshift", #"patch" or "redshift"
+    "number_cores_abundance": 1,
+    "number_cores_data": 1,
+
+    "parallelise_type": "patch", #"patch" or "redshift"
 
     #Precision parameters
 
-    "n_points": 512*4,#2**13, #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
-    "n_obs_select": 512*4,#2**13,
-    "n_z": 25,
-    "n_points_data_lik": 128, #number of points for the computation of the cluster data part of the likelihood
+    "n_points": 2048, #2**13, ##number of points in which the mass function at each redshift (and all the convolutions) is evaluated
+    "n_obs_select": 2048,# 2**13,
+    "n_z": 50,
+    "n_points_data_lik": 64, #number of points for the computation of the cluster data part of the likelihood
     "sigma_mass_prior": 5.,
 
     #Observables and catalogue
 
     "likelihood_type": "unbinned", #"unbinned", "binned", or "extreme_value"
-#    "obs_select": "q_mmf3_mean", #"q_mmf3_mean",
     "obs_select": "q_mmf3_mean", #"q_mmf3_mean",
     "observables": [["q_mmf3_mean","p_zc19"]],
-    #"observables": [["q_mmf3_mean"]],
+#    "observables": [["q_mmf3_mean"]],
     "cluster_catalogue":"zc19_simulated_12",#"0.0119647",#
-    #"cluster_catalogue":"Planck_MMF3_cosmo",#"Planck_MMF3_cosmo",
+    "cluster_catalogue":"Planck_MMF3_cosmo",#"Planck_MMF3_cosmo",
     #"cluster_catalogue":"q_mlens_simulated",
-    "data_lik_from_abundance":False, #if True, and if the only observable is the selection observable,
+    "data_lik_from_abundance":True, #if True, and if the only observable is the selection observable,
 
     #Range of abundance observables
 

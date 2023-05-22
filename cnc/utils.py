@@ -37,9 +37,7 @@ def convolve_1d(x,dn_dx,sigma_scatter):
 
 def convolve_nd(distribution,kernel):
 
-#    array_fft = np.fft.fftn(array_in)
-#    kernel_fft = np.fft.fftn(kernel)
-#    array = np.fft.fftshift(np.fft.ifftn(array_fft*kernel_fft)).real/np.sum(kernel) FASTER BUT DOES WEIRD THINGS
+#    convolved = np.fft.fftshift(np.fft.ifftn(np.fft.fftn(distribution)* np.fft.fftn(kernel))).real/np.sum(kernel) #FASTER BUT DOES WEIRD THINGS
 
     convolved = signal.convolve(distribution,kernel,mode="same",method="fft")/np.sum(kernel)
 
