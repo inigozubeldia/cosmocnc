@@ -1,6 +1,6 @@
 # run with:
 # cobaya-run /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/input_files/cobaya_soliket_cnc_unbinned_cluster_counts_planck_template.yaml -f
-output: /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/chains/cnc_unbinned_cluster_counts_sim_unbinned_masscal_evaluate
+output: /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/chains/cnc_unbinned_cluster_counts_sim_unbinned_nomasscal_evaluate
 
 # output: /home/iz221/cnc/mcmcs/cobaya/chains_paper/cnc_planck_sim_unbinned_masscal_2
 
@@ -12,10 +12,10 @@ likelihood:
 
 theory:
   cnc.cnc_cobaya_theory.cnc:
-    cosmology_tool: "astropy"
-    number_cores : 10
-    number_cores_hmf : 10
-    parallelise_type: patch
+    # cosmology_tool: "classy_sz"
+    number_cores : 1
+    number_cores_hmf : 1
+    observables: [["q_mmf3_mean"]]
     # n_points : 2000000
     # add all params you want here.
     # default values are in cnc_cobaya_theory
@@ -38,6 +38,9 @@ params:
       scale: 1.
     proposal: 1.
     latex: H_0
+
+  tau_reio:
+    value: 0.06
 
   sigma_8:
     prior:
@@ -164,8 +167,6 @@ params:
   theta_mc: ### currently giving 0.
     latex: '\theta_{mc}'
     derived: true
-
-
 prior:
   bias_cmblens_prior: 'lambda bias_cmblens: stats.norm.logpdf(bias_cmblens, loc=0.93, scale=0.05)'
   sigma_lnp_prior: 'lambda sigma_lnp: stats.norm.logpdf(sigma_lnp, loc=0.22, scale=0.05)'

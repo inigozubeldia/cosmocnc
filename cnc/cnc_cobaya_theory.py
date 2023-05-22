@@ -69,6 +69,15 @@ class cnc(classy):
 
     priors: Optional[str] =  True
     theta_mc_prior: Optional[str] =  True
+
+
+
+    # mass pivot for spt-style lkl:
+    SZmPivot: Optional[str] = 3e14
+
+    # scaling relation parameter:
+    dof: Optional[str] = 0
+
     def initialize(self):
 
         """Importing cnc from the correct path, if given, and if not, globally."""
@@ -83,7 +92,8 @@ class cnc(classy):
         self.cnc.cnc_params["number_cores"] = self.number_cores
         self.cnc.cnc_params["number_cores_hmf"] = self.number_cores_hmf # 8,
         self.cnc.cnc_params["parallelise_type"] = self.parallelise_type # "redshift", #"patch" or "redshift"
-
+        print(self.cnc.cnc_params["number_cores"])
+        # exit(0)
         #Precision parameters
 
         self.cnc.cnc_params["n_points"] = self.n_points # 2**13, #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
@@ -142,6 +152,12 @@ class cnc(classy):
         # self.cnc.cnc_params["priors"] = self.priors # True,
         # self.cnc.cnc_params["theta_mc_prior"] = self.theta_mc_prior # True,
 
+
+        # spt-style params:
+        self.cnc.cnc_params["SZmPivot"] = self.SZmPivot
+
+        # scaling relation param:
+        self.cnc.cnc_params["dof"] = self.dof
 
         super(classy,self).initialize()
         self.extra_args["output"] = self.extra_args.get("output","")
@@ -257,6 +273,14 @@ class cnc(classy):
         assign_parameter_value(scal_rel_params,params_values,"sigma_lnq")
         assign_parameter_value(scal_rel_params,params_values,"sigma_lnp")
         assign_parameter_value(scal_rel_params,params_values,"corr_lnq_lnp")
+
+        # SPT-style parameters:
+        assign_parameter_value(scal_rel_params,params_values,"A_sz")
+        assign_parameter_value(scal_rel_params,params_values,"B_sz")
+        assign_parameter_value(scal_rel_params,params_values,"C_sz")
+
+        # updating scaling relations params that are not varied in mcmc, but passed in input
+        scal_rel_params['dof'] = self.cnc.cnc_params["dof"]
 
         self.cnc.update_params(cosmo_params,scal_rel_params)
 

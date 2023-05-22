@@ -13,8 +13,8 @@ likelihood:
 theory:
   cnc.cnc_cobaya_theory.cnc:
     cosmology_tool: "classy_sz"
-    number_cores : 10
-    number_cores_hmf : 10
+    number_cores : 1
+    number_cores_hmf : 1
     # n_points : 2000000
     # add all params you want here.
     # default values are in cnc_cobaya_theory
@@ -37,7 +37,7 @@ params:
       scale: 1.
     proposal: 1.
     latex: H_0
-    
+
   tau_reio:
     value: 0.06
 

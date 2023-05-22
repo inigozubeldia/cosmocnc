@@ -87,7 +87,15 @@ scaling_relation_params_default = {
 "bias_cmblens":0.92,
 "sigma_lnp":0.22,
 "corr_lnq_lnp":0.77,
-"a_lens":1.
+"a_lens":1.,
+
+
+# spt style lkl:
+"A_sz": 5.1,
+"B_sz": 1.75,
+"C_sz": 0.5,
+# "SZmPivot" : 3e14
+
 
 }
 

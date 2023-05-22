@@ -6,15 +6,16 @@ from .config import *
 
 class scaling_relations:
 
-    def __init__(self,observable="q_mmf3"):
+    def __init__(self,observable="q_mmf3",cnc_params = None):
 
         self.observable = observable
+        self.cnc_params = cnc_params
 
     def get_n_layers(self):
 
         observable = self.observable
 
-        if observable == "q_mmf3" or observable == "q_mmf3_mean" or observable == "p_zc19":
+        if observable == "q_mmf3" or observable == "q_mmf3_mean" or observable == "p_zc19" or observable == 'xi':
 
             n_layers = 2
 
@@ -57,6 +58,28 @@ class scaling_relations:
             self.sigma_theta_lens_vec = np.load(root_path + "data/sigma_theta_lens_vec.npy") #first index is patch index, from 0 to 432
             self.sigma_theta_lens_vec[:,0,:] = self.sigma_theta_lens_vec[:,0,:]*180.*60./np.pi #in arcmin
 
+        # SPT case:
+        if observable == 'xi':
+            print('dealing with xi sr')
+            # this is pasted from Bocquet's SPT_SZ_cluster_likelihood/SPTcluster_data.py
+            SPTfieldSize = (82.8711, 100.241, 147.589, 222.647, 189.955, 155.547, 156.243,
+                155.731, 145.888, 102.657, 83.2849, 166.812, 70.4952, 111.217, 108.625,
+                83.6339, 204.453, 102.832, 68.6716)
+            self.skyfracs = np.asarray(SPTfieldSize)/2500
+            print('self.skyfracs:',len(self.skyfracs))
+            print('self.skyfracs:',self.skyfracs)
+
+            # this is pasted from Bocquet's SPT_SZ_cluster_likelihood/SPTcluster_data.py
+            SPTfieldCorrection = (1.3267815, 1.3875717, 1.2923182, 1.2479916, 1.1095432,
+                1.2668965, 1.1357954, 1.1901025, 1.1754438, 1.0798830, 1.1631297, 1.1999745,
+                1.1762851, 1.1490106, 1.1916442, 1.1307591, 1.1864938, 1.1629247, 1.1823912)
+            # the spt field correction is what multiplies the zeta[z,M] relation
+            self.SPTfieldCorrection = np.asarray(SPTfieldCorrection)
+            # print('trying to reach cnc params:')
+
+            # print(self.cnc_params)
+            # exit(0)
+
     def precompute_scaling_relation(self,params=None,other_params=None,layer=0,patch_index=0):
 
         if params is None:
@@ -96,6 +119,20 @@ class scaling_relations:
 
             self.prefactor_lens = factor*convergence
             self.prefactor_M_500_to_theta_lensing = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_cmblens"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
+
+        if observable == 'xi':
+            print('precomputing quantities for spt xi-m scaling relations')
+            # SPT code snipet:
+            # massterm = (mass/self.SZmPivot)**self.Bsz
+            # zterm = (cosmo.Ez(z, self.cosmology)/cosmo.Ez(.6, self.cosmology))**self.Csz
+            # return self.Asz * massterm[None,:] * zterm[:,None]
+            # end of SPT code snipet.
+
+            E_z = other_params["E_z"]
+            E_z0p6 = other_params["E_z0p6"]
+            self.prefactor_xi =  self.params["A_sz"]*(E_z/E_z0p6)**self.params["C_sz"]
+            # print(self.prefactor_xi,E_z,E_z0p6)
+            # exit(0)
 
     def eval_scaling_relation(self,x0,layer=0,patch_index=0,other_params=None,direction="forward"):
 
@@ -148,6 +185,29 @@ class scaling_relations:
             elif layer == 1:
 
                 x1 = np.exp(x0)
+
+        if observable == 'xi':
+            if layer == 0:
+                print('evaluating xi-m relation spt case')
+                #x0 is ln M_500
+                M_500 = np.exp(x0) #### Msun
+                # print('M_500',M_500)
+                # exit(0)
+                xi = self.prefactor_xi*(M_500*1e14/self.cnc_params['SZmPivot'])**self.params["B_sz"]
+                sigma = 1./self.SPTfieldCorrection[patch_index]
+                x1 = np.log(xi/sigma)
+                # print('x1: ',np.exp(x1))
+                # exit(0)
+                print('self.params["dof"] : ',self.params["dof"])
+                # exit(0)
+            elif layer == 1:
+                print('evaluating true sz snr spt case')
+                #x0 is log q_true
+                x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
+                #x1 is q_true
+                # print('self.params["dof"] : ',self.params["dof"])
+                # exit(0)
+
 
         self.x1 = x1
 
@@ -204,6 +264,17 @@ class scaling_relations:
 
             dx1_dx0 = np.gradient(self.x1,x0)
 
+            ###3 check this and remove the case TBD
+            if observable == "xi" and layer == 1:
+                dof = self.params["dof"]
+                exp = np.exp(2.*x0)
+                dx1_dx0 = exp/np.sqrt(exp+dof)
+
+        # if 0 in dx1_dx0:
+        #     print('0 in den')
+        #     print('x1:',self.x1)
+        #     print('layer:',layer)
+        #     exit(0)
         return dx1_dx0
 
 class scatter:
@@ -221,6 +292,10 @@ class scatter:
         if layer == 0:
 
             if observable1 == "q_mmf3" and observable2 == "q_mmf3":
+
+                cov = self.params["sigma_lnq"]**2
+
+            elif observable1 == "xi" and observable2 == "xi":
 
                 cov = self.params["sigma_lnq"]**2
 
@@ -255,6 +330,10 @@ class scatter:
         elif layer == 1:
 
             if observable1 == "q_mmf3" and observable2 == "q_mmf3":
+
+                cov = 1.
+
+            elif observable1 == "xi" and observable2 == "xi":
 
                 cov = 1.
 
