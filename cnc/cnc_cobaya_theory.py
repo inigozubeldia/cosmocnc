@@ -7,9 +7,10 @@ import os
 import numpy as np
 
 class cnc(classy):
-    cosmology_tool:  Optional[str] = "astropy" # current options are astropy (and cosmopower), classy, and classy_sz (fast-mode)
-    number_cores : Optional[str] = 8
-    number_cores_hmf : Optional[str] = 8
+
+    number_cores_hmf : Optional[str] = 1
+    number_cores_abundance : Optional[str] = 1
+    number_cores_data : Optional[str] = 8
     parallelise_type : Optional[str] = "redshift" #"patch" or "redshift"
 
     #Precision parameters
@@ -41,7 +42,8 @@ class cnc(classy):
     z_max : Optional[str] =  1.01
 
     #hmf parameters
-
+    
+    cosmology_tool:  Optional[str] = "astropy" # current options are astropy (and cosmopower), classy, and classy_sz (fast-mode)
     M_min : Optional[str] =  1e13
     M_max : Optional[str] =  1e16
     hmf_calc : Optional[str] =  "cnc" #"cnc", "hmf", or "MiraTitan"
