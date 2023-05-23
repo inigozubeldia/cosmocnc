@@ -7,76 +7,6 @@ import os
 import numpy as np
 
 class cnc(classy):
-    cosmology_tool:  Optional[str] = "astropy" # current options are astropy (and cosmopower), classy, and classy_sz (fast-mode)
-    number_cores : Optional[str] = 8
-    number_cores_hmf : Optional[str] = 8
-    parallelise_type : Optional[str] = "redshift" #"patch" or "redshift"
-
-    #Precision parameters
-
-    n_points : Optional[str] = 2**13 #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
-    n_obs_select : Optional[str] =  2**13
-    n_z : Optional[str] =  100
-
-    n_points_data_lik : Optional[str] =  128 #number of points for the computation of the cluster data part of the likelihood
-    sigma_mass_prior : Optional[str] =  5.
-
-    #Observables and catalogue
-
-    likelihood_type : Optional[str] =  "unbinned" #"unbinned", "binned", or "extreme_value"
-    obs_select : Optional[str] =  "q_mmf3_mean" #"q_mmf3_mean",
-    observables : Optional[str] =  [["q_mmf3_mean","p_zc19"]]
-#    "observables": [["q_mmf3_mean"]],
-    observables_mass_estimation : Optional[str] =  ["q_mmf3_mean"]
-    cluster_catalogue :Optional[str] =  "zc19_simulated_12"
-    #"cluster_catalogue":"zc19_simulated_12",#"Planck_MMF3_cosmo",
-    #"cluster_catalogue":"q_mlens_simulated",
-    data_lik_from_abundance :Optional[str] =  True #if True, and if the only observable is the selection observable,
-
-    #Range of abundance observables
-
-    obs_select_min : Optional[str] =  6.
-    obs_select_max : Optional[str] =  100.
-    z_min : Optional[str] =  0.01
-    z_max : Optional[str] =  1.01
-
-    #hmf parameters
-
-    M_min : Optional[str] =  1e13
-    M_max : Optional[str] =  1e16
-    hmf_calc : Optional[str] =  "cnc" #"cnc", "hmf", or "MiraTitan"
-    hmf_type : Optional[str] =  "Tinker08"
-    mass_definition : Optional[str] =  "500c"
-    hmf_type_deriv : Optional[str] =  "numerical" #"analytical" or "numerical"
-    power_spectrum_type : Optional[str] =  "cosmopower"
-    cosmo_amplitude_parameter : Optional[str] =  "sigma_8" #"sigma_8" or "A_s"
-    scalrel_type_deriv : Optional[str] =  "analytical" #"analytical" or "numerical"
-
-    #Redshift errors parameters
-
-    z_errors: Optional[str] =  False
-    n_z_error_integral: Optional[str] =  5
-    z_error_sigma_integral_range: Optional[str] =  3
-    z_error_min: Optional[str] =  1e-2 #minimum z std for which an integral over redshift in the cluster data term is performed (if "z_errors" = True)
-
-    #Only if binned likelihood is computed
-
-    binned_lik_type:Optional[str] =  "z_and_obs_select" #can be "obs_select", "z", or "z_and_obs_select"
-    bins_edges_z: Optional[str] =  np.linspace(0.01,1.01,11)
-    bins_edges_obs_select: Optional[str] =  np.exp(np.linspace(np.log(6.),np.log(60),6))
-
-    #Priors
-
-    priors: Optional[str] =  True
-    theta_mc_prior: Optional[str] =  True
-
-
-
-    # mass pivot for spt-style lkl:
-    SZmPivot: Optional[str] = 3e14
-
-    # scaling relation parameter:
-    dof: Optional[str] = 0
 
     number_cores_hmf : Optional[str] = 1
     number_cores_abundance : Optional[str] = 1
@@ -151,9 +81,8 @@ class cnc(classy):
 
         self.cnc = cluster_number_counts()
         self.cnc.cnc_params["cosmology_tool"] = self.cosmology_tool
-        self.cnc.cnc_params["number_cores_abundance"] = self.number_cores_abundance
-        self.cnc.cnc_params["number_cores_hmf"] = self.number_cores_hmf
-        self.cnc.cnc_params["number_cores_data"] = self.number_cores_data
+        self.cnc.cnc_params["number_cores"] = self.number_cores
+        self.cnc.cnc_params["number_cores_hmf"] = self.number_cores_hmf # 8,
         self.cnc.cnc_params["parallelise_type"] = self.parallelise_type # "redshift", #"patch" or "redshift"
 
         #Precision parameters
@@ -171,6 +100,7 @@ class cnc(classy):
         self.cnc.cnc_params["obs_select"] = self.obs_select # "q_mmf3_mean", #"q_mmf3_mean",
         self.cnc.cnc_params["observables"] = self.observables # [["q_mmf3_mean","p_zc19"]],
     #    "observables": [["q_mmf3_mean"]],
+        self.cnc.cnc_params["observables_mass_estimation"] = self.observables_mass_estimation # ["q_mmf3_mean"],
         self.cnc.cnc_params["cluster_catalogue"] = self.cluster_catalogue #"zc19_simulated_12",
         #"cluster_catalogue":"zc19_simulated_12",#"Planck_MMF3_cosmo",
         #"cluster_catalogue":"q_mlens_simulated",
@@ -213,12 +143,6 @@ class cnc(classy):
         # self.cnc.cnc_params["priors"] = self.priors # True,
         # self.cnc.cnc_params["theta_mc_prior"] = self.theta_mc_prior # True,
 
-
-        # spt-style params:
-        self.cnc.cnc_params["SZmPivot"] = self.SZmPivot
-
-        # scaling relation param:
-        self.cnc.cnc_params["dof"] = self.dof
 
         super(classy,self).initialize()
         self.extra_args["output"] = self.extra_args.get("output","")
@@ -335,29 +259,9 @@ class cnc(classy):
         assign_parameter_value(scal_rel_params,params_values,"sigma_lnp")
         assign_parameter_value(scal_rel_params,params_values,"corr_lnq_lnp")
 
-        # SPT-style parameters:
-        assign_parameter_value(scal_rel_params,params_values,"A_sz")
-        assign_parameter_value(scal_rel_params,params_values,"B_sz")
-        assign_parameter_value(scal_rel_params,params_values,"C_sz")
-
-        # updating scaling relations params that are not varied in mcmc, but passed in input
-        scal_rel_params['dof'] = self.cnc.cnc_params["dof"]
-
         self.cnc.update_params(cosmo_params,scal_rel_params)
 
         # Gather products
-        # print(self.collectors.items())
-        # d, d_extra = self._cnc_get_derived_all(derived_requested=want_derived)
-        # print('d',d)
-        derived = {}
-        for p in self.output_params:
-            if p == 'theta_mc':
-                cosmology = self.cnc.cosmology
-                derived[p] = cosmology.get_theta_mc()
-        # print('derived:',derived)
-        # print('self.output_params', self.output_params)
-        if want_derived:
-            state["derived"] = {p: derived.get(p) for p in self.output_params}
 
         derived = {}
 
@@ -395,9 +299,6 @@ def assign_parameter_value(lik_dict,cobaya_dict,parameter):
     if parameter in cobaya_dict:
 
         lik_dict[parameter] = cobaya_dict[parameter]
-    if parameter == 'h' and 'H0' in cobaya_dict.keys():
-        # print('cobaya dict:',cobaya_dict.keys())
-        lik_dict[parameter] = cobaya_dict['H0']/100.
 
     if parameter == 'h' and 'H0' in cobaya_dict.keys():
         # print('cobaya dict:',cobaya_dict.keys())

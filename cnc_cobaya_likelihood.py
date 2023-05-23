@@ -41,5 +41,5 @@ class cnc_likelihood(Likelihood):
         _derived = params_values.pop("_derived", None)
         theory = self._get_theory(**params_values)
         loglkl = theory
-
+        
         return loglkl

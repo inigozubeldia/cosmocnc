@@ -15,21 +15,11 @@ class cosmology_model:
     def __init__(self,cosmo_params=None,cosmology_tool = "astropy", power_spectrum_type="cosmopower",amplitude_parameter="sigma_8"):
 
         if cosmo_params is None:
+
             cosmo_params = cosmo_params_default
+
         self.cosmo_params = cosmo_params
         self.amplitude_parameter = amplitude_parameter
-        if cosmology_tool == "classy_sz":
-            # print('using classy_sz')
-            from classy_sz import Class
-            self.classy = Class()
-            # print("tau_reio:",self.cosmo_params["tau_reio"])
-            self.classy.set({
-                           'H0': self.cosmo_params["h"]*100.,
-                           'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
-                           'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2,
-                           'ln10^{10}A_s':np.log(self.cosmo_params["A_s"]*1e10),
-                           'tau_reio':  self.cosmo_params["tau_reio"],
-                           'n_s': self.cosmo_params["n_s"],
 
         if cosmology_tool == "classy_sz":
 
@@ -154,8 +144,8 @@ class cosmology_model:
                 classy_params['sigma8'] = self.cosmo_params["sigma_8"]
 
             elif self.amplitude_parameter == "A_s":
+
                 classy_params['ln10^{10}A_s'] = np.log(self.cosmo_params["A_s"]*1e10)
-            # print('classy_params:',classy_params)
 
             self.classy.set(classy_params)
             self.classy.compute_class_szfast()
@@ -203,6 +193,7 @@ class cosmology_model:
         theta_mc = self.get_theta_mc()
 
     def get_theta_mc(self):
+
         Ogamma0 = 2.47282*10.**(-5)/self.cosmo_params["h"]**2
         Orad0 =  4.18343*10.**(-5)/self.cosmo_params["h"]**2
         Om0 = self.cosmo_params["Om0"]

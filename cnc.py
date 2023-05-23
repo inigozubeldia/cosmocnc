@@ -41,8 +41,9 @@ class cluster_number_counts:
 
             for observable in observable_set:
 
-                self.scaling_relations[observable] = scaling_relations(observable=observable,cnc_params = self.cnc_params)
+                self.scaling_relations[observable] = scaling_relations(observable=observable)
                 self.scaling_relations[observable].initialise_scaling_relation()
+
         self.cosmology = cosmology_model(cosmo_params=self.cosmo_params,
                                          cosmology_tool = self.cnc_params["cosmology_tool"],
                                          power_spectrum_type=self.cnc_params["power_spectrum_type"],
@@ -56,7 +57,7 @@ class cluster_number_counts:
                                            observables=self.cnc_params["observables"],obs_select=self.cnc_params["obs_select"])
 
         self.scatter = scatter(params=self.scal_rel_params)
-        # self.priors = priors(prior_params={"cosmology":self.cosmology,"theta_mc_prior":self.cnc_params["theta_mc_prior"]})
+        self.priors = priors(prior_params={"cosmology":self.cosmology,"theta_mc_prior":self.cnc_params["theta_mc_prior"]})
 
         if self.cnc_params["hmf_calc"] == "MiraTitan":
 
@@ -104,25 +105,11 @@ class cluster_number_counts:
         self.obs_select_vec = np.linspace(self.cnc_params["obs_select_min"],self.cnc_params["obs_select_max"],self.cnc_params["n_obs_select"])
 
         #Evaluate some useful quantities (to be passed potentially to scaling relations)
-        # print('self.redshift_vec:',type(self.redshift_vec))
-        # self.cosmology.background_cosmology.angular_diameter_distance(0.)
-        self.D_A = self.cosmology.background_cosmology.angular_diameter_distance(self.redshift_vec).value
-        # print('self.D_A:',self.D_A)
-        # exit(0)
-        self.E_z = self.cosmology.background_cosmology.H(self.redshift_vec).value/(self.cosmology.cosmo_params["h"]*100.)
-        # print('self.E_z:',self.E_z)
-        # exit(0)
-        self.D_l_CMB = self.cosmology.background_cosmology.angular_diameter_distance_z1z2(self.redshift_vec,self.cosmology.z_CMB).value
-        # print('self.D_l_CMB :',self.D_l_CMB )
-        # exit(0)
-        self.rho_c = self.cosmology.background_cosmology.critical_density(self.redshift_vec).value*1000.*self.const.mpc**3/self.const.solar
-        # print('self.rho_c :',self.rho_c )
-        # exit(0)
 
-        # Add more parameters:
-        # for SPT-like we need:
-        self.E_z0p6 = self.cosmology.background_cosmology.H(0.6).value/(self.cosmology.cosmo_params["h"]*100.)
-        #Evaluate the halo mass function
+        self.D_A = self.cosmology.background_cosmology.angular_diameter_distance(self.redshift_vec).value
+        self.E_z = self.cosmology.background_cosmology.H(self.redshift_vec).value/(self.cosmology.cosmo_params["h"]*100.)
+        self.D_l_CMB = self.cosmology.background_cosmology.angular_diameter_distance_z1z2(self.redshift_vec,self.cosmology.z_CMB).value
+        self.rho_c = self.cosmology.background_cosmology.critical_density(self.redshift_vec).value*1000.*self.const.mpc**3/self.const.solar
 
         self.halo_mass_function = halo_mass_function(cosmology=self.cosmology,hmf_type=self.cnc_params["hmf_type"],
         mass_definition=self.cnc_params["mass_definition"],M_min=self.cnc_params["M_min"],
@@ -133,7 +120,6 @@ class cluster_number_counts:
         indices_split = np.array_split(np.arange(self.cnc_params["n_z"]),n_cores)
 
         t0 = time.time()
-
 
         if self.cnc_params["hmf_calc"] == "cnc" or self.cnc_params["hmf_calc"] == "hmf":
 
@@ -171,7 +157,6 @@ class cluster_number_counts:
             self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=True)
 
         t1 = time.time()
-        # print('self.hmf_matrix',self.hmf_matrix)
 
         self.t_hmf = t1-t0
 
@@ -214,13 +199,6 @@ class cluster_number_counts:
         def f_mp(rank,out_q):
 
             return_dict = {}
-            print(indices_split_patches[rank])
-            print(indices_split_redshift[rank])
-
-            # exit(0)
-
-
-
 
             for i in range(0,len(indices_split_patches[rank])):
 
@@ -231,10 +209,7 @@ class cluster_number_counts:
                     patch_index = int(indices_split_patches[rank][i])
                     redshift_index = indices_split_redshift[rank][j]
 
-                    other_params = {"D_A": self.D_A[redshift_index],
-                                    "E_z": self.E_z[redshift_index],
-                                    "H0": self.cosmology.background_cosmology.H0.value,
-                                    "E_z0p6" : self.E_z0p6}
+                    other_params = {"D_A": self.D_A[redshift_index],"E_z": self.E_z[redshift_index],"H0": self.cosmology.background_cosmology.H0.value}
 
                     dn_dx0 = self.hmf_matrix[redshift_index,:]
                     x0 = self.ln_M
@@ -244,44 +219,29 @@ class cluster_number_counts:
                     for k in range(0,self.scal_rel_selection.get_n_layers()):
 
                         self.scal_rel_selection.precompute_scaling_relation(params=self.scal_rel_params,
-                                                other_params=other_params,
-                                                layer=k,
-                                                patch_index=patch_index)
+                        other_params=other_params,layer=k,patch_index=patch_index)
 
                         x1 = self.scal_rel_selection.eval_scaling_relation(x0,
-                                                     layer=k,
-                                                     patch_index=patch_index)
+                        layer=k,patch_index=patch_index)
 
                         dx1_dx0 = self.scal_rel_selection.eval_derivative_scaling_relation(x0,
-                                                          layer=k,patch_index=patch_index,
-                                                          scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
+                        layer=k,patch_index=patch_index,
+                        scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
 
                         dn_dx1 = dn_dx0/dx1_dx0
                         x1_interp = np.linspace(np.min(x1),np.max(x1),self.cnc_params["n_points"])
                         dn_dx1 = np.interp(x1_interp,x1,dn_dx1)
-                        # print('dn_dx1',dn_dx0,dx1_dx0)
-                        # exit(0)
-                        # print('moving to scatter part for layer ',k)
-
 
                         sigma_scatter = np.sqrt(self.scatter.get_cov(observable1=self.cnc_params["obs_select"],
-                                                                     observable2=self.cnc_params["obs_select"],
-                                                                     layer=k,patch1=patch_index,patch2=patch_index))
+                        observable2=self.cnc_params["obs_select"],
+                        layer=k,patch1=patch_index,patch2=patch_index))
 
-                        # print('got sigma_scatter: ',sigma_scatter)
                         dn_dx1 = convolve_1d(x1_interp,dn_dx1,sigma_scatter)
-                        # print('dn_dx1 after conv ',dn_dx1)
-                        # exit(0)
+
                         x0 = x1_interp
                         dn_dx0 = dn_dx1
 
-                    # exit(0)
-                    # print('now about to interpolate self.obs_select_vec',self.obs_select_vec)
-                    # print('on: ',x0,dn_dx0)
-                    # exit(0)
                     dn_dx1_interp = np.interp(self.obs_select_vec,x0,dn_dx0)
-                    # print('got dn_dx1_interp',dn_dx1_interp)
-                    # exit(0)
                     abundance = dn_dx1_interp*4.*np.pi*self.scal_rel_selection.skyfracs[patch_index] #number counts per patch
 
                     t1 = time.time()
@@ -290,12 +250,8 @@ class cluster_number_counts:
 
                     return_dict[str(patch_index) + "_" + str(redshift_index)] = abundance  #number counts per patch
 
-
-                print('index i :',i)
                 n_obs = integrate.simps(abundance_matrix,self.redshift_vec,axis=0)
-                print('n_obs :',len(n_obs),n_obs)
                 return_dict[str(patch_index) + "_n_obs"] = n_obs
-                print('return_dict:',return_dict)
 
             if n_cores > 1:
 
@@ -305,9 +261,6 @@ class cluster_number_counts:
 
                 return return_dict
 
-        print('done with abundance')
-        print('launching multiprocessing')
-        # exit(0)
         return_dict = launch_multiprocessing(f_mp,n_cores)
 
         for i in range(0,self.n_patches):
@@ -323,7 +276,6 @@ class cluster_number_counts:
         self.t_abundance = t1-t0
 
         self.abundance_matrix = np.sum(self.abundance_tensor,axis=0)
-        print('self.abundance_matrix',self.abundance_matrix)
 
     #Computes the data part of the unbinned likelihood
 
@@ -337,49 +289,26 @@ class cluster_number_counts:
 
         log_lik_data = 0.
 
-        print('self.n_obs_matrix ',self.n_obs_matrix[0][100:200],np.shape(self.n_obs_matrix))
-        # exit(0)
+        for i in range(0,len(indices_no_z)):
 
-        print('indices_no_z',indices_no_z)
-        print('NEEED TO UNCOMMENT THIS!!!')
-        # for i in range(0,len(indices_no_z)):
-        #
-        #     log_lik_data = log_lik_data\
-        #                  + np.log(np.interp(self.catalogue.catalogue[self.cnc_params["obs_select"]][int(indices_no_z[i])],
-        #                                     self.obs_select_vec,
-        #                                     self.n_obs_matrix[self.catalogue.catalogue_patch[self.cnc_params["obs_select"]][int(indices_no_z[i])]]))
-        #
-        #
-        #     print('log_lik_data :',i,log_lik_data)
-        # exit(0)
+            log_lik_data = log_lik_data + np.log(np.interp(self.catalogue.catalogue[self.cnc_params["obs_select"]][int(indices_no_z[i])],
+            self.obs_select_vec,self.n_obs_matrix[self.catalogue.catalogue_patch[self.cnc_params["obs_select"]][int(indices_no_z[i])]]))
 
         #Computes log lik of data for clusters with z if there is only the selection observable
 
         if self.cnc_params["data_lik_from_abundance"] == True:
-            print("computing data_lik_from_abundance")
-            # exit(0)
 
             indices_unique = self.catalogue.indices_unique
             indices_unique_dict = self.catalogue.indices_unique_dict
-            print(indices_unique,indices_unique_dict)
 
             for i in range(0,len(indices_unique)):
-                print('id unique:',i)
 
                 patch_index = int(indices_unique[i])
                 abundance_matrix = self.abundance_tensor[patch_index,:,:]
-                print(patch_index,abundance_matrix,np.shape(abundance_matrix))
-                # exit(0)
-
-
                 abundance_interp = interpolate.RegularGridInterpolator((self.redshift_vec,self.obs_select_vec),abundance_matrix)
-                print('abundance_interp',abundance_interp)
-
 
                 indices = indices_unique_dict[str(int(patch_index))]
                 z_select = self.catalogue.catalogue["z"][indices_obs_select][indices]
-                print('z_select:',z_select)
-                # exit(0)
                 obs_select = self.catalogue.catalogue[self.cnc_params["obs_select"]][indices_obs_select][indices]
                 z_std_select = self.catalogue.catalogue["z_std"][indices_obs_select][indices]
 
@@ -429,22 +358,19 @@ class cluster_number_counts:
 
                 log_lik_data = log_lik_data + log_lik_clusters
 
-            print('log_lik_data',log_lik_data)
-            # exit(0)
         #Computes log lik of data if there are more observables than the selection observable
 
         elif self.cnc_params["data_lik_from_abundance"] == False:
-            print("not computing data_lik_from_abundance")
-            exit(0)
+
             indices_other_obs = np.concatenate((indices_other_obs,indices_obs_select))
 
         if len(indices_other_obs) > 0:
 
             t0 = time.time()
 
-        #    print("")
-        #    print("")
-        #    print("")
+            print("")
+            print("")
+            print("")
 
             n_cores = self.cnc_params["number_cores_data"]
             indices_split = np.array_split(indices_other_obs,n_cores)
@@ -454,7 +380,7 @@ class cluster_number_counts:
 
             t1 = time.time()
 
-        #    print("Ini",t1-t0)
+            print("Ini",t1-t0)
 
             def f_mp(rank,out_q):
 
@@ -518,7 +444,7 @@ class cluster_number_counts:
                                 layers = np.arange(self.scaling_relations[observable].get_n_layers())
 
                                 for layer in layers:
-                                    print('computing sr again')
+
                                     self.scaling_relations[observable].precompute_scaling_relation(params=self.scal_rel_params,
                                     other_params=other_params,layer=layer,patch_index=observable_patches[observable])
 
@@ -730,13 +656,13 @@ class cluster_number_counts:
                 log_lik_data = log_lik_data + return_dict[key]
 
 
-        #    print("")
-        #    print("")
-        #    print("")
+            print("")
+            print("")
+            print("")
         #    print("Time hmf2",self.t_hmf2)
-        #    print("Time select",self.time_select)
-        #    print("Time mass range",self.time_mass_range)
-        #    print("Time back",self.time_back)
+            print("Time select",self.time_select)
+            print("Time mass range",self.time_mass_range)
+            print("Time back",self.time_back)
 
         return log_lik_data
 
@@ -776,9 +702,6 @@ class cluster_number_counts:
     def get_log_lik(self):
 
         t0 = time.time()
-        log_lik = 0.
-        if self.cnc_params["likelihood_type"] == "unbinned":
-            log_lik = log_lik + self.get_log_lik_unbinned()
 
         log_lik = 0.
 
@@ -803,6 +726,7 @@ class cluster_number_counts:
         print("Time",self.t_total)
 
         if np.isnan(log_lik) == True:
+
             log_lik = -np.inf
 
         return log_lik
@@ -810,6 +734,7 @@ class cluster_number_counts:
     #Computes the unbinned log likelihood
 
     def get_log_lik_unbinned(self):
+
         t0 = time.time()
 
         if self.hmf_matrix is None:
