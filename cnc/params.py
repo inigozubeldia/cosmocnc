@@ -5,8 +5,6 @@ from .cosmo import *
 from .hmf import *
 
 cnc_params_default = {
-    # what to use to compute cosmology?
-    "cosmology_tool": "astropy",
 
     #Number of cores
 
