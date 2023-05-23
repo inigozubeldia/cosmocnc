@@ -12,12 +12,14 @@ class cluster_catalogue:
                  bins_obs_select_edges=np.linspace(0.01,1.01,11),
                  bins_z_edges=np.exp(np.linspace(np.log(6.),np.log(100),6)),
                  observables=None, # "q_mmf3_mean","p_zc19", etc
-                 obs_select=None):
+                 obs_select=None,
+                 cnc_params=None):
 
         self.catalogue_name = catalogue_name
         self.catalogue = {}
         self.catalogue_patch = {}
         self.precompute_cnc_quantities = precompute_cnc_quantities
+        self.cnc_params = cnc_params
 
         if isinstance(bins_obs_select_edges,str):
             bins_obs_select_edges = eval(bins_obs_select_edges)
@@ -127,7 +129,7 @@ class cluster_catalogue:
             self.catalogue["z"] = catalogue["z"]
 
         elif self.catalogue_name == "SPT2500d":
-            print('loading spt catalogue')
+            # print('loading spt catalogue')
             # here are some spt-specific  quantities.
             # these are pasted from Bocquet's SPT_SZ_cluster_likelihood/SPTcluster_data.py
             SPTfieldNames = ('ra5h30dec-55', 'ra23h30dec-55', 'ra21hdec-60', 'ra3h30dec-60',
@@ -155,35 +157,47 @@ class cluster_catalogue:
             # now we load the catalogue
             SPTcatalogfile = root_path + "data/spt/SPT2500d.fits"
             spt_catalog = Table.read(SPTcatalogfile)
-            self.catalogue["z"] = np.asarray(spt_catalog['redshift'])
-            print('z:',self.catalogue["z"][:10])
+
+            threshold = self.cnc_params['obs_select_threshold']
+            indices_catalog = []
+            for i in range(0,len(spt_catalog["xi"])):
+                if (spt_catalog["xi"][i] > threshold) and (spt_catalog['redshift'][i]>self.cnc_params["z_min"]):
+                    indices_catalog.append(i)
+            # exit(0)
+
+
+
+            self.catalogue["z"] = np.asarray(spt_catalog['redshift'][indices_catalog])
+            # print('z:',self.catalogue["z"][:10])
             indices_no_z = np.where(self.catalogue["z"] == 0.)[0]
 
-            print('indices_no_z',indices_no_z)
+            # print('indices_no_z',indices_no_z)
             self.catalogue["z"][indices_no_z] = None
 
-            self.catalogue["z_std"] = np.asarray(spt_catalog['redshift_err'])
-            print('z_std:',len(self.catalogue["z_std"]))
-            print('z_std:',self.catalogue["z_std"][:10])
+            self.catalogue["z_std"] = np.asarray(spt_catalog['redshift_err'][indices_catalog])
+            # print('z_std:',len(self.catalogue["z_std"]))
+            # print('z_std:',self.catalogue["z_std"][:10])
 
 
-            self.catalogue["xi"] = np.asarray(spt_catalog['xi'])
+            self.catalogue["xi"] = np.asarray(spt_catalog['xi'][indices_catalog])
 
-            print('xi:',len(self.catalogue["xi"]))
-            print('xi:',self.catalogue["xi"][:10])
+            # print('xi:',len(self.catalogue["xi"]))
+            # print('xi:',self.catalogue["xi"][:10])
 
             self.catalogue_patch['xi'] = np.zeros(len(self.catalogue['xi'])).astype(np.int)
-            for id,field in enumerate(spt_catalog['field']):
+            for id,field in enumerate(spt_catalog['field'][indices_catalog]):
                 self.catalogue_patch['xi'][id] = SPTfieldNames.index(field)
-            print('patches xi:',len(self.catalogue_patch["xi"]))
-            print('patches xi:',self.catalogue_patch["xi"][:10])
+            # print('patches xi:',len(self.catalogue_patch["xi"]))
+            # print('patches xi:',self.catalogue_patch["xi"][:10])
 
-            print('self.obs_select',self.obs_select)
+            # print('self.obs_select',self.obs_select)
+
+            # print('threshold =',self.cnc_params['obs_select_threshold'])
             # exit(0)
 
 
         self.n_clusters = len(self.catalogue[self.obs_select])
-        print('self.n_clusters',self.n_clusters)
+        # print('self.n_clusters',self.n_clusters)
 
         if self.precompute_cnc_quantities == True:
 
@@ -191,7 +205,7 @@ class cluster_catalogue:
 
 
     def get_precompute_cnc_quantities(self):
-        print('precomputing quantities')
+
         self.indices_no_z = np.argwhere(np.isnan(self.catalogue["z"]))[:,0]
         self.indices_with_z = np.argwhere(~np.isnan(self.catalogue["z"]))[:,0]
 
@@ -210,11 +224,6 @@ class cluster_catalogue:
         self.observable_dict = {}
         self.indices_obs_select = []
         self.indices_other_obs = []
-
-        print('self.observables',self.observables)
-        print('self.bins_z_edges',self.bins_z_edges)
-        print('self.bins_obs_select_edges',self.bins_obs_select_edges)
-        # exit(0)
 
         for i in self.indices_with_z:
 
@@ -249,9 +258,6 @@ class cluster_catalogue:
 
         self.indices_unique = []
         self.indices_unique_dict = {}
-        print('self.indices_obs_select',self.indices_obs_select)
-        print('self.observable_dict',self.observable_dict)
-        # exit(0)
 
         if len(self.indices_obs_select) > 0:
 

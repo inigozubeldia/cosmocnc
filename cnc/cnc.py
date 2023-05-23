@@ -53,7 +53,9 @@ class cluster_number_counts:
                                            precompute_cnc_quantities=True,
                                            bins_obs_select_edges=self.cnc_params["bins_edges_obs_select"],
                                            bins_z_edges=self.cnc_params["bins_edges_z"],
-                                           observables=self.cnc_params["observables"],obs_select=self.cnc_params["obs_select"])
+                                           observables=self.cnc_params["observables"],
+                                           obs_select=self.cnc_params["obs_select"],
+                                           cnc_params = self.cnc_params)
 
         self.scatter = scatter(params=self.scal_rel_params)
         # self.priors = priors(prior_params={"cosmology":self.cosmology,"theta_mc_prior":self.cnc_params["theta_mc_prior"]})
@@ -207,13 +209,6 @@ class cluster_number_counts:
         def f_mp(rank,out_q):
 
             return_dict = {}
-            print(indices_split_patches[rank])
-            print(indices_split_redshift[rank])
-
-            # exit(0)
-
-
-
 
             for i in range(0,len(indices_split_patches[rank])):
 
@@ -284,11 +279,9 @@ class cluster_number_counts:
                     return_dict[str(patch_index) + "_" + str(redshift_index)] = abundance  #number counts per patch
 
 
-                print('index i :',i)
                 n_obs = integrate.simps(abundance_matrix,self.redshift_vec,axis=0)
-                print('n_obs :',len(n_obs),n_obs)
+
                 return_dict[str(patch_index) + "_n_obs"] = n_obs
-                print('return_dict:',return_dict)
 
             if n_cores > 1:
 
@@ -298,9 +291,6 @@ class cluster_number_counts:
 
                 return return_dict
 
-        print('done with abundance')
-        print('launching multiprocessing')
-        # exit(0)
         return_dict = launch_multiprocessing(f_mp,n_cores)
 
         for i in range(0,self.n_patches):
@@ -316,7 +306,6 @@ class cluster_number_counts:
         self.t_abundance = t1-t0
 
         self.abundance_matrix = np.sum(self.abundance_tensor,axis=0)
-        print('self.abundance_matrix',self.abundance_matrix)
 
     #Computes the data part of the unbinned likelihood
 
@@ -330,49 +319,32 @@ class cluster_number_counts:
 
         log_lik_data = 0.
 
-        print('self.n_obs_matrix ',self.n_obs_matrix[0][100:200],np.shape(self.n_obs_matrix))
-        # exit(0)
 
-        print('indices_no_z',indices_no_z)
-        print('NEEED TO UNCOMMENT THIS!!!')
-        # for i in range(0,len(indices_no_z)):
-        #
-        #     log_lik_data = log_lik_data\
-        #                  + np.log(np.interp(self.catalogue.catalogue[self.cnc_params["obs_select"]][int(indices_no_z[i])],
-        #                                     self.obs_select_vec,
-        #                                     self.n_obs_matrix[self.catalogue.catalogue_patch[self.cnc_params["obs_select"]][int(indices_no_z[i])]]))
-        #
-        #
-        #     print('log_lik_data :',i,log_lik_data)
-        # exit(0)
+        for i in range(0,len(indices_no_z)):
+
+            log_lik_data = log_lik_data\
+                         + np.log(np.interp(self.catalogue.catalogue[self.cnc_params["obs_select"]][int(indices_no_z[i])],
+                                            self.obs_select_vec,
+                                            self.n_obs_matrix[self.catalogue.catalogue_patch[self.cnc_params["obs_select"]][int(indices_no_z[i])]]))
 
         #Computes log lik of data for clusters with z if there is only the selection observable
 
         if self.cnc_params["data_lik_from_abundance"] == True:
-            print("computing data_lik_from_abundance")
-            # exit(0)
 
             indices_unique = self.catalogue.indices_unique
             indices_unique_dict = self.catalogue.indices_unique_dict
-            print(indices_unique,indices_unique_dict)
+            # print(indices_unique,indices_unique_dict)
 
             for i in range(0,len(indices_unique)):
-                print('id unique:',i)
 
                 patch_index = int(indices_unique[i])
                 abundance_matrix = self.abundance_tensor[patch_index,:,:]
-                print(patch_index,abundance_matrix,np.shape(abundance_matrix))
-                # exit(0)
-
 
                 abundance_interp = interpolate.RegularGridInterpolator((self.redshift_vec,self.obs_select_vec),abundance_matrix)
-                print('abundance_interp',abundance_interp)
 
 
                 indices = indices_unique_dict[str(int(patch_index))]
                 z_select = self.catalogue.catalogue["z"][indices_obs_select][indices]
-                print('z_select:',z_select)
-                # exit(0)
                 obs_select = self.catalogue.catalogue[self.cnc_params["obs_select"]][indices_obs_select][indices]
 
                 #If redshift errors are negligible
@@ -398,6 +370,7 @@ class cluster_number_counts:
                         indices_no_z_err = np.where(z_std_select < self.cnc_params["z_error_min"])[0]
 
                         lik_clusters_no_z_err = abundance_interp(np.transpose(np.array([z_select[indices_no_z_err],obs_select[indices_no_z_err]])))
+
                         log_lik_clusters = np.sum(np.log(lik_clusters_no_z_err))
 
                         for l in range(0,len(indices_z_err)):
@@ -414,20 +387,19 @@ class cluster_number_counts:
                             eval_points = np.zeros((len(z_eval_vec),2))
                             eval_points[:,0] = z_eval_vec
                             eval_points[:,1] = obs_select_cluster
+
                             abundance_z = abundance_interp(eval_points)
+
                             lik_cluster = integrate.simps(abundance_z*z_error_likelihood,z_eval_vec)
 
                             log_lik_clusters = log_lik_clusters + np.log(lik_cluster)
 
                 log_lik_data = log_lik_data + log_lik_clusters
 
-            print('log_lik_data',log_lik_data)
-            # exit(0)
         #Computes log lik of data if there are more observables than the selection observable
 
         elif self.cnc_params["data_lik_from_abundance"] == False:
-            print("not computing data_lik_from_abundance")
-            exit(0)
+
             indices_other_obs = np.concatenate((indices_other_obs,indices_obs_select))
 
         if len(indices_other_obs) > 0:
@@ -510,7 +482,7 @@ class cluster_number_counts:
                                 layers = np.arange(self.scaling_relations[observable].get_n_layers())
 
                                 for layer in layers:
-                                    print('computing sr again')
+                                    # print('computing sr again')
                                     self.scaling_relations[observable].precompute_scaling_relation(params=self.scal_rel_params,
                                     other_params=other_params,layer=layer,patch_index=observable_patches[observable])
 

@@ -12,18 +12,26 @@ likelihood:
 
 theory:
   cnc.cnc_cobaya_theory.cnc:
-    cosmology_tool: "classy_sz"
+    cosmology_tool: "astropy"
     number_cores : 1
     number_cores_hmf : 1
     cluster_catalogue : 'SPT2500d'
     obs_select : 'xi'
     observables : [["xi"]]
-    obs_select_min : 5.
-    obs_select_max :  47.
+
+
+
     z_min : .25
     z_max : 2.
     bins_edges_z: np.linspace(.25,2.,21)
+    z_errors : True
+    z_error_min: 1e-5
+
+    obs_select_min : 5.
+    obs_select_max :  47.
     bins_edges_obs_select: np.exp(np.linspace(np.log(5.),np.log(47),6))
+
+    obs_select_threshold: 5.
 
     parallelise_type: patch
 

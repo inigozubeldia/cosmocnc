@@ -100,6 +100,8 @@ class cnc(classy):
     observables : Optional[str] =  [["q_mmf3_mean","p_zc19"]]
     cluster_catalogue :Optional[str] =  "zc19_simulated_12"
 
+    obs_select_threshold : Optional[str] = 6.
+
     data_lik_from_abundance :Optional[str] =  True #if True, and if the only observable is the selection observable,
 
     #Range of abundance observables
@@ -180,6 +182,9 @@ class cnc(classy):
 
         self.cnc.cnc_params["obs_select_min"] = self.obs_select_min # 6.,
         self.cnc.cnc_params["obs_select_max"] = self.obs_select_max # 100.,
+
+        self.cnc.cnc_params["obs_select_threshold"] = self.obs_select_threshold
+
         self.cnc.cnc_params["z_min"] = self.z_min # 0.01,
         self.cnc.cnc_params["z_max"] = self.z_max # 1.01,
 
