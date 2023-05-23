@@ -19,20 +19,6 @@ class cosmology_model:
         self.cosmo_params = cosmo_params
         self.amplitude_parameter = amplitude_parameter
         if cosmology_tool == "classy_sz":
-            # print('using classy_sz')
-            from classy_sz import Class
-            self.classy = Class()
-            # print("tau_reio:",self.cosmo_params["tau_reio"])
-            self.classy.set({
-                           'H0': self.cosmo_params["h"]*100.,
-                           'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
-                           'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2,
-                           'ln10^{10}A_s':np.log(self.cosmo_params["A_s"]*1e10),
-                           'tau_reio':  self.cosmo_params["tau_reio"],
-                           'n_s': self.cosmo_params["n_s"],
-
-        if cosmology_tool == "classy_sz":
-
             from classy_sz import Class
 
             self.classy = Class()

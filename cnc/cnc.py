@@ -104,17 +104,10 @@ class cluster_number_counts:
         self.obs_select_vec = np.linspace(self.cnc_params["obs_select_min"],self.cnc_params["obs_select_max"],self.cnc_params["n_obs_select"])
 
         #Evaluate some useful quantities (to be passed potentially to scaling relations)
-        # print('self.redshift_vec:',type(self.redshift_vec))
-        # self.cosmology.background_cosmology.angular_diameter_distance(0.)
+
         self.D_A = self.cosmology.background_cosmology.angular_diameter_distance(self.redshift_vec).value
-        # print('self.D_A:',self.D_A)
-        # exit(0)
         self.E_z = self.cosmology.background_cosmology.H(self.redshift_vec).value/(self.cosmology.cosmo_params["h"]*100.)
-        # print('self.E_z:',self.E_z)
-        # exit(0)
         self.D_l_CMB = self.cosmology.background_cosmology.angular_diameter_distance_z1z2(self.redshift_vec,self.cosmology.z_CMB).value
-        # print('self.D_l_CMB :',self.D_l_CMB )
-        # exit(0)
         self.rho_c = self.cosmology.background_cosmology.critical_density(self.redshift_vec).value*1000.*self.const.mpc**3/self.const.solar
         # print('self.rho_c :',self.rho_c )
         # exit(0)
