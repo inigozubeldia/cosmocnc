@@ -26,8 +26,8 @@ cnc_params_default = {
 
     "likelihood_type": "unbinned", #"unbinned", "binned", or "extreme_value"
     "obs_select": "q_mmf3_mean", #"q_mmf3_mean",
-    "observables": [["q_mmf3_mean","p_zc19"]],
-#    "observables": [["q_mmf3_mean"]],
+    # "observables": [["q_mmf3_mean","p_zc19"]],
+    "observables": [["q_mmf3_mean"]],
     "cluster_catalogue":"zc19_simulated_12",#"0.0119647",#
     "cluster_catalogue":"Planck_MMF3_cosmo",#"Planck_MMF3_cosmo",
     #"cluster_catalogue":"q_mlens_simulated",
@@ -55,10 +55,10 @@ cnc_params_default = {
 
     #Redshift errors parameters
 
-    "z_errors": False,
+    "z_errors": True,
     "n_z_error_integral": 100,
     "z_error_sigma_integral_range": 4.,
-    "z_error_min": 1e-1, #minimum z std for which an integral over redshift in the cluster data term is performed (if "z_errors" = True)
+    "z_error_min": 1e-5, #minimum z std for which an integral over redshift in the cluster data term is performed (if "z_errors" = True)
 
     #Only if binned likelihood is computed
 

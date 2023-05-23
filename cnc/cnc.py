@@ -310,9 +310,9 @@ class cluster_number_counts:
                 indices = indices_unique_dict[str(int(patch_index))]
                 z_select = self.catalogue.catalogue["z"][indices_obs_select][indices]
                 obs_select = self.catalogue.catalogue[self.cnc_params["obs_select"]][indices_obs_select][indices]
-                z_std_select = self.catalogue.catalogue["z_std"][indices_obs_select][indices]
 
                 #If redshift errors are negligible
+                z_std_select = self.catalogue.catalogue["z_std"][indices_obs_select][indices]
 
                 if self.cnc_params["z_errors"] == False or all(z_std_select < self.cnc_params["z_error_min"]):
 
@@ -350,7 +350,6 @@ class cluster_number_counts:
                             eval_points = np.zeros((len(z_eval_vec),2))
                             eval_points[:,0] = z_eval_vec
                             eval_points[:,1] = obs_select_cluster
-
                             abundance_z = abundance_interp(eval_points)
                             lik_cluster = integrate.simps(abundance_z*z_error_likelihood,z_eval_vec)
 
