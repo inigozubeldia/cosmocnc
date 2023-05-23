@@ -29,7 +29,7 @@ cnc_params_default = {
     # "observables": [["q_mmf3_mean","p_zc19"]],
     "observables": [["q_mmf3_mean"]],
     "cluster_catalogue":"zc19_simulated_12",#"0.0119647",#
-    "cluster_catalogue":"Planck_MMF3_cosmo",#"Planck_MMF3_cosmo",
+    # "cluster_catalogue":"Planck_MMF3_cosmo",#"Planck_MMF3_cosmo",
     #"cluster_catalogue":"q_mlens_simulated",
     "data_lik_from_abundance":True, #if True, and if the only observable is the selection observable,
 
