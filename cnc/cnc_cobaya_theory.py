@@ -80,10 +80,6 @@ class cnc(classy):
     # scaling relation parameter:
     dof: Optional[str] = 0
 
-    number_cores_hmf : Optional[str] = 1
-    number_cores_abundance : Optional[str] = 1
-    number_cores_data : Optional[str] = 8
-
     parallelise_type : Optional[str] = "redshift" #"patch" or "redshift"
 
     #Precision parameters
