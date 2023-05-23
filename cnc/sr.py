@@ -78,6 +78,21 @@ class scaling_relations:
             self.SPTfieldCorrection = np.asarray(SPTfieldCorrection)
 
 
+    def preprecompute_scaling_relation(self,params=None,other_params=None):
+
+        if params is None:
+
+            params = scaling_relation_params_default
+
+        self.params = params
+        self.preprecompute = True
+
+        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean":
+
+            self.M_500 = np.exp(other_params["lnM"])
+            self.M_500_alpha = self.M_500**self.params["alpha"]
+            self.M_500_13 = self.M_500**(1./3.)
+
 
     def precompute_scaling_relation(self,params=None,other_params=None,layer=0,patch_index=0):
 
@@ -88,13 +103,8 @@ class scaling_relations:
         self.params = params
 
         observable = self.observable
-        self.preprecompute = True
 
         if observable == "q_mmf3" or observable == "q_mmf3_mean":
-
-            self.M_500 = np.exp(other_params["lnM"])
-            self.M_500_alpha = self.M_500**self.params["alpha"]
-            self.M_500_13 = self.M_500**(1./3.)
 
             H0 = other_params["H0"]
             E_z = other_params["E_z"]
