@@ -42,7 +42,7 @@ class cnc(classy):
     z_max : Optional[str] =  1.01
 
     #hmf parameters
-    
+
     cosmology_tool:  Optional[str] = "astropy" # current options are astropy (and cosmopower), classy, and classy_sz (fast-mode)
     M_min : Optional[str] =  1e13
     M_max : Optional[str] =  1e16
@@ -342,6 +342,13 @@ class cnc(classy):
         assign_parameter_value(scal_rel_params,params_values,"A_sz")
         assign_parameter_value(scal_rel_params,params_values,"B_sz")
         assign_parameter_value(scal_rel_params,params_values,"C_sz")
+
+        assign_parameter_value(scal_rel_params,params_values,"A_x")
+        assign_parameter_value(scal_rel_params,params_values,"B_x")
+        assign_parameter_value(scal_rel_params,params_values,"C_x")
+
+        assign_parameter_value(scal_rel_params,params_values,"sigma_lnYx")
+        assign_parameter_value(scal_rel_params,params_values,"corr_xi_Yx")    
 
         # updating scaling relations params that are not varied in mcmc, but passed in input
         scal_rel_params['dof'] = self.cnc.cnc_params["dof"]

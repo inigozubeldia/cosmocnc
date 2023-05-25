@@ -57,7 +57,9 @@ class cluster_number_counts:
                                            obs_select=self.cnc_params["obs_select"],
                                            cnc_params = self.cnc_params)
 
-        self.scatter = scatter(params=self.scal_rel_params)
+
+        self.scatter = scatter(params=self.scal_rel_params,
+                               catalog=self.catalogue)
         # self.priors = priors(prior_params={"cosmology":self.cosmology,"theta_mc_prior":self.cnc_params["theta_mc_prior"]})
 
         if self.cnc_params["hmf_calc"] == "MiraTitan":
@@ -87,7 +89,9 @@ class cluster_number_counts:
 
             self.scal_rel_params[key] = scal_rel_params[key]
 
-        self.scatter = scatter(params=self.scal_rel_params)
+        # self.scatter = scatter(params=self.scal_rel_params)
+        self.scatter = scatter(params=self.scal_rel_params,
+                               catalog=self.catalogue)
 
         self.abundance_matrix = None
         self.n_obs_matrix = None
@@ -455,9 +459,13 @@ class cluster_number_counts:
                         D_l_CMB = np.interp(redshift_eval,self.redshift_vec,self.D_l_CMB)
                         rho_c = np.interp(redshift_eval,self.redshift_vec,self.rho_c)
 
-                        other_params = {"D_A": D_A,"E_z": E_z,
-                        "H0": self.cosmology.background_cosmology.H0.value,
-                        "D_l_CMB":D_l_CMB,"rho_c":rho_c,"D_CMB":self.cosmology.D_CMB}
+                        other_params = {"D_A": D_A,
+                                        "E_z": E_z,
+                                        "H0": self.cosmology.background_cosmology.H0.value,
+                                        "D_l_CMB":D_l_CMB,
+                                        "rho_c":rho_c,
+                                        "D_CMB":self.cosmology.D_CMB,
+                                        "E_z0p6" : self.E_z0p6}
 
                         t0 = time.time()
 
@@ -562,8 +570,10 @@ class cluster_number_counts:
 
                             x_obs = np.array(x_obs)
 
-                            covariance = covariance_matrix(self.scatter,observable_set,
-                            observable_patches,layer=layers)
+                            covariance = covariance_matrix(self.scatter,
+                                                           observable_set,
+                                                           observable_patches,
+                                                           layer=layers)
 
                             n_obs = len(observable_set)
 

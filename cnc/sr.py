@@ -12,11 +12,16 @@ class scaling_relations:
         self.cnc_params = cnc_params
         self.preprecompute = False
 
+    # we should code this a bit more compactly (BB)
     def get_n_layers(self):
 
         observable = self.observable
 
         if observable == "q_mmf3" or observable == "q_mmf3_mean" or observable == "p_zc19" or observable == 'xi':
+
+            n_layers = 2
+
+        elif observable == "Yx":
 
             n_layers = 2
 
@@ -148,6 +153,13 @@ class scaling_relations:
             # print(self.prefactor_xi,E_z,E_z0p6)
             # exit(0)
 
+        if observable == 'Yx':
+            h = other_params["H0"]/100.
+            E_z = other_params["E_z"]
+            self.prefactor_Yx = 3 * (h/.7)**-2.5 \
+                                * (1. /.7**(3/2) / self.params['A_x'] \
+                                / E_z**self.params['C_x'])**(1/self.params['B_x'])
+
     def eval_scaling_relation(self,x0,layer=0,patch_index=0,other_params=None,direction="forward"):
 
         observable = self.observable
@@ -230,6 +242,19 @@ class scaling_relations:
                 # print('self.params["dof"] : ',self.params["dof"])
                 # exit(0)
 
+        if observable == 'Yx':
+            if layer == 0:
+
+                #x0 is ln M_500
+                M_500 = np.exp(x0) #### Msun
+                x1 = self.prefactor_Yx*M_500**(1/self.params['B_x'])
+                x1 = np.log(x1)
+
+
+            elif layer == 1:
+
+                x1 = np.exp(x0)
+
 
         self.x1 = x1
 
@@ -311,21 +336,24 @@ class covariance_matrix:
                 for j in range(0,len(observables)):
 
                     cov_matrix[i,j] = scatter.get_cov(observable1=observables[i],
-                    observable2=observables[j],patch1=observable_patches[observables[i]],
-                    patch2=observable_patches[observables[j]],layer=self.layer[k])
+                                                      observable2=observables[j],
+                                                      patch1=observable_patches[observables[i]],
+                                                      patch2=observable_patches[observables[j]],
+                                                      layer=self.layer[k])
 
             self.cov.append(cov_matrix)
             self.inv_cov.append(np.linalg.inv(cov_matrix))
 
 class scatter:
 
-    def __init__(self,params=None):
+    def __init__(self,params=None,catalog=None):
 
         if params is None:
 
             params = scaling_relation_params_default
 
         self.params = params
+        self.catalog = catalog
 
     def get_cov(self,observable1="q_mmf3",observable2="q_mmf3",patch1=0,patch2=0,layer=0):
 
@@ -363,6 +391,14 @@ class scatter:
 
                 cov = self.params["corr_lnq_lnp"]*self.params["sigma_lnp"]*self.params["sigma_lnq"]
 
+            elif (observable1 == "xi" and observable2 == "Yx") or (observable2 == "xi" and observable1 == "Yx"):
+
+                cov = self.params["corr_xi_Yx"]*self.params["sigma_lnYx"]*self.params["sigma_lnq"] ### patch1 is the cluster index
+
+            elif observable1 == "Yx" and observable2 == "Yx":
+
+                cov = self.params["sigma_lnYx"]**2
+
             else:
 
                 cov = 0.
@@ -376,6 +412,10 @@ class scatter:
             elif observable1 == "xi" and observable2 == "xi":
 
                 cov = 1.
+
+            elif observable1 == "Yx" and observable2 == "Yx":
+
+                cov = self.catalog.catalogue["Yx_std"][patch1]**2 ### patch1 is the cluster index
 
             elif observable1 == "q_mmf3_mean" and observable2 == "q_mmf3_mean":
 

@@ -18,7 +18,7 @@ theory:
     number_cores_hmf : 10
     cluster_catalogue : 'SPT2500d'
     obs_select : 'xi'
-    observables : [["xi"]]
+    observables : [["xi","Yx"]]
 
 
 
@@ -165,6 +165,40 @@ params:
     proposal: 0.05
     latex: C_{\mathrm{SZ}}
 
+
+  A_x:
+    prior:
+      min: 3.
+      max: 10
+    ref:
+      dist: norm
+      loc: 5.
+      scale: 0.05
+    proposal: 0.05
+    latex: A_{\mathrm{X}}
+
+  B_x:
+    prior:
+      min: 0.3
+      max: 0.9
+    ref:
+      dist: norm
+      loc: 0.6
+      scale: 0.05
+    proposal: 0.05
+    latex: B_{\mathrm{X}}
+
+  C_x:
+    prior:
+      min: -1.
+      max: 0.5
+    ref:
+      dist: norm
+      loc: 0.25
+      scale: 0.05
+    proposal: 0.05
+    latex: C_{\mathrm{X}}
+
   sigma_lnq:
     # value: 0.1729
     prior:
@@ -176,6 +210,30 @@ params:
       scale: 0.01
     proposal: 0.01
     latex: \sigma_{\mathrm{SZ}}
+
+  sigma_lnYx:
+    # value: 0.1729
+    prior:
+      min: 0.05
+      max: 0.3
+    ref:
+      dist: norm
+      loc: 0.179
+      scale: 0.01
+    proposal: 0.01
+    latex: \sigma_{\mathrm{X}}
+
+  corr_xi_Yx:
+    # value: 0.1729
+    prior:
+      min: -1
+      max: 1
+    ref:
+      dist: norm
+      loc: 0.
+      scale: 0.01
+    proposal: 0.01
+    latex: \rho_{\mathrm{SZ},\mathrm{X}}
 
   # bias_cmblens:
   #   prior:
@@ -240,7 +298,14 @@ sampler:
        A_sz : 5.5
        B_sz : 1.75
        C_sz:  0.5
-       sigma_lnq : 0.203287
+
+       A_x : 6.5
+       B_x : 0.6
+       C_x : -0.25
+
+       sigma_lnq : 0.255
+       sigma_lnYx : 0.255
+       corr_xi_Yx : 0.1
        # bias_cmblens : 0.915751
        # corr_lnq_lnp : 0.742952
        # sigma_lnp : 0.21741

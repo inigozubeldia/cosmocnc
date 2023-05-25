@@ -93,7 +93,14 @@ scaling_relation_params_default = {
 "A_sz": 5.1,
 "B_sz": 1.75,
 "C_sz": 0.5,
+
+"A_x": 6.5,
+"B_x": 0.69,
+"C_x": -0.25,
+
+"sigma_lnYx":0.255,
 # "SZmPivot" : 3e14
+'corr_xi_Yx': 0.1,
 
 
 }

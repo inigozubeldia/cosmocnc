@@ -158,9 +158,10 @@ class cluster_catalogue:
             SPTcatalogfile = root_path + "data/spt/SPT2500d.fits"
             spt_catalog = Table.read(SPTcatalogfile)
 
-            threshold = self.cnc_params['obs_select_threshold']
+            threshold = self.cnc_params['obs_select_min']
             indices_catalog = []
             for i in range(0,len(spt_catalog["xi"])):
+                ## add a seperate zmin threshold, for observed clusters.
                 if (spt_catalog["xi"][i] > threshold) and (spt_catalog['redshift'][i]>self.cnc_params["z_min"]):
                     indices_catalog.append(i)
             # exit(0)
@@ -193,6 +194,24 @@ class cluster_catalogue:
             # print('self.obs_select',self.obs_select)
 
             # print('threshold =',self.cnc_params['obs_select_threshold'])
+            # exit(0)
+
+            print(self.observables)
+            if 'Yx' in self.observables[0]:
+                print('adding Yx data')
+                self.catalogue["Yx"] = np.asarray(spt_catalog['Yx_fid'][indices_catalog])
+                # print()
+                self.catalogue["Yx_std"] = np.asarray(spt_catalog['Yx_err'][indices_catalog])
+
+                indices_no_Yx = np.where(self.catalogue["Yx"] <= 0.)[0]
+                self.catalogue["Yx"][indices_no_Yx] = None
+
+
+                self.catalogue_patch["Yx"] = np.arange(len(self.catalogue["Yx"])).astype(np.int)# index of all clusters.
+                print(self.catalogue["Yx"])
+                print(self.catalogue["Yx_std"])
+                print(self.catalogue_patch["Yx"])
+                # exit(0)
             # exit(0)
 
 
