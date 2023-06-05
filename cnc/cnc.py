@@ -3,6 +3,7 @@ import pylab as pl
 import scipy.integrate as integrate
 import scipy.interpolate as interpolate
 import scipy.stats as stats
+from scipy.stats import norm
 from .cosmo import *
 from .hmf import *
 from .sr import *
@@ -121,6 +122,11 @@ class cluster_number_counts:
         # Add more parameters:
         # for SPT-like we need:
         self.E_z0p6 = self.cosmology.background_cosmology.H(0.6).value/(self.cosmology.cosmo_params["h"]*100.)
+        # for SPT-like we need interpolator between M200 and m500.
+
+
+
+
         #Evaluate the halo mass function
 
         self.halo_mass_function = halo_mass_function(cosmology=self.cosmology,hmf_type=self.cnc_params["hmf_type"],
@@ -207,7 +213,9 @@ class cluster_number_counts:
         self.abundance_tensor = np.zeros((self.n_patches,self.cnc_params["n_z"],self.cnc_params["n_obs_select"]))
         self.n_obs_matrix = np.zeros((self.n_patches,self.cnc_params["n_obs_select"]))
 
-        self.scal_rel_selection.preprecompute_scaling_relation(params=self.scal_rel_params,other_params={"lnM":self.ln_M})
+        self.scal_rel_selection.preprecompute_scaling_relation(params=self.scal_rel_params,
+                                                               catalog=self.catalogue,
+                                                               other_params={"lnM":self.ln_M})
 
 
         def f_mp(rank,out_q):
@@ -236,17 +244,20 @@ class cluster_number_counts:
                     for k in range(0,self.scal_rel_selection.get_n_layers()):
 
                         self.scal_rel_selection.precompute_scaling_relation(params=self.scal_rel_params,
-                                                other_params=other_params,
-                                                layer=k,
-                                                patch_index=patch_index)
+                                                                            catalog=self.catalogue,
+                                                                            other_params=other_params,
+                                                                            layer=k,
+                                                                            patch_index=patch_index)
 
                         x1 = self.scal_rel_selection.eval_scaling_relation(x0,
-                                                     layer=k,
-                                                     patch_index=patch_index)
+                                                                           catalog=self.catalogue,
+                                                                           other_params=other_params,
+                                                                           layer=k,
+                                                                           patch_index=patch_index)
 
                         dx1_dx0 = self.scal_rel_selection.eval_derivative_scaling_relation(x0,
-                                                          layer=k,patch_index=patch_index,
-                                                          scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
+                                                                                           layer=k,patch_index=patch_index,
+                                                                                           scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
 
                         dn_dx1 = dn_dx0/dx1_dx0
                         x1_interp = np.linspace(np.min(x1),np.max(x1),self.cnc_params["n_points"])
@@ -465,7 +476,10 @@ class cluster_number_counts:
                                         "D_l_CMB":D_l_CMB,
                                         "rho_c":rho_c,
                                         "D_CMB":self.cosmology.D_CMB,
-                                        "E_z0p6" : self.E_z0p6}
+                                        "E_z0p6" : self.E_z0p6,
+                                        "zc":redshift_eval,
+                                        "background_cosmology_sptref":self.cosmology.background_cosmology_sptref,
+                                        "cosmology":self.cosmology}
 
                         t0 = time.time()
 
@@ -492,7 +506,10 @@ class cluster_number_counts:
                                 for layer in layers:
                                     # print('computing sr again')
                                     self.scaling_relations[observable].precompute_scaling_relation(params=self.scal_rel_params,
-                                    other_params=other_params,layer=layer,patch_index=observable_patches[observable])
+                                                                                                   catalog=self.catalogue,
+                                                                                                   other_params=other_params,
+                                                                                                   layer=layer,
+                                                                                                   patch_index=observable_patches[observable])
 
                         t2 = time.time()
 
@@ -508,7 +525,11 @@ class cluster_number_counts:
 
                         for i in layers:
 
-                            x1 = self.scaling_relations[obs_mass_def].eval_scaling_relation(x0,layer=i,patch_index=int(observable_patches[obs_mass_def]))
+                            x1 = self.scaling_relations[obs_mass_def].eval_scaling_relation(x0,
+                                                                                            catalog=self.catalogue,
+                                                                                            other_params=other_params,
+                                                                                            layer=i,
+                                                                                            patch_index=int(observable_patches[obs_mass_def]))
                             x0 = x1
 
                         x_obs_massdef = self.catalogue.catalogue[obs_mass_def][cluster_index]
@@ -523,13 +544,13 @@ class cluster_number_counts:
 
                             if self.cnc_params["scalrel_type_deriv"] == "analytical":
 
-                                x1_centre = self.scaling_relations[obs_mass_def].eval_scaling_relation(x0_centre,layer=i,patch_index=int(observable_patches[obs_mass_def]))
+                                x1_centre = self.scaling_relations[obs_mass_def].eval_scaling_relation(x0_centre,catalog=self.catalogue,other_params=other_params,layer=i,patch_index=int(observable_patches[obs_mass_def]))
                                 der = self.scaling_relations[obs_mass_def].eval_derivative_scaling_relation(x0_centre,layer=i,patch_index=int(observable_patches[obs_mass_def]),
                                 scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
 
                             elif self.cnc_params["scalrel_type_deriv"] == "numerical":
 
-                                x11 = self.scaling_relations[obs_mass_def].eval_scaling_relation(lnM,layer=i,patch_index=int(observable_patches[obs_mass_def]))
+                                x11 = self.scaling_relations[obs_mass_def].eval_scaling_relation(lnM,catalog=self.catalogue,other_params=other_params,layer=i,patch_index=int(observable_patches[obs_mass_def]))
                                 der = self.scaling_relations[obs_mass_def].eval_derivative_scaling_relation(lnM,layer=i,patch_index=int(observable_patches[obs_mass_def]),
                                 scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
                                 x1_centre = x11[i_min]
@@ -543,13 +564,18 @@ class cluster_number_counts:
 
                         for i in np.flip(layers):
 
-                            sigma = np.sqrt(self.scatter.get_cov(observable1=obs_mass_def,observable2=obs_mass_def,
-                            layer=i,patch1=observable_patches[obs_mass_def],patch2=observable_patches[obs_mass_def]))
+                            sigma = np.sqrt(self.scatter.get_cov(observable1=obs_mass_def,
+                                                                 observable2=obs_mass_def,
+                                                                 layer=i,
+                                                                 patch1=observable_patches[obs_mass_def],
+                                                                 patch2=observable_patches[obs_mass_def]))
                             DlnM = np.sqrt(DlnM**2+(1./derivative_list[i]*sigma)**2)
 
                         sigma_factor = self.cnc_params["sigma_mass_prior"]
 
-                        lnM = np.linspace(lnM_centre-sigma_factor*DlnM,lnM_centre+sigma_factor*DlnM,self.cnc_params["n_points_data_lik"])
+                        lnM = np.linspace(lnM_centre-sigma_factor*DlnM,
+                                          lnM_centre+sigma_factor*DlnM,
+                                          self.cnc_params["n_points_data_lik"])
 
                         t3 = time.time()
 
@@ -570,6 +596,8 @@ class cluster_number_counts:
 
                             x_obs = np.array(x_obs)
 
+                            # print('computing cov for observable_set',observable_set)
+
                             covariance = covariance_matrix(self.scatter,
                                                            observable_set,
                                                            observable_patches,
@@ -585,9 +613,10 @@ class cluster_number_counts:
 
                                 for i in range(0,n_obs):
 
-                                    x1[i,:] = self.scaling_relations[observable_set[i]].eval_scaling_relation(lnM,layer=lay,patch_index=int(observable_patches[observable_set[i]]))-x_obs[i]
+                                    x1[i,:] = self.scaling_relations[observable_set[i]].eval_scaling_relation(lnM,catalog=self.catalogue,other_params=other_params,layer=lay,patch_index=int(observable_patches[observable_set[i]]))-x_obs[i]
 
-                                cpdf = stats.multivariate_normal.pdf(np.transpose(x1),cov=covariance.cov[lay])
+                                cpdf = stats.multivariate_normal.pdf(np.transpose(x1),
+                                                                     cov=covariance.cov[lay])
                                 cpdf = np.interp(lnM0,lnM,cpdf,left=0,right=0)
 
                             elif len(layers) > 1:
@@ -609,7 +638,11 @@ class cluster_number_counts:
 
                                     for j in range(0,n_obs):
 
-                                        x1[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x[j,:],layer=i,patch_index=int(observable_patches[observable_set[j]]))
+                                        x1[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x[j,:],
+                                                                                                                  catalog=self.catalogue,
+                                                                                                                  other_params=other_params,
+                                                                                                                  layer=i,
+                                                                                                                  patch_index=int(observable_patches[observable_set[j]]))
                                         x1_linear[j,:] = np.linspace(x1[j,0],x1[j,-1],self.cnc_params["n_points_data_lik"])
 
                                     x_list.append(x1)
@@ -626,11 +659,82 @@ class cluster_number_counts:
                                         x1 = np.zeros((n_obs,len(lnM)))
 
                                         for j in range(0,n_obs):
+                                            # print("??????????????????????????????????????????????????")
+                                            # print('now doing x1 with shape:',np.shape(x1))
+                                            # print('now doing x1 at j:',j,n_obs)
+                                            # print('shape of cov -----------------------------------------------------------------------------------------:',
+                                            # np.shape(covariance.cov[lay+1]))
+                                            i_megacam = -1
+                                            i_hst = -1
+                                            if 'WLMegacam' in observable_set:
+                                                i_megacam = observable_set.index('WLMegacam')
+                                            if 'WLHST' in observable_set:
+                                                i_hst = observable_set.index('WLHST')
+                                                # print('i_megacam:',i_megacam)
+                                            if j==i_megacam or j==i_hst:
+                                                # print('now trying to evaluate the thing  for ',observable_set[j])
 
-                                            x1[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],layer=lay+1,patch_index=int(observable_patches[observable_set[j]]))-x_obs[j]
+                                                # exit(0)
+                                                xwl = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],
+                                                                                                                      layer=lay+1,
+                                                                                                                      catalog=self.catalogue,other_params=other_params,
+                                                                                                                      patch_index=int(observable_patches[observable_set[j]]))
+                                                # print('xwl:',np.shape(xwl),xwl)
+                                                # print('x_obs wl:',np.shape(x_obs[j]),x_obs[j])
+                                                # break
+                                                # x_obs_wl =
+                                                rInclude = self.scaling_relations[observable_set[j]].rInclude
+                                                # print(self.catalogue.catalogue['WLdata'][int(observable_patches[observable_set[j]])]['datatype'])
+                                                wl_datatype = 'WL'+self.catalogue.catalogue['WLdata'][int(observable_patches[observable_set[j]])]['datatype']
+                                                # print(wl_datatype)
+                                                # exit(0)
+                                                shear_std = self.catalogue.catalogue[wl_datatype+'_std'][int(observable_patches[observable_set[j]])]
 
+                                                # xwl = xwl - x_obs[j][rInclude,None]
+                                                # print('xwl - xobs:',xwl)
+                                                dxwl = (xwl - x_obs[j][rInclude,None])
+                                                dxwl_std = shear_std[rInclude,None]
+                                                # print('xwl - xobs:',np.shape(dxwl),dxwl)
+                                                p_wl = np.sqrt(np.sum((dxwl/dxwl_std)**2.,axis=0))
+                                                # print('sqrt((sum(xwl - xobs)/std)**2):',np.shape(p_wl),p_wl)
+                                                if np.isnan(np.sum(p_wl)):
+                                                    print('nan in pwl, check mass range.')
+                                                    exit(0)
+
+                                                # print(rInclude)
+                                                ##### Compare with data [Radius][Mass]
+                                                # Likelihood grid [Radius][Mass]
+                                                # print('shear_std:',shear_std[rInclude,None])
+                                                # likelihood = norm.pdf(xwl, x_obs[j][rInclude,None], shear_std[rInclude,None])
+                                                # print('likelihood:',likelihood)
+
+
+                                                # Return array of P(data|MassArray)
+                                                # Note that this is not normalized wrt the mArr for a good reason:
+                                                # In general, the mArr will not cover the full pOfMass range, and it varies as a function of SZ parameters.
+                                                # However, pOfMass is a product of normalized distributions, and so its normalization is constant
+                                                # throughout parameter space.
+                                                # pOfMass = np.prod(likelihood, axis=0)
+                                                # print('pOfMass:',pOfMass)
+                                                # print('pOfMass shape:',np.shape(pOfMass))
+                                                x1[j,:] = p_wl
+                                                # exit(0)
+                                                #
+                                                # x1[j,:] = pOfMass
+                                            else:
+                                                # print('j ',j,observable_set[j])
+                                                x1[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],
+                                                                                                                      layer=lay+1,
+                                                                                                                      catalog=self.catalogue,other_params=other_params,
+                                                                                                                      patch_index=int(observable_patches[observable_set[j]]))-x_obs[j]
+                                                # print('=====================================================================================================================================================')
+                                                # print('other x1 dims:',j,np.shape(x1[j,:]))
+                                            # print('now doing x1 at j = %d done'%j)
+                                            # print('got x1 = ',x1)
                                         x_mesh = get_mesh(x1)
+                                        # print('lay:',lay,np.shape(x_mesh))
                                         cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
+                                        # print('shape of cpdf',np.shape(cpdf))
 
                                     x_p_m = np.zeros((n_obs,len(lnM)))
 
@@ -639,7 +743,7 @@ class cluster_number_counts:
                                         x_p_m[j,:] = x_p[j,:] - np.mean(x_p[j,:])
 
                                     x_p_mesh = get_mesh(x_p_m)
-
+                                    # print('lay2:',lay,np.shape(x_p_mesh))
                                     kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
 
                                     cpdf = apodise(cpdf)
@@ -653,11 +757,26 @@ class cluster_number_counts:
                                     cpdf = interpolate.RegularGridInterpolator(x_p,cpdf,method="linear")(x_mesh_interp)
                                     cpdf = cpdf.reshape(shape[1:])
 
+                                    # print('cpdf shape 2:',np.shape(cpdf),cpdf)
+
                                     if lay == layers[0]:
 
                                         if n_obs > 1:
-
-                                            cpdf = np.diag(cpdf)
+                                            if len(np.shape(cpdf))==3:
+                                                # print('trying to take diag at lay',lay)
+                                                # cpdf = np.diag(np.diagonal(cpdf))
+                                                # cpdf = np.diagonal(cpdf,axis1=1,axis2=2)
+                                                # print('cpdf 3:',np.shape(cpdf),cpdf)
+                                                diag_cpdf = np.zeros(np.shape(cpdf)[0])
+                                                for i in range(np.shape(cpdf)[0]):
+                                                    diag_cpdf[i] = cpdf[i][i][i]
+                                                # print(diag_cpdf)
+                                                # exit(0)
+                                                # print('got diag at lay:',lay,diag_cpdf)
+                                                cpdf = diag_cpdf
+                                            else:
+                                                cpdf =  np.diag(cpdf)
+                                            # exit(0)
 
                                         cpdf = np.interp(lnM0,lnM,cpdf,left=0,right=0)
 

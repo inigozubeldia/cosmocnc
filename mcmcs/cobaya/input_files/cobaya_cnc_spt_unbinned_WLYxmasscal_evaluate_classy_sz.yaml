@@ -1,0 +1,341 @@
+# run with:
+# cobaya-run /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/input_files/cobaya_soliket_cnc_unbinned_cluster_counts_planck_template.yaml -f
+output: /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/chains/cnc_unbinned_cluster_counts_spt_unbinned_WLYxmasscal_evaluate
+
+# output: /home/iz221/cnc/mcmcs/cobaya/chains_paper/cnc_planck_sim_unbinned_masscal_2
+
+likelihood:
+  cnc.cnc_cobaya_likelihood.cnc_likelihood:
+  # cnc.cnc_cobaya_likelihood.theta_mc_prior:
+  #   theta_mc_mean: 0.0104199189394683
+  #   theta_mc_std: 0.0000030
+
+theory:
+  cnc.cnc_cobaya_theory.cnc:
+    cosmology_tool: "classy_sz"
+    number_cores_abundance : 10
+    number_cores_data : 10
+    number_cores_hmf : 10
+    cluster_catalogue : 'SPT2500d'
+    obs_select : 'xi'
+    observables : [["xi","Yx","WLMegacam","WLHST"]]
+
+
+
+    z_min : .25
+    z_max : 2.
+    bins_edges_z: np.linspace(.25,2.,21)
+    z_errors : True
+    z_error_min: 1e-5
+
+    obs_select_min : 5.
+    obs_select_max :  47.
+    bins_edges_obs_select: np.exp(np.linspace(np.log(5.),np.log(47),6))
+
+    obs_select_threshold: 5.
+
+    parallelise_type: patch
+
+    SZmPivot: 3e14
+    dof : 3
+
+    scalrel_type_deriv : numerical
+    n_points : 512
+    # add all params you want here.
+    # default values are in cnc_cobaya_theory
+    # bins_edges_z: np.linspace(0.01,1.01,11)
+    # bins_edges_obs_select: np.exp(np.linspace(np.log(6.),np.log(60),6))
+
+    # cosmology_object: "astropy" or "classy"
+    ### add all params from cnc_params_default
+
+
+params:
+
+  H0:
+    prior:
+      min: 40.
+      max: 100.
+    ref:
+      dist: norm
+      loc: 67.4
+      scale: 1.
+    proposal: 1.
+    latex: H_0
+
+  tau_reio:
+    value: 0.06
+
+  sigma_8:
+    prior:
+      min: 0.1
+      max: 2.
+    ref:
+      dist: norm
+      loc: 0.81
+      scale: 0.01
+    proposal: 0.01
+    latex: \sigma_8
+
+  n_s:
+    prior:
+      min: 0.8812
+      max: 1.0492
+    ref:
+      dist: norm
+      loc: 0.96
+      scale: 0.004
+    proposal: 0.004
+    latex: n_\mathrm{s}
+
+  Om0:
+    prior:
+      min: 0.08
+      max: 0.5
+    ref:
+      dist: norm
+      loc: 0.31
+      scale: 0.05
+    proposal: 0.05
+    latex: \Omega_\mathrm{m}
+
+  Ob0:
+    prior:
+      min: 0.01
+      max: 0.2
+    ref:
+      dist: norm
+      loc: 0.048
+      scale: 0.005
+    proposal: 0.005
+    latex: \Omega_\mathrm{b}
+
+  # alpha:
+  #   prior:
+  #     min: 0.5
+  #     max: 3.
+  #   ref:
+  #     dist: norm
+  #     loc: 1.79
+  #     scale: 0.05
+  #   proposal: 0.05
+  #   latex: \alpha
+  #
+  # log10_Y_star:
+  #   prior:
+  #     min: -1.
+  #     max: 1.
+  #   ref:
+  #     dist: norm
+  #     loc: -0.19
+  #     scale: 0.03
+  #   proposal: 0.03
+  #   latex: \log (Y_{\ast})
+
+  A_sz:
+    prior:
+      min: 1
+      max: 10
+    ref:
+      dist: norm
+      loc: 2.
+      scale: 0.05
+    proposal: 0.05
+    latex: A_{\mathrm{SZ}}
+
+  B_sz:
+    prior:
+      min: 1.
+      max: 2.5
+    ref:
+      dist: norm
+      loc: 1.5
+      scale: 0.05
+    proposal: 0.05
+    latex: B_{\mathrm{SZ}}
+
+  C_sz:
+    prior:
+      min: -1.
+      max: 2.
+    ref:
+      dist: norm
+      loc: 0.5
+      scale: 0.05
+    proposal: 0.05
+    latex: C_{\mathrm{SZ}}
+
+
+  A_x:
+    prior:
+      min: 3.
+      max: 10
+    ref:
+      dist: norm
+      loc: 5.
+      scale: 0.05
+    proposal: 0.05
+    latex: A_{\mathrm{X}}
+
+  B_x:
+    prior:
+      min: 0.3
+      max: 0.9
+    ref:
+      dist: norm
+      loc: 0.6
+      scale: 0.05
+    proposal: 0.05
+    latex: B_{\mathrm{X}}
+
+  C_x:
+    prior:
+      min: -1.
+      max: 0.5
+    ref:
+      dist: norm
+      loc: 0.25
+      scale: 0.05
+    proposal: 0.05
+    latex: C_{\mathrm{X}}
+
+  sigma_lnq:
+    # value: 0.1729
+    prior:
+      min: 0.05
+      max: 0.3
+    ref:
+      dist: norm
+      loc: 0.179
+      scale: 0.01
+    proposal: 0.01
+    latex: \sigma_{\mathrm{SZ}}
+
+  sigma_lnYx:
+    # value: 0.1729
+    prior:
+      min: 0.05
+      max: 0.3
+    ref:
+      dist: norm
+      loc: 0.179
+      scale: 0.01
+    proposal: 0.01
+    latex: \sigma_{\mathrm{X}}
+
+  corr_xi_Yx:
+    # value: 0.1729
+    prior:
+      min: -1
+      max: 1
+    ref:
+      dist: norm
+      loc: 0.
+      scale: 0.01
+    proposal: 0.01
+    latex: \rho_{\mathrm{SZ},\mathrm{X}}
+
+  corr_xi_WL:
+    value: 0.121
+  corr_Yx_WL:
+    value: 0.12
+  MegacamBias:
+    value: 0.01
+  MegacamScatterLSS:
+    value: 0.02
+
+  # bias_cmblens:
+  #   prior:
+  #     min: 0.5
+  #     max: 1.5
+  #   ref:
+  #     dist: norm
+  #     loc: 0.93
+  #     scale: 0.05
+  #   proposal: 0.05
+  #   latex: 1-b_{\mathrm{CMBlens}}
+
+  # corr_lnq_lnp:
+  #   prior:
+  #     min: 0.6
+  #     max: 0.99
+  #   ref:
+  #     dist: norm
+  #     loc: 0.78
+  #     scale: 0.03
+  #   proposal: 0.03
+  #   latex: r_{\mathrm{CMBlens-SZ}}
+
+  # sigma_lnp:
+  #   prior:
+  #     min: 0.05
+  #     max: 0.4
+  #   ref:
+  #     dist: norm
+  #     loc: 0.22
+  #     scale: 0.01
+  #   proposal: 0.01
+  #   latex: \sigma_{\mathrm{CMBlens}}
+
+  # theta_mc: ### currently giving 0.
+  #   latex: '\theta_{mc}'
+  #   derived: true
+prior:
+  # bias_cmblens_prior: 'lambda bias_cmblens: stats.norm.logpdf(bias_cmblens, loc=0.93, scale=0.05)'
+  # sigma_lnp_prior: 'lambda sigma_lnp: stats.norm.logpdf(sigma_lnp, loc=0.22, scale=0.05)'
+  # corr_lnq_lnp_prior: 'lambda corr_lnq_lnp: stats.norm.logpdf(corr_lnq_lnp, loc=0.77, scale=0.1)'
+  # alpha_prior: 'lambda alpha: stats.norm.logpdf(alpha, loc=1.79, scale=0.08)'
+  # log10_Y_star_prior: 'lambda log10_Y_star: stats.norm.logpdf(log10_Y_star, loc=-0.19, scale=0.02)'
+  n_s_prior: 'lambda n_s: stats.norm.logpdf(n_s, loc=0.96, scale=0.0042)'
+  sigma_lnq_prior: 'lambda sigma_lnq: stats.norm.logpdf(sigma_lnq, loc=0.173, scale=0.023)'
+  # bias_sz_prior: 'lambda bias_sz: stats.norm.logpdf(bias_sz, loc=0.62, scale=0.08)'
+  Ob0h2_prior: 'lambda Ob0,H0: stats.norm.logpdf(Ob0*H0**2/10000, loc=0.022245895, scale=0.00015)'
+
+#   theta_mc_prior: 'lambda theta_mc: stats.norm.logpdf(theta_mc, loc=0.0104199189394683, scale=0.0000030)'
+sampler:
+
+  #settings for covmat see https://cobaya.readthedocs.io/en/latest/sampler_mcmc.html
+  evaluate:
+    override:
+       H0 : 68.
+       sigma_8 : 0.8122313347357
+       n_s : 0.97
+       Om0 : 0.3
+       Ob0 : 0.049008687903764746
+       # alpha : 1.77346
+       # log10_Y_star : -0.21915
+       A_sz : 5.5
+       B_sz : 1.75
+       C_sz:  0.5
+
+       A_x : 6.5
+       B_x : 0.6
+       C_x : -0.25
+
+       sigma_lnq : 0.255
+       sigma_lnYx : 0.255
+       corr_xi_Yx : 0.1
+       # bias_cmblens : 0.915751
+       # corr_lnq_lnp : 0.742952
+       # sigma_lnp : 0.21741
+
+  # #    # #parameter values:
+  #      omega_cdm: 0.12
+  #      omega_b: 0.02
+  #      logA: 3.1
+  #      n_s: 0.96
+  # #     # H0: 69.
+  #      H0: 70.
+  # mcmc:
+  #
+  #   #covmat: /home/iz221/cnc/mcmcs/cobaya/covmats/cluster_counts_planck.covmat
+  #   Rminus1_stop: 0.01
+  #   burn_in: 0
+  #   # drag: true
+  #   proposal_scale: 1.
+  #   learn_proposal: True
+  #   learn_every: 40
+  #   learn_proposal_Rminus1_max: 100.
+  #   max_tries : 100000
+  #   learn_proposal_Rminus1_max_early: 100.
+timing: True

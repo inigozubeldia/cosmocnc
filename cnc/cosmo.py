@@ -21,7 +21,28 @@ class cosmology_model:
         if cosmology_tool == "classy_sz":
             from classy_sz import Class
 
+            self.classy_sptref = Class()
+
+            spt_cosmoRef = {'Omega_m':.3,
+                            'Omega_l':.7,
+                            'h':.7,
+                            'w0':-1.,
+                            'wa':0,
+                            # "Ob0":
+                            }
+            self.classy_sptref.set({
+                           'H0': spt_cosmoRef["h"]*100.,
+                           'omega_b': self.cosmo_params["Ob0"]*spt_cosmoRef["h"]**2,
+                           'omega_cdm': (spt_cosmoRef['Omega_m']-self.cosmo_params["Ob0"])*spt_cosmoRef["h"]**2,
+                           'output': ' '
+                           }
+                           )
+            self.classy_sptref.compute()
+            self.background_cosmology_sptref = classy_sz(self.classy_sptref)
+            # print('spt cosmoref computed')
+
             self.classy = Class()
+
 
             self.classy.set({
                            'H0': self.cosmo_params["h"]*100.,
@@ -60,6 +81,13 @@ class cosmology_model:
             self.power_spectrum = classy_sz(self.classy)
             self.background_cosmology = classy_sz(self.classy)
             self.background_cosmology.H0.value = self.classy.h()*100.
+
+
+            # print('cosmo computed',self.sigma8)
+
+
+
+
 
         if cosmology_tool == "astropy":
 
@@ -125,6 +153,7 @@ class cosmology_model:
                            'T_ncdm' : 0.71611,
 
                           'output': 'mPk',
+
                           'skip_background_and_thermo': 0,
                           'skip_chi': 1,
                           'skip_hubble': 1,
@@ -133,6 +162,16 @@ class cosmology_model:
                           'skip_pkl': 0,
                           'skip_sigma8_and_der': 0,
                           'skip_sigma8_at_z': 1,
+
+                          # for mass conversion routines:
+                          'output': 'mPk,m500c_to_m200c',
+                          'M_min' : 1e9,
+                          'M_max' : 1e16,
+                          'z_min' : 0.,
+                          'z_max' : 2.,
+                          'ndim_redshifts' :50,
+                          'ndim_masses' :50,
+                          'concentration parameter':'D08'
                           }
 
             if self.amplitude_parameter == "sigma_8":
@@ -143,6 +182,39 @@ class cosmology_model:
                 classy_params['ln10^{10}A_s'] = np.log(self.cosmo_params["A_s"]*1e10)
             # print('classy_params:',classy_params)
 
+
+
+            spt_cosmoRef = {'Omega_m':.3,
+                            'Omega_l':.7,
+                            'h':.7,
+                            'w0':-1.,
+                            'wa':0,
+                            # "Ob0":
+                            }
+            self.spt_cosmoRef = spt_cosmoRef
+            self.classy_sptref.set({
+                                   'H0': spt_cosmoRef["h"]*100.,
+                                   'omega_b': self.cosmo_params["Ob0"]*spt_cosmoRef["h"]**2,
+                                   'omega_cdm': (spt_cosmoRef['Omega_m']-self.cosmo_params["Ob0"])*spt_cosmoRef["h"]**2,
+                                   'output': ' '
+                                   }
+                                   )
+            # print('recomputing spt ref cosmo')
+            self.classy_sptref.compute()
+            # print('spt ref cosmo recomputed')
+            self.background_cosmology_sptref = classy_sz(self.classy_sptref)
+            # self.background_cosmology_sptref.H0.value = (self.classy_sptref.h()*100.)
+
+            spt_zs = np.linspace(1e-5,5,200)
+            self.spt_ln1pzs = np.log(1.+spt_zs)
+            self.spt_lndas_hmpc = np.log(self.background_cosmology_sptref.angular_diameter_distance(spt_zs).value*self.classy_sptref.h())
+            # print('spt_zs,spt_das',self.spt_ln1pzs[:5],self.spt_lndas_hmpc[:5])
+            # print('spt_zs,spt_das',other_params['cosmology'].spt_ln1pzs[:5],other_params['cosmology'].spt_lndas_hmpc[:5])
+
+
+            # print('spt cosmoref re-computed',self.background_cosmology_sptref.H0.value/100.)
+            # exit(0)
+            # self.classy.set(classy_params)
             self.classy.set(classy_params)
             self.classy.compute_class_szfast()
             self.T_CMB_0 = self.classy.T_cmb()
@@ -153,6 +225,12 @@ class cosmology_model:
             self.power_spectrum = classy_sz(self.classy)
             self.background_cosmology = classy_sz(self.classy)
             self.background_cosmology.H0.value = self.classy.h()*100.
+            self.get_m500c_to_m200c_at_z_and_M = np.vectorize(self.classy.get_m500c_to_m200c_at_z_and_M)
+            self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
+            # print('spt cosmoref re-computed 2',self.background_cosmology_sptref.H0.value/100.)
+            # exit(0)
+
+
 
         if cosmology_tool == "astropy":
 
@@ -217,7 +295,7 @@ class cosmology_model:
 
         return z_cmb
 
-class classy_sz:
+class classy_sz(object):
 
     def __init__(self,classy):
 
