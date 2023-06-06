@@ -166,56 +166,35 @@ class cluster_catalogue:
                 ## add a seperate zmin threshold, for observed clusters.
                 if (spt_catalog["xi"][i] > threshold) and (spt_catalog['redshift'][i]>self.cnc_params["z_min"]):
                     indices_catalog.append(i)
-            # exit(0)
+
 
 
 
             self.catalogue["z"] = np.asarray(spt_catalog['redshift'][indices_catalog])
-            # print('z:',self.catalogue["z"][:10])
+
             indices_no_z = np.where(self.catalogue["z"] == 0.)[0]
 
-            # print('indices_no_z',indices_no_z)
             self.catalogue["z"][indices_no_z] = None
 
             self.catalogue["z_std"] = np.asarray(spt_catalog['redshift_err'][indices_catalog])
-            # print('z_std:',len(self.catalogue["z_std"]))
-            # print('z_std:',self.catalogue["z_std"][:10])
-
 
             self.catalogue["xi"] = np.asarray(spt_catalog['xi'][indices_catalog])
-
-            # print('xi:',len(self.catalogue["xi"]))
-            # print('xi:',self.catalogue["xi"][:10])
 
             self.catalogue_patch['xi'] = np.zeros(len(self.catalogue['xi'])).astype(np.int)
             for id,field in enumerate(spt_catalog['field'][indices_catalog]):
                 self.catalogue_patch['xi'][id] = SPTfieldNames.index(field)
-            # print('patches xi:',len(self.catalogue_patch["xi"]))
-            # print('patches xi:',self.catalogue_patch["xi"][:10])
 
-            # print('self.obs_select',self.obs_select)
-
-            # print('threshold =',self.cnc_params['obs_select_threshold'])
-            # exit(0)
-
-            # print(self.observables)
-            # exit(0)
             if 'Yx' in self.observables[0]:
                 # print('adding Yx data')
                 self.catalogue["Yx"] = np.asarray(spt_catalog['Yx_fid'][indices_catalog])
-                # print()
                 self.catalogue["Yx_std"] = np.asarray(spt_catalog['Yx_err'][indices_catalog])
+                self.catalogue["r500"] = np.asarray(spt_catalog['r500'][indices_catalog])
+
 
                 indices_no_Yx = np.where(self.catalogue["Yx"] <= 0.)[0]
                 self.catalogue["Yx"][indices_no_Yx] = None
-
-
                 self.catalogue_patch["Yx"] = np.arange(len(self.catalogue["Yx"])).astype(np.int)# index of all clusters.
-                # print(self.catalogue["Yx"])
-                # exit(0)
-                # print(self.catalogue["Yx_std"])
-                # print(self.catalogue_patch["Yx"])
-                # exit(0)
+
 
             if 'WLMegacam' or 'WLHST' in self.observables[0]:
                 # WL simulation calibration data --  same as Bocquet's code

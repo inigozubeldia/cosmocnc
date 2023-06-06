@@ -75,7 +75,7 @@ class cnc(classy):
 
 
     # mass pivot for spt-style lkl:
-    SZmPivot: Optional[str] = 3e14
+    SZmPivot: Optional[str] = 3e14 # in Msun/h
 
     # scaling relation parameter:
     dof: Optional[str] = 0
@@ -347,9 +347,13 @@ class cnc(classy):
         assign_parameter_value(scal_rel_params,params_values,"B_x")
         assign_parameter_value(scal_rel_params,params_values,"C_x")
 
-        assign_parameter_value(scal_rel_params,params_values,"sigma_lnYx")
-        assign_parameter_value(scal_rel_params,params_values,"corr_xi_Yx")
+        assign_parameter_value(scal_rel_params,params_values,"dlnMg_dlnr")
 
+        assign_parameter_value(scal_rel_params,params_values,"sigma_lnYx")
+
+        assign_parameter_value(scal_rel_params,params_values,"corr_xi_Yx")
+        assign_parameter_value(scal_rel_params,params_values,"corr_xi_WL")
+        assign_parameter_value(scal_rel_params,params_values,"corr_Yx_WL")
 
         assign_parameter_value(scal_rel_params,params_values,"WLbias")
         assign_parameter_value(scal_rel_params,params_values,"WLscatter")
@@ -360,8 +364,7 @@ class cnc(classy):
         assign_parameter_value(scal_rel_params,params_values,'MegacamBias')
         assign_parameter_value(scal_rel_params,params_values,'MegacamScatterLSS')
 
-        assign_parameter_value(scal_rel_params,params_values,"corr_xi_WL")
-        assign_parameter_value(scal_rel_params,params_values,"corr_Yx_WL")
+
 
         # updating scaling relations params that are not varied in mcmc, but passed in input
         scal_rel_params['dof'] = self.cnc.cnc_params["dof"]

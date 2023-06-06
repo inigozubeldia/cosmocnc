@@ -61,7 +61,6 @@ class cluster_number_counts:
 
         self.scatter = scatter(params=self.scal_rel_params,
                                catalog=self.catalogue)
-        # self.priors = priors(prior_params={"cosmology":self.cosmology,"theta_mc_prior":self.cnc_params["theta_mc_prior"]})
 
         if self.cnc_params["hmf_calc"] == "MiraTitan":
 
@@ -116,16 +115,10 @@ class cluster_number_counts:
         self.E_z = self.cosmology.background_cosmology.H(self.redshift_vec).value/(self.cosmology.cosmo_params["h"]*100.)
         self.D_l_CMB = self.cosmology.background_cosmology.angular_diameter_distance_z1z2(self.redshift_vec,self.cosmology.z_CMB).value
         self.rho_c = self.cosmology.background_cosmology.critical_density(self.redshift_vec).value*1000.*self.const.mpc**3/self.const.solar
-        # print('self.rho_c :',self.rho_c )
-        # exit(0)
 
         # Add more parameters:
         # for SPT-like we need:
         self.E_z0p6 = self.cosmology.background_cosmology.H(0.6).value/(self.cosmology.cosmo_params["h"]*100.)
-        # for SPT-like we need interpolator between M200 and m500.
-
-
-
 
         #Evaluate the halo mass function
 

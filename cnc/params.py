@@ -94,11 +94,15 @@ scaling_relation_params_default = {
 "B_sz": 1.75,
 "C_sz": 0.5,
 
+
 "A_x": 6.5,
 "B_x": 0.69,
 "C_x": -0.25,
 
+
 "sigma_lnYx":0.255, # 'Dx' in Bocquet's code
+
+"dlnMg_dlnr" : 0.,
 
 'WLbias' : 0.,
 'WLscatter': 0.,
@@ -109,7 +113,7 @@ scaling_relation_params_default = {
 'MegacamBias': 0.,
 'MegacamScatterLSS': 0.,
 
-# "SZmPivot" : 3e14
+
 'corr_xi_Yx': 0.1, # 'rhoSZX' in Bocquet's code
 
 'corr_xi_WL': 0.1, # 'rhoSZWL' in Bocquet's code

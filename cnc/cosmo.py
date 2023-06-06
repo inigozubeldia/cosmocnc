@@ -208,8 +208,35 @@ class cosmology_model:
             spt_zs = np.linspace(1e-5,5,200)
             self.spt_ln1pzs = np.log(1.+spt_zs)
             self.spt_lndas_hmpc = np.log(self.background_cosmology_sptref.angular_diameter_distance(spt_zs).value*self.classy_sptref.h())
-            # print('spt_zs,spt_das',self.spt_ln1pzs[:5],self.spt_lndas_hmpc[:5])
-            # print('spt_zs,spt_das',other_params['cosmology'].spt_ln1pzs[:5],other_params['cosmology'].spt_lndas_hmpc[:5])
+
+
+            # cosmologyRef = {'Omega_m':.272, 'Omega_l':.728, 'h':.702, 'w0':-1, 'wa':0}
+            spt_cosmoRef_masscal = {'Omega_m':.272,
+                                    'Omega_l':.728,
+                                    'h':.702,
+                                    'w0':-1.,
+                                    'wa':0,
+                                    # "Ob0":
+                                    }
+            self.spt_cosmoRef_masscal = spt_cosmoRef_masscal
+            self.classy_sptref.set({
+                                   'H0': spt_cosmoRef_masscal["h"]*100.,
+                                   'omega_b': self.cosmo_params["Ob0"]*spt_cosmoRef_masscal["h"]**2,
+                                   'omega_cdm': (spt_cosmoRef_masscal['Omega_m']-self.cosmo_params["Ob0"])*spt_cosmoRef_masscal["h"]**2,
+                                   'output': ' '
+                                   }
+                                   )
+            # print('recomputing spt ref cosmo')
+            self.classy_sptref.compute()
+            # print('spt ref cosmo recomputed')
+            self.background_cosmology_sptref_masscal = classy_sz(self.classy_sptref)
+            # self.background_cosmology_sptref.H0.value = (self.classy_sptref.h()*100.)
+
+            spt_zs_masscal = np.linspace(1e-5,5,200)
+            self.spt_ln1pzs_masscal = np.log(1.+spt_zs_masscal)
+            self.spt_lndas_hmpc_masscal = np.log(self.background_cosmology_sptref_masscal.angular_diameter_distance(spt_zs_masscal).value*self.classy_sptref.h())
+
+
 
 
             # print('spt cosmoref re-computed',self.background_cosmology_sptref.H0.value/100.)
