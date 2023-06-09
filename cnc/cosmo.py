@@ -138,6 +138,7 @@ class cosmology_model:
         self.cosmo_params = cosmo_params_new
 
         if cosmology_tool == "classy_sz":
+            ts = time.time()
 
             classy_params = {
                            'H0': self.cosmo_params["h"]*100.,
@@ -256,6 +257,9 @@ class cosmology_model:
             self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
             # print('spt cosmoref re-computed 2',self.background_cosmology_sptref.H0.value/100.)
             # exit(0)
+
+            te = time.time()
+            print('time to do cosmo:  %.3e s'%(te-ts))
 
 
 

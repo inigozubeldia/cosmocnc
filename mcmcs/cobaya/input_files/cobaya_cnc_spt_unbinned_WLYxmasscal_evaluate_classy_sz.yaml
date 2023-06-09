@@ -40,7 +40,7 @@ theory:
     dof : 3
 
     scalrel_type_deriv : numerical
-    n_points : 512
+    n_points : 1024
     # add all params you want here.
     # default values are in cnc_cobaya_theory
     # bins_edges_z: np.linspace(0.01,1.01,11)
