@@ -5,7 +5,7 @@ import scipy.stats as stats
 import functools
 import math
 
-def convolve_1d_b(x,dn_dx,sigma_scatter): #alternative convolution function, slower
+def convolve_1d(x,dn_dx,sigma_scatter): #alternative convolution function, slower
 
     if sigma_scatter > 0.:
 
@@ -14,7 +14,7 @@ def convolve_1d_b(x,dn_dx,sigma_scatter): #alternative convolution function, slo
 
     return dn_dx
 
-def convolve_1d(x,dn_dx,sigma_scatter):
+def convolve_1dk(x,dn_dx,sigma_scatter):
 
     if sigma_scatter > 0.:
 
@@ -79,6 +79,23 @@ def apodise(x_map):
     window = functools.reduce(np.multiply, np.ix_(*window))
 
     return x_map*window
+
+def extract_diagonal(tensor):
+
+    if len(tensor.shape) == 2:
+
+        diag = np.diag(cpdf)
+
+    elif len(tensor.shape) == 3:
+
+        diag = np.zeros(tensor.shape[0])
+
+        for i in range(0,tensor.shape[0]):
+
+            diag[i] = tensor[i,i,i]
+
+        return diag
+
 
 def get_cash_statistic(n_obs_vec,n_mean_vec):
 

@@ -9,29 +9,35 @@ cnc_params_default = {
     #Number of cores
 
     "number_cores_hmf": 1,
-    "number_cores_abundance": 1,
-    "number_cores_data": 1,
+    "number_cores_abundance": 8,
+    "number_cores_data": 8,
 
     "parallelise_type": "patch", #"patch" or "redshift"
 
     #Precision parameters
 
-    "n_points": 2048, #2**13, ##number of points in which the mass function at each redshift (and all the convolutions) is evaluated
-    "n_obs_select": 2048,# 2**13,
-    "n_z": 50,
-    "n_points_data_lik": 64, #number of points for the computation of the cluster data part of the likelihood
+    "n_points": 4096,#2**13, ##number of points in which the mass function at each redshift (and all the convolutions) is evaluated
+    "n_obs_select": 4096,#2**13,
+    "n_z": 100,
+    "n_points_data_lik": 128, #number of points for the computation of the cluster data part of the likelihood
     "sigma_mass_prior": 5.,
+
 
     #Observables and catalogue
 
     "likelihood_type": "unbinned", #"unbinned", "binned", or "extreme_value"
+    #"obs_select": "q_mmf3_mean", #"q_mmf3_mean",
     "obs_select": "q_mmf3_mean", #"q_mmf3_mean",
-    # "observables": [["q_mmf3_mean","p_zc19"]],
+
+#    "observables": [["q_mmf3_mean","p_zc19"]],
+#    "observables": [["q_mmf3_mean","p_zc19"]],
     "observables": [["q_mmf3_mean"]],
     "cluster_catalogue":"zc19_simulated_12",#"0.0119647",#
-    # "cluster_catalogue":"Planck_MMF3_cosmo",#"Planck_MMF3_cosmo",
+    #"cluster_catalogue":"Planck_MMF3_cosmo",#"Planck_MMF3_cosmo",
     #"cluster_catalogue":"q_mlens_simulated",
     "data_lik_from_abundance":True, #if True, and if the only observable is the selection observable,
+    "compute_abundance_matrix":False, #only true if the abundance matrix is needed
+    "catalogue_params":{"downsample":False},
 
     #Range of abundance observables
 
@@ -55,12 +61,17 @@ cnc_params_default = {
 
     #Redshift errors parameters
 
-    "z_errors": True,
+    "z_errors": False,
     "n_z_error_integral": 100,
     "z_error_sigma_integral_range": 4.,
     "z_error_min": 1e-5, #minimum z std for which an integral over redshift in the cluster data term is performed (if "z_errors" = True)
+    "z_bounds": False, #redshift bounds if there's no redshift measurement by the redshift is bounded (as in, e.g., SPT)
 
-    #Only if binned likelihood is computed
+    #False detections
+
+    "non_validated_clusters": False, #True if there are clusters which aren't validated. If so, a distribution for their selection obsevable pdf must be provided
+
+    #Binned likelihood params
 
     "binned_lik_type":"z_and_obs_select", #can be "obs_select", "z", or "z_and_obs_select"
     "bins_edges_z": np.linspace(0.01,1.01,11),
@@ -75,6 +86,8 @@ cnc_params_default = {
 
 scaling_relation_params_default = {
 
+#Planck
+
 "alpha":1.79,
 "beta":0.66,
 "log10_Y_star":-0.19,#0.646,#10.**(-0.186),
@@ -87,8 +100,15 @@ scaling_relation_params_default = {
 "sigma_lnp":0.22,
 "corr_lnq_lnp":0.77,
 "a_lens":1.,
+"f_false_detection":0., #N_F / (N_F + N_T) fraction of false detections to total detections
 
+#SZiFi Planck
 
+"alpha_szifi":1.12,
+"A_szifi":-4.3054,
+"sigma_lnq_szifi":0.173,
+
+#SPT
 # spt style lkl:
 "A_sz": 5.1,
 "B_sz": 1.75,
@@ -98,11 +118,23 @@ scaling_relation_params_default = {
 "B_x": 0.69,
 "C_x": -0.25,
 
-"sigma_lnYx":0.255,
-# "SZmPivot" : 3e14
-'corr_xi_Yx': 0.1,
+"sigma_lnYx":0.255, # 'Dx' in Bocquet's code
+"dlnMg_dlnr" : 0.,
 
+'WLbias' : 0.,
+'WLscatter': 0.,
 
+'HSTbias': 0.,
+'HSTscatterLSS':0.,
+
+'MegacamBias': 0.,
+'MegacamScatterLSS': 0.,
+
+'corr_xi_Yx': 0.1, # 'rhoSZX' in Bocquet's code
+'corr_xi_WL': 0.1, # 'rhoSZWL' in Bocquet's code
+'corr_Yx_WL': 0.1,  # 'rhoWLX' in Bocquet's code
+
+'SZmPivot': 3e14
 }
 
 cosmo_params_default = {

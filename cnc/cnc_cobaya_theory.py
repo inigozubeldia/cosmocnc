@@ -8,16 +8,16 @@ import numpy as np
 
 class cnc(classy):
 
-    number_cores_hmf : Optional[str] = 1
-    number_cores_abundance : Optional[str] = 1
+    number_cores_hmf : Optional[str] = 8
+    number_cores_abundance : Optional[str] = 8
     number_cores_data : Optional[str] = 8
     parallelise_type : Optional[str] = "redshift" #"patch" or "redshift"
 
     #Precision parameters
 
-    n_points : Optional[str] = 2**13 #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
-    n_obs_select : Optional[str] =  2**13
-    n_z : Optional[str] =  100
+    n_points : Optional[str] = 2048*2 #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
+    n_obs_select : Optional[str] =  2048*2
+    n_z : Optional[str] =  50
 
     n_points_data_lik : Optional[str] =  128 #number of points for the computation of the cluster data part of the likelihood
     sigma_mass_prior : Optional[str] =  5.
@@ -33,6 +33,7 @@ class cnc(classy):
     #"cluster_catalogue":"zc19_simulated_12",#"Planck_MMF3_cosmo",
     #"cluster_catalogue":"q_mlens_simulated",
     data_lik_from_abundance :Optional[str] =  True #if True, and if the only observable is the selection observable,
+    compute_abundance_matrix: Optional[str] = False
 
     #Range of abundance observables
 
@@ -61,73 +62,6 @@ class cnc(classy):
     z_error_sigma_integral_range: Optional[str] =  3
     z_error_min: Optional[str] =  1e-2 #minimum z std for which an integral over redshift in the cluster data term is performed (if "z_errors" = True)
 
-    #Only if binned likelihood is computed
-
-    binned_lik_type:Optional[str] =  "z_and_obs_select" #can be "obs_select", "z", or "z_and_obs_select"
-    bins_edges_z: Optional[str] =  np.linspace(0.01,1.01,11)
-    bins_edges_obs_select: Optional[str] =  np.exp(np.linspace(np.log(6.),np.log(60),6))
-
-    #Priors
-
-    priors: Optional[str] =  True
-    theta_mc_prior: Optional[str] =  True
-
-
-
-    # mass pivot for spt-style lkl:
-    SZmPivot: Optional[str] = 3e14
-
-    # scaling relation parameter:
-    dof: Optional[str] = 0
-
-    parallelise_type : Optional[str] = "redshift" #"patch" or "redshift"
-
-    #Precision parameters
-
-    n_points : Optional[str] = 2048 #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
-    n_obs_select : Optional[str] =  2048
-    n_z : Optional[str] =  50
-
-    n_points_data_lik : Optional[str] =  64 #number of points for the computation of the cluster data part of the likelihood
-    sigma_mass_prior : Optional[str] =  5.
-
-    #Observables and catalogue
-
-    likelihood_type : Optional[str] =  "unbinned" #"unbinned", "binned", or "extreme_value"
-    obs_select : Optional[str] =  "q_mmf3_mean" #"q_mmf3_mean",
-    observables : Optional[str] =  [["q_mmf3_mean","p_zc19"]]
-    cluster_catalogue :Optional[str] =  "zc19_simulated_12"
-
-    obs_select_threshold : Optional[str] = 6.
-
-    data_lik_from_abundance :Optional[str] =  True #if True, and if the only observable is the selection observable,
-
-    #Range of abundance observables
-
-    obs_select_min : Optional[str] =  6.
-    obs_select_max : Optional[str] =  100.
-    z_min : Optional[str] =  0.01
-    z_max : Optional[str] =  1.01
-
-    #hmf parameters
-
-    M_min : Optional[str] =  5e13
-    M_max : Optional[str] =  5e15
-    hmf_calc : Optional[str] =  "cnc" #"cnc", "hmf", or "MiraTitan"
-    hmf_type : Optional[str] =  "Tinker08"
-    mass_definition : Optional[str] =  "500c"
-    hmf_type_deriv : Optional[str] =  "numerical" #"analytical" or "numerical"
-    power_spectrum_type : Optional[str] =  "cosmopower"
-    cosmo_amplitude_parameter : Optional[str] =  "sigma_8" #"sigma_8" or "A_s"
-    scalrel_type_deriv : Optional[str] =  "analytical" #"analytical" or "numerical"
-    cosmology_tool:  Optional[str] = "astropy" # current options are astropy (and cosmopower), classy, and classy_sz (fast-mode)
-
-    #Redshift errors parameters
-
-    z_errors: Optional[str] =  False
-    n_z_error_integral: Optional[str] =  5
-    z_error_sigma_integral_range: Optional[str] =  3
-    z_error_min: Optional[str] =  1e-2 #minimum z std for which an integral over redshift in the cluster data term is performed (if "z_errors" = True)
 
     #Only if binned likelihood is computed
 
@@ -139,6 +73,14 @@ class cnc(classy):
 
     priors: Optional[str] =  False
     theta_mc_prior: Optional[str] =  False
+
+    # mass pivot for spt-style lkl:
+    SZmPivot: Optional[str] = 3e14
+
+    # scaling relation parameter:
+    dof: Optional[str] = 0
+
+    parallelise_type : Optional[str] = "redshift" #"patch" or "redshift"
 
     def initialize(self):
 
@@ -158,11 +100,11 @@ class cnc(classy):
 
         #Precision parameters
 
-        self.cnc.cnc_params["n_points"] = self.n_points # 2**13, #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
-        self.cnc.cnc_params["n_obs_select"] = self.n_obs_select # 2**13,
-        self.cnc.cnc_params["n_z"] = self.n_z # 100,
+        self.cnc.cnc_params["n_points"] = int(self.n_points) # 2**13, #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
+        self.cnc.cnc_params["n_obs_select"] = int(self.n_obs_select) # 2**13,
+        self.cnc.cnc_params["n_z"] = int(self.n_z) # 100,
 
-        self.cnc.cnc_params["n_points_data_lik"] = self.n_points_data_lik # 128, #number of points for the computation of the cluster data part of the likelihood
+        self.cnc.cnc_params["n_points_data_lik"] = int(self.n_points_data_lik) # 128, #number of points for the computation of the cluster data part of the likelihood
         self.cnc.cnc_params["sigma_mass_prior"] = self.sigma_mass_prior # 5.,
 
         #Observables and catalogue
@@ -181,15 +123,13 @@ class cnc(classy):
         self.cnc.cnc_params["obs_select_min"] = self.obs_select_min # 6.,
         self.cnc.cnc_params["obs_select_max"] = self.obs_select_max # 100.,
 
-        self.cnc.cnc_params["obs_select_threshold"] = self.obs_select_threshold
-
         self.cnc.cnc_params["z_min"] = self.z_min # 0.01,
         self.cnc.cnc_params["z_max"] = self.z_max # 1.01,
 
         #hmf parameters
 
-        self.cnc.cnc_params["M_min"] = self.M_min # 1e13,
-        self.cnc.cnc_params["M_max"] = self.M_max # 1e16,
+        self.cnc.cnc_params["M_min"] = float(self.M_min) # 1e13,
+        self.cnc.cnc_params["M_max"] = float(self.M_max) # 1e16,
         self.cnc.cnc_params["hmf_calc"] = self.hmf_calc # "cnc", #"cnc", "hmf", or "MiraTitan"
         self.cnc.cnc_params["hmf_type"] = self.hmf_type # "Tinker08",
         self.cnc.cnc_params["mass_definition"] = self.mass_definition # "500c",
@@ -215,10 +155,6 @@ class cnc(classy):
 
         # self.cnc.cnc_params["priors"] = self.priors # True,
         # self.cnc.cnc_params["theta_mc_prior"] = self.theta_mc_prior # True,
-
-
-        # spt-style params:
-        self.cnc.cnc_params["SZmPivot"] = self.SZmPivot
 
         # scaling relation param:
         self.cnc.cnc_params["dof"] = self.dof
@@ -339,6 +275,7 @@ class cnc(classy):
         assign_parameter_value(scal_rel_params,params_values,"corr_lnq_lnp")
 
         # SPT-style parameters:
+
         assign_parameter_value(scal_rel_params,params_values,"A_sz")
         assign_parameter_value(scal_rel_params,params_values,"B_sz")
         assign_parameter_value(scal_rel_params,params_values,"C_sz")
@@ -347,9 +284,23 @@ class cnc(classy):
         assign_parameter_value(scal_rel_params,params_values,"B_x")
         assign_parameter_value(scal_rel_params,params_values,"C_x")
 
-        assign_parameter_value(scal_rel_params,params_values,"sigma_lnYx")
-        assign_parameter_value(scal_rel_params,params_values,"corr_xi_Yx")    
+        assign_parameter_value(scal_rel_params,params_values,"dlnMg_dlnr")
 
+        assign_parameter_value(scal_rel_params,params_values,"sigma_lnYx")
+
+        assign_parameter_value(scal_rel_params,params_values,"corr_xi_Yx")
+        assign_parameter_value(scal_rel_params,params_values,"corr_xi_WL")
+        assign_parameter_value(scal_rel_params,params_values,"corr_Yx_WL")
+
+        assign_parameter_value(scal_rel_params,params_values,"WLbias")
+        assign_parameter_value(scal_rel_params,params_values,"WLscatter")
+
+        assign_parameter_value(scal_rel_params,params_values,"HSTbias")
+        assign_parameter_value(scal_rel_params,params_values,"HSTscatterLSS")
+
+        assign_parameter_value(scal_rel_params,params_values,'MegacamBias')
+        assign_parameter_value(scal_rel_params,params_values,'MegacamScatterLSS')
+        assign_parameter_value(scal_rel_params,params_values,'SZmPivot')
         # updating scaling relations params that are not varied in mcmc, but passed in input
         scal_rel_params['dof'] = self.cnc.cnc_params["dof"]
 

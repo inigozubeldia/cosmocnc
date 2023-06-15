@@ -15,10 +15,14 @@ class cosmology_model:
     def __init__(self,cosmo_params=None,cosmology_tool = "astropy", power_spectrum_type="cosmopower",amplitude_parameter="sigma_8"):
 
         if cosmo_params is None:
+
             cosmo_params = cosmo_params_default
+
         self.cosmo_params = cosmo_params
         self.amplitude_parameter = amplitude_parameter
+
         if cosmology_tool == "classy_sz":
+
             from classy_sz import Class
 
             self.classy = Class()
@@ -133,6 +137,16 @@ class cosmology_model:
                           'skip_pkl': 0,
                           'skip_sigma8_and_der': 0,
                           'skip_sigma8_at_z': 1,
+
+                          # for mass conversion routines:
+                          'output': 'mPk,m500c_to_m200c',
+                          'M_min' : 1e9,
+                          'M_max' : 1e16,
+                          'z_min' : 0.,
+                          'z_max' : 2.,
+                          'ndim_redshifts' :50,
+                          'ndim_masses' :50,
+                          'concentration parameter':'D08'
                           }
 
             if self.amplitude_parameter == "sigma_8":
@@ -140,8 +154,8 @@ class cosmology_model:
                 classy_params['sigma8'] = self.cosmo_params["sigma_8"]
 
             elif self.amplitude_parameter == "A_s":
+
                 classy_params['ln10^{10}A_s'] = np.log(self.cosmo_params["A_s"]*1e10)
-            # print('classy_params:',classy_params)
 
             self.classy.set(classy_params)
             self.classy.compute_class_szfast()
@@ -153,7 +167,9 @@ class cosmology_model:
             self.power_spectrum = classy_sz(self.classy)
             self.background_cosmology = classy_sz(self.classy)
             self.background_cosmology.H0.value = self.classy.h()*100.
-
+            self.get_m500c_to_m200c_at_z_and_M = np.vectorize(self.classy.get_m500c_to_m200c_at_z_and_M)
+            self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
+            
         if cosmology_tool == "astropy":
 
             self.background_cosmology = self.cosmology_tool.FlatLambdaCDM(self.cosmo_params["h"]*100.,
@@ -167,6 +183,7 @@ class cosmology_model:
             self.D_CMB = self.background_cosmology.angular_diameter_distance(self.z_CMB).value
 
             if self.power_spectrum_type == "cosmopower":
+
                 self.power_spectrum.set_cosmology(H0=self.cosmo_params["h"]*100.,
                                                   Ob0=self.cosmo_params["Ob0"],
                                                   Oc0=self.cosmo_params["Om0"]-self.cosmo_params["Ob0"],
