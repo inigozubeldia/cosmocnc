@@ -161,6 +161,19 @@ class cluster_catalogue:
             spt_catalog = Table.read(SPTcatalogfile)
 
             threshold = self.cnc_params['obs_select_min']
+
+
+            indices_no_z = np.where(spt_catalog['redshift'] == 0.)[0]
+            # print('spt_catalog indices no z:',len(indices_no_z),indices_no_z)
+            # print(spt_catalog.keys())
+            # print('redshift_lim',spt_catalog['redshift_lim'])
+            indices_redshift_lim = np.where(spt_catalog['redshift_lim']!=0.)[0]
+            # print('indices_redshift_lim',len(indices_redshift_lim),indices_redshift_lim)
+            # exit(0)
+
+
+
+
             indices_catalog = []
             for i in range(0,len(spt_catalog["xi"])):
                 ## add a seperate zmin threshold, for observed clusters.
@@ -172,7 +185,14 @@ class cluster_catalogue:
 
             self.catalogue["z"] = np.asarray(spt_catalog['redshift'][indices_catalog])
 
+            self.catalogue["z_lim"] = np.asarray(spt_catalog['redshift_lim'][indices_catalog])
+
             indices_no_z = np.where(self.catalogue["z"] == 0.)[0]
+
+            indices_no_z_no_lim = np.where(self.catalogue["z"] == 0.)[0]
+            # print(self.catalogue["z"])
+            # print(indices_no_z_no_lim)
+            # exit(0)
 
             self.catalogue["z"][indices_no_z] = None
 
@@ -305,6 +325,10 @@ class cluster_catalogue:
     def get_precompute_cnc_quantities(self):
 
         self.indices_no_z = np.argwhere(np.isnan(self.catalogue["z"]))[:,0]
+        # print(self.catalogue["z"])
+        # print(self.indices_no_z)
+        # print(self.catalogue)
+        # exit(0)
         self.indices_with_z = np.argwhere(~np.isnan(self.catalogue["z"]))[:,0]
 
         self.number_counts = np.zeros((len(self.bins_z_edges)-1,len(self.bins_obs_select_edges)-1))

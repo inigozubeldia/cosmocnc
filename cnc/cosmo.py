@@ -21,26 +21,6 @@ class cosmology_model:
         if cosmology_tool == "classy_sz":
             from classy_sz import Class
 
-            self.classy_sptref = Class()
-
-            spt_cosmoRef = {'Omega_m':.3,
-                            'Omega_l':.7,
-                            'h':.7,
-                            'w0':-1.,
-                            'wa':0,
-                            # "Ob0":
-                            }
-            self.classy_sptref.set({
-                           'H0': spt_cosmoRef["h"]*100.,
-                           'omega_b': self.cosmo_params["Ob0"]*spt_cosmoRef["h"]**2,
-                           'omega_cdm': (spt_cosmoRef['Omega_m']-self.cosmo_params["Ob0"])*spt_cosmoRef["h"]**2,
-                           'output': ' '
-                           }
-                           )
-            self.classy_sptref.compute()
-            self.background_cosmology_sptref = classy_sz(self.classy_sptref)
-            # print('spt cosmoref computed')
-
             self.classy = Class()
 
 
@@ -181,8 +161,6 @@ class cosmology_model:
 
             elif self.amplitude_parameter == "A_s":
                 classy_params['ln10^{10}A_s'] = np.log(self.cosmo_params["A_s"]*1e10)
-            # print('classy_params:',classy_params)
-
 
 
             spt_cosmoRef = {'Omega_m':.3,
@@ -192,23 +170,12 @@ class cosmology_model:
                             'wa':0,
                             # "Ob0":
                             }
-            self.spt_cosmoRef = spt_cosmoRef
-            self.classy_sptref.set({
-                                   'H0': spt_cosmoRef["h"]*100.,
-                                   'omega_b': self.cosmo_params["Ob0"]*spt_cosmoRef["h"]**2,
-                                   'omega_cdm': (spt_cosmoRef['Omega_m']-self.cosmo_params["Ob0"])*spt_cosmoRef["h"]**2,
-                                   'output': ' '
-                                   }
-                                   )
-            # print('recomputing spt ref cosmo')
-            self.classy_sptref.compute()
-            # print('spt ref cosmo recomputed')
-            self.background_cosmology_sptref = classy_sz(self.classy_sptref)
-            # self.background_cosmology_sptref.H0.value = (self.classy_sptref.h()*100.)
 
-            spt_zs = np.linspace(1e-5,5,200)
-            self.spt_ln1pzs = np.log(1.+spt_zs)
-            self.spt_lndas_hmpc = np.log(self.background_cosmology_sptref.angular_diameter_distance(spt_zs).value*self.classy_sptref.h())
+            self.spt_cosmoRef = spt_cosmoRef
+
+            self.spt_ln1pzs,self.spt_lndas_hmpc = np.loadtxt(root_path +  'data/spt/spt_cosmoref1_ln1pz_lndahmpc.txt',
+                                                             unpack=True)
+
 
 
             # cosmologyRef = {'Omega_m':.272, 'Omega_l':.728, 'h':.702, 'w0':-1, 'wa':0}
@@ -220,22 +187,10 @@ class cosmology_model:
                                     # "Ob0":
                                     }
             self.spt_cosmoRef_masscal = spt_cosmoRef_masscal
-            self.classy_sptref.set({
-                                   'H0': spt_cosmoRef_masscal["h"]*100.,
-                                   'omega_b': self.cosmo_params["Ob0"]*spt_cosmoRef_masscal["h"]**2,
-                                   'omega_cdm': (spt_cosmoRef_masscal['Omega_m']-self.cosmo_params["Ob0"])*spt_cosmoRef_masscal["h"]**2,
-                                   'output': ' '
-                                   }
-                                   )
-            # print('recomputing spt ref cosmo')
-            self.classy_sptref.compute()
-            # print('spt ref cosmo recomputed')
-            self.background_cosmology_sptref_masscal = classy_sz(self.classy_sptref)
-            # self.background_cosmology_sptref.H0.value = (self.classy_sptref.h()*100.)
+            self.spt_ln1pzs_masscal,self.spt_lndas_hmpc_masscal = np.loadtxt(root_path +  'data/spt/spt_cosmoref2_ln1pz_lndahmpc.txt',
+                                                                             unpack=True)
 
-            spt_zs_masscal = np.linspace(1e-5,5,200)
-            self.spt_ln1pzs_masscal = np.log(1.+spt_zs_masscal)
-            self.spt_lndas_hmpc_masscal = np.log(self.background_cosmology_sptref_masscal.angular_diameter_distance(spt_zs_masscal).value*self.classy_sptref.h())
+
 
 
 

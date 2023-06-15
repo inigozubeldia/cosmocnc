@@ -471,7 +471,7 @@ class cluster_number_counts:
                                         "D_CMB":self.cosmology.D_CMB,
                                         "E_z0p6" : self.E_z0p6,
                                         "zc":redshift_eval,
-                                        "background_cosmology_sptref":self.cosmology.background_cosmology_sptref,
+                                        # "background_cosmology_sptref":self.cosmology.background_cosmology_sptref,
                                         "cosmology":self.cosmology}
 
                         t0 = time.time()
