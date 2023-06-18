@@ -77,7 +77,7 @@ class cluster_catalogue:
 
             if self.obs_select == "q_mmf3":
 
-                patch_index_vec = np.load("/home/iz221/bayesian_bias/cluster_patch_index.npy")
+                patch_index_vec = np.load(root_path + "data/cluster_patch_index.npy")
 
                 downsample_flag = self.cnc_params["catalogue_params"]["downsample"]
 
@@ -87,7 +87,7 @@ class cluster_catalogue:
 
                 elif downsample_flag == True:
 
-                    (self.sigma_matrix,self.skyfracs,original_tile_vec) = np.load("/home/iz221/planck_sz/test_downsample_tiles_noisebased_mmf3.npy",allow_pickle=True)
+                    (self.sigma_matrix,self.skyfracs,original_tile_vec) = np.load(root_path + "data/test_downsample_tiles_noisebased_mmf3.npy",allow_pickle=True)
 
                     patch_index_downsampled = np.zeros(len(patch_index_vec))
 
@@ -106,7 +106,7 @@ class cluster_catalogue:
 
             #CMB lensing data from Zubeldia & Challinor 2019
 
-            [m_cmb_obs,sigma_cmb_obs,m_xry] = np.load("/home/iz221/bayesian_bias/mass_estimates_paper.npy")
+            [m_cmb_obs,sigma_cmb_obs,m_xry] = np.load(root_path + "data/mass_estimates_paper.npy")
             p_obs = m_cmb_obs/sigma_cmb_obs
             cmb_lensing_patches = np.arange(len(p_obs))
 
