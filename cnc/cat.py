@@ -66,6 +66,7 @@ class cluster_catalogue:
             self.catalogue[observable] = data_mmf3["SNR"][indices_mmf3]
             self.catalogue["z"] = data_union["REDSHIFT"][indices_union]
             self.catalogue_patch[observable] = np.zeros(len(self.catalogue[observable])).astype(np.int)
+            # self.catalogue["z_std"] = [None for i in range(len(self.catalogue["z"]))]
 
             indices_no_z = np.where(self.catalogue["z"] < 0.)[0]
 
@@ -73,7 +74,7 @@ class cluster_catalogue:
 
             indices_z = np.argwhere(~np.isnan(self.catalogue["z"]))[:,0]
 
-            patch_index_vec = np.load("/home/iz221/bayesian_bias/cluster_patch_index.npy")
+            patch_index_vec = np.load(root_path + 'data/cluster_patch_index.npy')
 
             if self.obs_select == "q_mmf3":
 
@@ -87,7 +88,7 @@ class cluster_catalogue:
 
             #CMB lensing data from Zubeldia & Challinor 2019
 
-            [m_cmb_obs,sigma_cmb_obs,m_xry] = np.load("/home/iz221/bayesian_bias/mass_estimates_paper.npy")
+            [m_cmb_obs,sigma_cmb_obs,m_xry] = np.load(root_path + 'data/mass_estimates_paper.npy')
             p_obs = m_cmb_obs/sigma_cmb_obs
             cmb_lensing_patches = np.arange(len(p_obs))
 

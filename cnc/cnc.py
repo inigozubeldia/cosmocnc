@@ -328,12 +328,20 @@ class cluster_number_counts:
         log_lik_data = 0.
 
 
-        for i in range(0,len(indices_no_z)):
+        print('indices_no_z',indices_no_z)
+        print('self.obs_select_vec:',self.obs_select_vec)
+        print('self.n_obs_matrix',self.n_obs_matrix)
+        # exit(0)
 
-            log_lik_data = log_lik_data\
-                         + np.log(np.interp(self.catalogue.catalogue[self.cnc_params["obs_select"]][int(indices_no_z[i])],
+        for i in range(0,len(indices_no_z)):
+            print('interpolating at :',self.catalogue.catalogue[self.cnc_params["obs_select"]][int(indices_no_z[i])])
+            loglikc =  np.log(np.interp(self.catalogue.catalogue[self.cnc_params["obs_select"]][int(indices_no_z[i])],
                                             self.obs_select_vec,
                                             self.n_obs_matrix[self.catalogue.catalogue_patch[self.cnc_params["obs_select"]][int(indices_no_z[i])]]))
+
+            log_lik_data = log_lik_data\
+                         + loglikc
+            print('got :',loglikc)
 
         #Computes log lik of data for clusters with z if there is only the selection observable
 
@@ -348,6 +356,8 @@ class cluster_number_counts:
                 patch_index = int(indices_unique[i])
                 abundance_matrix = self.abundance_tensor[patch_index,:,:]
 
+                # print('abundance_matrix:',abundance_matrix)
+
                 abundance_interp = interpolate.RegularGridInterpolator((self.redshift_vec,self.obs_select_vec),abundance_matrix)
 
 
@@ -356,12 +366,17 @@ class cluster_number_counts:
                 obs_select = self.catalogue.catalogue[self.cnc_params["obs_select"]][indices_obs_select][indices]
 
                 #If redshift errors are negligible
-                z_std_select = self.catalogue.catalogue["z_std"][indices_obs_select][indices]
+                try:
+                    z_std_select = self.catalogue.catalogue["z_std"][indices_obs_select][indices]
+                except:
+                    z_std_select = None
 
                 if self.cnc_params["z_errors"] == False or all(z_std_select < self.cnc_params["z_error_min"]):
 
+                    print('computing log like:')
                     lik_clusters = abundance_interp(np.transpose(np.array([z_select,obs_select])))
                     log_lik_clusters = np.sum(np.log(lik_clusters))
+                    print('got log like:',log_lik_clusters)
 
                 #If redshift errors are not negligible
 
@@ -402,6 +417,7 @@ class cluster_number_counts:
 
                             log_lik_clusters = log_lik_clusters + np.log(lik_cluster)
 
+                print('log_lik_data,log_lik_clusters',log_lik_data,log_lik_clusters)
                 log_lik_data = log_lik_data + log_lik_clusters
 
         #Computes log lik of data if there are more observables than the selection observable

@@ -12,9 +12,10 @@ likelihood:
 
 theory:
   cnc.cnc_cobaya_theory.cnc:
-    # cosmology_tool: "classy_sz"
-    number_cores : 1
-    number_cores_hmf : 1
+    cosmology_tool: "classy_sz"
+    number_cores_abundance : 11
+    number_cores_hmf : 11
+    number_cores_data : 11
     observables: [["q_mmf3_mean"]]
     z_errors : True
     # n_points : 2000000
