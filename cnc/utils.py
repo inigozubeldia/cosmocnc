@@ -5,7 +5,7 @@ import scipy.stats as stats
 import functools
 import math
 
-def convolve_1d(x,dn_dx,sigma_scatter): #alternative convolution function, slower
+def convolve_1dk(x,dn_dx,sigma_scatter): #alternative convolution function, slower
 
     if sigma_scatter > 0.:
 
@@ -14,7 +14,7 @@ def convolve_1d(x,dn_dx,sigma_scatter): #alternative convolution function, slowe
 
     return dn_dx
 
-def convolve_1dk(x,dn_dx,sigma_scatter):
+def convolve_1d(x,dn_dx,sigma_scatter):
 
     if sigma_scatter > 0.:
 
@@ -48,7 +48,7 @@ def eval_gaussian_nd(x_mesh,cov=None):
     shape = x_mesh.shape
     x_mesh = x_mesh.reshape(*x_mesh.shape[:-2],-1)
     pdf = stats.multivariate_normal.pdf(np.transpose(x_mesh),cov=cov)
-    pdf = pdf.reshape(shape[1:])
+    pdf = np.transpose(pdf.reshape(shape[1:]))
 
     return pdf
 
@@ -84,7 +84,7 @@ def extract_diagonal(tensor):
 
     if len(tensor.shape) == 2:
 
-        diag = np.diag(cpdf)
+        diag = np.diag(tensor)
 
     elif len(tensor.shape) == 3:
 
@@ -94,7 +94,7 @@ def extract_diagonal(tensor):
 
             diag[i] = tensor[i,i,i]
 
-        return diag
+    return diag
 
 
 def get_cash_statistic(n_obs_vec,n_mean_vec):

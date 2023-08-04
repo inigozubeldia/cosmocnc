@@ -9,8 +9,9 @@ cnc_params_default = {
     #Number of cores
 
     "number_cores_hmf": 1,
-    "number_cores_abundance": 8,
-    "number_cores_data": 8,
+    "number_cores_abundance": 1,
+    "number_cores_data": 1,
+    "number_cores_stacked":1,
 
     "parallelise_type": "patch", #"patch" or "redshift"
 
@@ -27,17 +28,18 @@ cnc_params_default = {
 
     "likelihood_type": "unbinned", #"unbinned", "binned", or "extreme_value"
     #"obs_select": "q_mmf3_mean", #"q_mmf3_mean",
-    "obs_select": "q_mmf3_mean", #"q_mmf3_mean",
+    "obs_select": "q_mmf3", #"q_mmf3_mean",
 
 #    "observables": [["q_mmf3_mean","p_zc19"]],
-#    "observables": [["q_mmf3_mean","p_zc19"]],
-    "observables": [["q_mmf3_mean"]],
-    "cluster_catalogue":"zc19_simulated_12",#"0.0119647",#
-    #"cluster_catalogue":"Planck_MMF3_cosmo",#"Planck_MMF3_cosmo",
+    "observables": [["q_mmf3","p_zc19"]],
+#    "observables": [["q_mmf3_mean"]],
+    #"cluster_catalogue":"zc19_simulated_12",#"0.0119647",#
+    "cluster_catalogue":"Planck_MMF3_cosmo",#"Planck_MMF3_cosmo",
     #"cluster_catalogue":"q_mlens_simulated",
     "data_lik_from_abundance":True, #if True, and if the only observable is the selection observable,
     "compute_abundance_matrix":False, #only true if the abundance matrix is needed
-    "catalogue_params":{"downsample":False},
+    "catalogue_params":{"downsample":True},
+    "apply_obs_cutoff":False,
 
     #Range of abundance observables
 
@@ -49,7 +51,7 @@ cnc_params_default = {
     #cosmology and hmf parameters
 
     "cosmology_tool": "astropy", #"astropy" or "classy_sz"
-    "M_min": 5e13,
+    "M_min": 1e13,
     "M_max": 5e15,
     "hmf_calc": "cnc", #"cnc", "hmf", or "MiraTitan"
     "hmf_type": "Tinker08",
@@ -77,6 +79,18 @@ cnc_params_default = {
     "bins_edges_z": np.linspace(0.01,1.01,11),
     "bins_edges_obs_select": np.exp(np.linspace(np.log(6.),np.log(60),6)),
 
+    #Stacked likelihood params
+
+    "stacked_likelihood": False,
+    "stacked_data": ["p_zc19_stacked"], #list of stacked data or "all", in which case all the stack data defined in the catalogue are considered
+    "compute_stacked_cov": True,
+
+    #Parms to compute mass calibration likelihood in an alternative way
+
+    "likelihood_cal_alt": False,
+    "observables_cal": ["p_zc19"],
+
+
     #Priors
 
     "priors": False,
@@ -90,22 +104,24 @@ scaling_relation_params_default = {
 
 "alpha":1.79,
 "beta":0.66,
-"log10_Y_star":-0.19,#0.646,#10.**(-0.186),
+"log10_Y_star":-0.19,
 "sigma_lnq":0.173,
 "bias_sz":0.62, #a.k.a. 1-b
-"sigma_lnmlens":0.173,
-"sigma_mlens":0.2,
+"sigma_lnmlens":0.2,
+"sigma_mlens":0.5,
+"bias_lens":1.,
 "dof":0.,
 "bias_cmblens":0.92,
 "sigma_lnp":0.22,
 "corr_lnq_lnp":0.77,
 "a_lens":1.,
-"f_false_detection":0., #N_F / (N_F + N_T) fraction of false detections to total detections
+"f_false_detection":0.0, #N_F / (N_F + N_T) fraction of false detections to total detections
+"q_cutoff":2.,
 
 #SZiFi Planck
 
-"alpha_szifi":1.12,
-"A_szifi":-4.3054,
+"alpha_szifi":1.12333,
+"A_szifi": -4.3054, #Arnaud values, respectively
 "sigma_lnq_szifi":0.173,
 
 #SPT
@@ -148,6 +164,8 @@ cosmo_params_default = {
 "sigma_8":0.811, #if amplitude_paramter == "A_s", this is overriden; the amplitude is taken by the value given to "A_s" in this dictionary
 "tau_reio": 0.0544
 }
+
+
 
 class priors:
 

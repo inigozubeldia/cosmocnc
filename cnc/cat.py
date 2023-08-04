@@ -22,6 +22,7 @@ class cluster_catalogue:
         self.precompute_cnc_quantities = precompute_cnc_quantities
         self.cnc_params = cnc_params
 
+
         if isinstance(bins_obs_select_edges,str):
 
             bins_obs_select_edges = eval(bins_obs_select_edges)
@@ -87,7 +88,7 @@ class cluster_catalogue:
 
                 elif downsample_flag == True:
 
-                    (self.sigma_matrix,self.skyfracs,original_tile_vec) = np.load(root_path + "data/test_downsample_tiles_noisebased_mmf3.npy",allow_pickle=True)
+                    (self.sigma_matrix,self.skyfracs,original_tile_vec) = np.load(root_path + "data/mmf3_noise_downsampled.npy",allow_pickle=True)
 
                     patch_index_downsampled = np.zeros(len(patch_index_vec))
 
@@ -115,9 +116,41 @@ class cluster_catalogue:
 
             p_zc19[indices_z] = p_obs
             p_zc19_patches[indices_z] = cmb_lensing_patches
+            p_zc19[indices_no_z] = None
+            p_zc19_patches[indices_no_z] = None
+
             self.catalogue["p_zc19"] = p_zc19
             self.catalogue_patch["p_zc19"] = p_zc19_patches
 
+            #Stacked CMB lensing data
+
+            self.stacked_data_labels = ["p_zc19_stacked"]
+
+            self.catalogue_patch["p_zc19_stacked"] = p_zc19_patches #if one wants to use p with just one layer
+
+            self.stacked_data = {"p_zc19_stacked":{}}
+
+            self.stacked_data["p_zc19_stacked"]["data_vec"] = np.mean(p_obs)
+            self.stacked_data["p_zc19_stacked"]["inv_cov"] = float(len(p_obs))
+            self.stacked_data["p_zc19_stacked"]["cluster_index"] = indices_z
+            self.stacked_data["p_zc19_stacked"]["observable"] = "p_zc19"
+
+            #CMB lensing data stacked but not really
+
+            if self.cnc_params["stacked_data"] == "all":
+
+                self.stacked_data = {}
+                self.stacked_data_labels = []
+
+                for i in range(0,len(indices_z)):
+
+                    self.stacked_data_labels.append("p_zc19_stacked_" + str(i))
+                    self.stacked_data["p_zc19_stacked_" + str(i)] = {}
+
+                    self.stacked_data["p_zc19_stacked_" + str(i)]["data_vec"] = self.catalogue["p_zc19"][indices_z[i]]
+                    self.stacked_data["p_zc19_stacked_" + str(i)]["inv_cov"] = 1.
+                    self.stacked_data["p_zc19_stacked_" + str(i)]["cluster_index"] = [indices_z[i]]
+                    self.stacked_data["p_zc19_stacked_" + str(i)]["observable"] = "p_zc19"
 
         elif self.catalogue_name[0:14] == "zc19_simulated":
 
@@ -131,6 +164,7 @@ class cluster_catalogue:
             self.catalogue["p_zc19"] = catalogue["p_zc19"]
             self.catalogue_patch["p_zc19"] = catalogue["p_zc19_patch"]
             self.catalogue["z"] = catalogue["z"]
+
             n_fd = 0
             self.catalogue["z"][0:n_fd] = [None]*n_fd
             self.catalogue["z_std"] = np.ones(len(self.catalogue["z"]))*1e-2
@@ -138,6 +172,129 @@ class cluster_catalogue:
             self.catalogue["validated"][0:n_fd] = np.zeros(n_fd)
 
             self.obs_select = "q_mmf3_mean"
+
+            #Stacked CMB lensing data
+
+            self.stacked_data_labels = ["p_zc19_stacked"]
+
+            self.catalogue_patch["p_zc19_stacked"] = self.catalogue_patch["p_zc19"] #if one wants to use p with just one layer
+
+            self.stacked_data = {"p_zc19_stacked":{}}
+
+            self.stacked_data["p_zc19_stacked"]["data_vec"] = np.mean(self.catalogue["p_zc19"])
+            self.stacked_data["p_zc19_stacked"]["inv_cov"] = float(len(self.catalogue["p_zc19"]))
+            self.stacked_data["p_zc19_stacked"]["cluster_index"] = np.arange(len(self.catalogue["p_zc19"]))
+            self.stacked_data["p_zc19_stacked"]["observable"] = "p_zc19"
+
+            #CMB lensing data stacked but not really
+
+            if self.cnc_params["stacked_data"] == "all":
+
+                self.stacked_data = {}
+                self.stacked_data_labels = []
+
+                for i in range(0,len(self.catalogue["p_zc19"])):
+
+                    self.stacked_data_labels.append("p_zc19_stacked_" + str(i))
+                    self.stacked_data["p_zc19_stacked_" + str(i)] = {}
+
+                    self.stacked_data["p_zc19_stacked_" + str(i)]["data_vec"] = self.catalogue["p_zc19"][i]
+                    self.stacked_data["p_zc19_stacked_" + str(i)]["inv_cov"] = 1.
+                    self.stacked_data["p_zc19_stacked_" + str(i)]["cluster_index"] = [i]
+                    self.stacked_data["p_zc19_stacked_" + str(i)]["observable"] = "p_zc19"
+
+        elif self.catalogue_name[0:14] == "zc19_paper_simulated":
+
+            catalogue = np.load(root_path + "data/catalogues_sim/catalogue_" + self.catalogue_name + "_paper.npy",allow_pickle=True)[0]
+
+            self.catalogue = {}
+            self.catalogue_patch = {}
+
+            self.catalogue["q_mmf3_mean"] = catalogue["q_mmf3_mean"]
+            self.catalogue_patch["q_mmf3_mean"] = catalogue["q_mmf3_mean_patch"]
+            self.catalogue["p_zc19"] = catalogue["p_zc19"]
+            self.catalogue_patch["p_zc19"] = catalogue["p_zc19_patch"]
+            self.catalogue["z"] = catalogue["z"]
+
+            n_fd = 0
+            self.catalogue["z"][0:n_fd] = [None]*n_fd
+            self.catalogue["z_std"] = np.ones(len(self.catalogue["z"]))*1e-2
+            self.catalogue["validated"] = np.ones(len(self.catalogue["z"])) #1. or 0.
+            self.catalogue["validated"][0:n_fd] = np.zeros(n_fd)
+
+            self.obs_select = "q_mmf3_mean"
+
+            #Stacked CMB lensing data
+
+            self.stacked_data_labels = ["p_zc19_stacked"]
+
+            self.catalogue_patch["p_zc19_stacked"] = self.catalogue_patch["p_zc19"] #if one wants to use p with just one layer
+
+            self.stacked_data = {"p_zc19_stacked":{}}
+
+            self.stacked_data["p_zc19_stacked"]["data_vec"] = np.mean(self.catalogue["p_zc19"])
+            self.stacked_data["p_zc19_stacked"]["inv_cov"] = float(len(self.catalogue["p_zc19"]))
+            self.stacked_data["p_zc19_stacked"]["cluster_index"] = np.arange(len(self.catalogue["p_zc19"]))
+            self.stacked_data["p_zc19_stacked"]["observable"] = "p_zc19"
+
+            #CMB lensing data stacked but not really
+
+            if self.cnc_params["stacked_data"] == "all":
+
+                self.stacked_data = {}
+                self.stacked_data_labels = []
+
+                for i in range(0,len(self.catalogue["p_zc19"])):
+
+                    self.stacked_data_labels.append("p_zc19_stacked_" + str(i))
+                    self.stacked_data["p_zc19_stacked_" + str(i)] = {}
+
+                    self.stacked_data["p_zc19_stacked_" + str(i)]["data_vec"] = self.catalogue["p_zc19"][i]
+                    self.stacked_data["p_zc19_stacked_" + str(i)]["inv_cov"] = 1.
+                    self.stacked_data["p_zc19_stacked_" + str(i)]["cluster_index"] = [i]
+                    self.stacked_data["p_zc19_stacked_" + str(i)]["observable"] = "p_zc19"
+
+        elif self.catalogue_name == "zc19_lensboosted_simulated":
+
+            catalogue = np.load(root_path + "data/catalogues_sim/catalogue_zc19_simulated_3_alens1.npy",allow_pickle=True)[0]
+
+            self.catalogue = {}
+            self.catalogue_patch = {}
+
+            self.catalogue["q_mmf3_mean"] = catalogue["q_mmf3_mean"]
+            self.catalogue_patch["q_mmf3_mean"] = catalogue["q_mmf3_mean_patch"]
+            self.catalogue["p_zc19"] = catalogue["p_zc19"]
+            self.catalogue_patch["p_zc19"] = catalogue["p_zc19_patch"]
+            self.catalogue["z"] = catalogue["z"]
+
+            n_fd = 0
+            self.catalogue["z"][0:n_fd] = [None]*n_fd
+            self.catalogue["z_std"] = np.ones(len(self.catalogue["z"]))*1e-2
+            self.catalogue["validated"] = np.ones(len(self.catalogue["z"])) #1. or 0.
+            self.catalogue["validated"][0:n_fd] = np.zeros(n_fd)
+
+            self.catalogue["M"] = catalogue["M"]
+
+            np.random.seed(seed=0)
+            M_lens = np.exp(np.log(self.catalogue["M"]) + np.random.normal(scale=0.2,size=len(self.catalogue["M"]))) + np.random.normal(scale=0.5,size=len(self.catalogue["M"]))
+
+            self.catalogue["m_lens"] = M_lens
+            self.catalogue_patch["m_lens"] = np.zeros(len(self.catalogue["m_lens"]))
+
+            self.obs_select = "q_mmf3_mean"
+
+            #Stacked CMB lensing data
+
+            self.stacked_data_labels = ["p_zc19_stacked"]
+
+            self.catalogue_patch["p_zc19_stacked"] = self.catalogue_patch["p_zc19"] #if one wants to use p with just one layer
+
+            self.stacked_data = {"p_zc19_stacked":{}}
+
+            self.stacked_data["p_zc19_stacked"]["data_vec"] = np.mean(self.catalogue["p_zc19"])
+            self.stacked_data["p_zc19_stacked"]["inv_cov"] = float(len(self.catalogue["p_zc19"]))
+            self.stacked_data["p_zc19_stacked"]["cluster_index"] = np.arange(len(self.catalogue["p_zc19"]))
+            self.stacked_data["p_zc19_stacked"]["observable"] = "p_zc19"
 
         elif self.catalogue_name == "q_mlens_simulated":
 
@@ -284,7 +441,6 @@ class cluster_catalogue:
 
             self.catalogue["z_bounds"] = bounds_vec
             self.catalogue["low_z"] = np.asarray(spt_catalog['redshift_lim'][indices_catalog])
-            print(self.catalogue["low_z"] )
             self.catalogue["up_z"] = np.ones(len(indices_catalog))*self.cnc_params["z_max"]
 
             validated_vec = [True]*len(indices_catalog)

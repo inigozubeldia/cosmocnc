@@ -11,6 +11,7 @@ class cnc(classy):
     number_cores_hmf : Optional[str] = 8
     number_cores_abundance : Optional[str] = 8
     number_cores_data : Optional[str] = 8
+    number_cores_stacked : Optional[str] = 8
     parallelise_type : Optional[str] = "redshift" #"patch" or "redshift"
 
     #Precision parameters
@@ -34,6 +35,7 @@ class cnc(classy):
     #"cluster_catalogue":"q_mlens_simulated",
     data_lik_from_abundance :Optional[str] =  True #if True, and if the only observable is the selection observable,
     compute_abundance_matrix: Optional[str] = False
+    apply_obs_cutoff: Optional[str] = False
 
     #Range of abundance observables
 
@@ -54,6 +56,15 @@ class cnc(classy):
     power_spectrum_type : Optional[str] =  "cosmopower"
     cosmo_amplitude_parameter : Optional[str] =  "sigma_8" #"sigma_8" or "A_s"
     scalrel_type_deriv : Optional[str] =  "analytical" #"analytical" or "numerical"
+
+    #Stacked parameters
+
+    stacked_likelihood: Optional[str] = False,
+    stacked_data: Optional[str] = ["p_zc19_stacked"]
+    compute_stacked_cov: Optional[str] = True
+
+    likelihood_cal_alt: Optional[str] = False
+    observables_cal: Optional[str] = ["p_zc19"]
 
     #Redshift errors parameters
 
@@ -96,6 +107,7 @@ class cnc(classy):
         self.cnc.cnc_params["number_cores_abundance"] = self.number_cores_abundance
         self.cnc.cnc_params["number_cores_hmf"] = self.number_cores_hmf
         self.cnc.cnc_params["number_cores_data"] = self.number_cores_data
+        self.cnc.cnc_params["number_cores_stacked"] = self.number_cores_stacked
         self.cnc.cnc_params["parallelise_type"] = self.parallelise_type # "redshift", #"patch" or "redshift"
 
         #Precision parameters
@@ -117,6 +129,7 @@ class cnc(classy):
         #"cluster_catalogue":"zc19_simulated_12",#"Planck_MMF3_cosmo",
         #"cluster_catalogue":"q_mlens_simulated",
         self.cnc.cnc_params["data_lik_from_abundance"] = self.data_lik_from_abundance #True, #if True, and if the only observable is the selection observable,
+        self.cnc.cnc_params["apply_obs_cutoff"] = self.apply_obs_cutoff
 
         #Range of abundance observables
 
@@ -150,6 +163,13 @@ class cnc(classy):
         self.cnc.cnc_params["binned_lik_type"] = self.binned_lik_type #"z_and_obs_select", #can be "obs_select", "z", or "z_and_obs_select"
         self.cnc.cnc_params["bins_edges_z"] = self.bins_edges_z # np.linspace(0.01,1.01,11),
         self.cnc.cnc_params["bins_edges_obs_select"] = self.bins_edges_obs_select # np.exp(np.linspace(np.log(6.),np.log(60),6)),
+
+        self.cnc.cnc_params["stacked_likelihood"] = self.stacked_likelihood
+        self.cnc.cnc_params["stacked_data"] = self.stacked_data
+        self.cnc.cnc_params["compute_stacked_cov"] = self.compute_stacked_cov
+
+        self.cnc.cnc_params["likelihood_cal_alt"] = self.likelihood_cal_alt
+        self.cnc.cnc_params["observables_cal"] = self.observables_cal
 
         #Priors
 

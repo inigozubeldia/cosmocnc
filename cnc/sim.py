@@ -3,20 +3,12 @@ import pylab as pl
 from .cnc import *
 from .sr import *
 
-params_generator_default = {
-"observables": ["q_mmf3_mean","p_zc19"], #selection observable should always go first
-"obs_select": "q_mmf3_mean",
-"obs_select_min":6.,
-"n_catalogues":1
-}
-
 class catalogue_generator:
 
-    def __init__(self,params=None,params_cnc=None,seed=None):
+    def __init__(self,n_catalogues=1,params_cnc=None,seed=None,scal_rel_params=None,
+    cosmo_params=None):
 
-        if params is None:
-
-            params = params_generator_default
+        self.n_catalogues = n_catalogues
 
         if params_cnc is None:
 
@@ -26,14 +18,20 @@ class catalogue_generator:
 
             np.random.seed(seed=seed)
 
-        self.params = params
+        if scal_rel_params is None:
+
+            scal_rel_params = scaling_relation_params_default
+
+        if cosmo_params is None:
+
+            cosmo_params = cosmo_params_default
+
         self.params_cnc = params_cnc
 
-        self.params_cnc["obs_select"] = self.params["obs_select"]
-        self.params_cnc["obs_select_min"] = self.params["obs_select_min"]
-        self.params_cnc["M_min"] = 4e13
-
         number_counts = cluster_number_counts(cnc_params=self.params_cnc)
+        number_counts.scal_rel_params = scal_rel_params
+        number_counts.cosmo_params = cosmo_params
+
         number_counts.initialise()
         number_counts.get_number_counts()
         self.n_tot = number_counts.n_tot
@@ -45,15 +43,10 @@ class catalogue_generator:
 
         self.scaling_relations = {}
 
-        for observable in self.params["observables"]:
+        self.scaling_relations = self.number_counts.scaling_relations
+        self.scatter = self.number_counts.scatter
 
-            self.scaling_relations[observable] = scaling_relations(observable=observable)
-            self.scaling_relations[observable].initialise_scaling_relation()
-
-        self.scatter = scatter(params=self.number_counts.scal_rel_params)
-
-
-        self.skyfracs = self.scaling_relations[self.params["obs_select"]].skyfracs
+        self.skyfracs = self.scaling_relations[self.params_cnc["obs_select"]].skyfracs
 
         hmf_matrix = number_counts.hmf_matrix
         self.ln_M = number_counts.ln_M
@@ -64,23 +57,19 @@ class catalogue_generator:
 
     def get_number_clusters(self):
 
-        self.n_tot_obs = np.random.poisson(lam=self.n_tot,size=self.params["n_catalogues"])
+        self.n_tot_obs = np.random.poisson(lam=self.n_tot,size=self.n_catalogues)
 
     def get_sky_patches(self):
 
         self.sky_patches = {}
         p = self.skyfracs/np.sum(self.skyfracs)
 
-        for i in range(0,self.params["n_catalogues"]):
+        for i in range(0,self.n_catalogues):
 
-            patches = np.random.multinomial(np.arange(0,len(self.skyfracs)),p,size=self.n_tot_obs[i])
-            patches_vec = np.zeros(len(patches))
+            patches = np.random.multinomial(self.n_tot_obs[i],p)
+            self.sky_patches[i] = np.repeat(np.arange(len(patches)),patches)
 
-            for j in range(0,len(patches)):
-
-                patches_vec[j] = patches[j][0]
-
-            self.sky_patches[i] = patches_vec
+            print(self.sky_patches[i])
 
     def get_individual_sample_hmf(self):
 
@@ -98,25 +87,25 @@ class catalogue_generator:
 
     def get_individual_sample(self,patch_index=0):
 
-        n_layers = self.scaling_relations[self.params["obs_select"]].get_n_layers()
+        n_layers = self.scaling_relations[self.params_cnc["obs_select"]].get_n_layers()
 
         observable_patches = {}
 
-        for observable in self.params["observables"]:
+        for observable in self.params_cnc["observables"][0]:
 
             observable_patches[observable] = 0
 
-        observable_patches[self.params["obs_select"]] = patch_index
+        observable_patches[self.params_cnc["obs_select"]] = patch_index
 
-        covariance = covariance_matrix(self.scatter,self.params["observables"],
+        covariance = covariance_matrix(self.scatter,self.params_cnc["observables"][0],
         observable_patches=observable_patches,layer=np.arange(n_layers))
 
         x_select = 0.
 
-        while x_select < self.params["obs_select_min"]:
+        while x_select < self.params_cnc["obs_select_min"]:
 
             (ln_M_sample,redshift_sample) = self.get_individual_sample_hmf()
-            n_observables = len(self.params["observables"])
+            n_observables = len(self.params_cnc["observables"][0])
 
             x0 = np.repeat(ln_M_sample,n_observables)
 
@@ -135,52 +124,55 @@ class catalogue_generator:
 
                 for j in range(0,n_observables):
 
-                    scal_rel = self.scaling_relations[self.params["observables"][j]]
+                    scal_rel = self.scaling_relations[self.params_cnc["observables"][0][j]]
 
                     scal_rel.precompute_scaling_relation(params=self.number_counts.scal_rel_params,
-                    other_params=other_params,layer=i,patch_index=patch_index)
+                    other_params=other_params,patch_index=patch_index)
 
                     x1[j] = scal_rel.eval_scaling_relation(x0[j],
                     layer=i,patch_index=patch_index)
 
-                noise = np.random.multivariate_normal(np.zeros(n_observables),covariance.cov[i])
+                cov = covariance.cov[i]
+                noise = np.random.multivariate_normal(np.zeros(n_observables),cov)
                 x1 = x1 + noise
                 x0 = x1
 
             x_select = x1[0]
 
-        return x1,redshift_sample
+        return x1,ln_M_sample,redshift_sample
 
     def get_observables(self):
 
         self.catalogue_list = []
         self.catalogue_patch_list = []
 
-        for i in range(0,self.params["n_catalogues"]):
+        for i in range(0,self.n_catalogues):
 
             catalogue = {}
             n_tot = self.n_tot_obs[i]
 
-            for observable in self.params["observables"]:
+            for observable in self.params_cnc["observables"][0]:
 
                 catalogue[observable] = -np.ones(n_tot)
                 catalogue[observable + "_patch"] = np.zeros(n_tot)
 
             catalogue["z"] = -np.ones(n_tot)
+            catalogue["M"] = -np.ones(n_tot)
 
-            catalogue[self.params["obs_select"] + "_patch"] = self.sky_patches[i]
+            catalogue[self.params_cnc["obs_select"] + "_patch"] = self.sky_patches[i]
 
             for j in range(0,n_tot):
 
-                x,z = self.get_individual_sample(patch_index=int(self.sky_patches[i][j]))
+                x,lnM,z = self.get_individual_sample(patch_index=int(self.sky_patches[i][j]))
 
                 print(j,x,z)
 
-                for k in range(0,len(self.params["observables"])):
+                for k in range(0,len(self.params_cnc["observables"][0])):
 
-                    catalogue[self.params["observables"][k]][j] = x[k]
+                    catalogue[self.params_cnc["observables"][0][k]][j] = x[k]
 
                 catalogue["z"][j] = z
+                catalogue["M"][j] = np.exp(lnM)
 
             self.catalogue_list.append(catalogue)
 
@@ -189,3 +181,7 @@ class catalogue_generator:
         self.get_number_clusters()
         self.get_sky_patches()
         self.get_observables()
+
+def convert_array(a):
+    b = np.repeat(np.arange(len(a)), a)
+    return b

@@ -27,6 +27,10 @@ class scaling_relations:
 
             n_layers = 2
 
+        elif observable == "p_zc19_stacked":
+
+            n_layers = 1
+
         return n_layers
 
     def initialise_scaling_relation(self):
@@ -40,7 +44,14 @@ class scaling_relations:
             self.theta_500_vec = np.array(f.readlines()).astype(np.float)
             f.close()
 
-            if self.cnc_params["catalogue_params"]["downsample"] == False:
+            print(self.cnc_params["catalogue_params"])
+
+            if self.cnc_params["catalogue_params"]["downsample"] == True and observable == "q_mmf3":
+
+                (self.sigma_matrix,self.skyfracs,original_tile_vec) = np.load("/home/iz221/planck_sz/test_downsample_tiles_noisebased_mmf3.npy",allow_pickle=True)
+                print("Total sky frac",np.sum(self.skyfracs))
+
+            else:
 
                 f = open(root_path + "data/noise_planck.txt","r")
                 sigma_matrix_flat = np.array(f.readlines()).astype(np.float)
@@ -51,12 +62,6 @@ class scaling_relations:
                 f.close()
 
                 self.sigma_matrix = sigma_matrix_flat.reshape((80,417))
-
-
-            elif self.cnc_params["catalogue_params"]["downsample"] == True:
-
-                (self.sigma_matrix,self.skyfracs,original_tile_vec) = np.load("/home/iz221/planck_sz/test_downsample_tiles_noisebased_mmf3.npy",allow_pickle=True)
-                print("Total sky frac",np.sum(self.skyfracs))
 
         if observable == "q_mmf3_mean":
 
@@ -77,7 +82,7 @@ class scaling_relations:
 
             self.pdf_false_detection = [q_vec,pdf]
 
-        if observable == "p_zc19":
+        if observable == "p_zc19" or observable == "p_zc19_stacked":
 
             self.sigma_theta_lens_vec = np.load(root_path + "data/sigma_theta_lens_vec.npy") #first index is patch index, from 0 to 417
             self.sigma_theta_lens_vec[:,0,:] = self.sigma_theta_lens_vec[:,0,:]*180.*60./np.pi #in arcmin
@@ -121,25 +126,14 @@ class scaling_relations:
                 self.sigma_matrix = catalogue_master.sigma_matrices[dep_type + "_downnoisebased"]
                 self.skyfracs = catalogue_master.skyfracs["cosmology" + "_" + dep_type + "_downnoisebased"]
 
-                print(self.sigma_matrix)
-
-            #    indices = np.where(self.skyfracs > 1e-10)[0]
                 indices = np.where(self.skyfracs > 2e-4)[0]
-
-                print("n nonzero tiles downsampled",len(indices))
-                print(self.sigma_matrix[:,0])
-                print(self.skyfracs)
 
                 self.sigma_matrix = self.sigma_matrix[indices,:]
                 self.skyfracs = self.skyfracs[indices]
 
-                print("n nonzero tiles downsampled 333",len(indices))
-                print(self.sigma_matrix[:,0])
-                print(self.skyfracs)
-
-                print("total skyfrac downsampled",np.sum(self.skyfracs))
-
             self.theta_500_vec = np.exp(np.linspace(np.log(0.5),np.log(15.),15))
+
+            self.pdf_false_detection = np.load("/rds-d4/user/iz221/hpc-work/catalogues_def/planck_hpc/false_detections_abundance_szifi.npy",allow_pickle=True)[()][dep_type]
 
         # SPT case:
         if observable == 'xi':
@@ -176,7 +170,7 @@ class scaling_relations:
             self.M_500_13 = self.M_500**(1./3.)
 
 
-    def precompute_scaling_relation(self,params=None,other_params=None,layer=0,patch_index=0):
+    def precompute_scaling_relation(self,params=None,other_params=None,patch_index=0):
 
         if params is None:
 
@@ -195,7 +189,7 @@ class scaling_relations:
             self.prefactor_Y_500 = (self.params["bias_sz"]/6.)**self.params["alpha"]*(H0/70.)**(-2.+self.params["alpha"])*10.**self.params["log10_Y_star"]*E_z**self.params["beta"]*0.00472724*(D_A/500.)**(-2.)
             self.prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
 
-        if observable == "p_zc19":
+        if observable == "p_zc19" or observable== "p_zc19_stacked":
 
             H0 = other_params["H0"]
             E_z = other_params["E_z"]
@@ -223,7 +217,14 @@ class scaling_relations:
             h70 = H0/70.
             D_A = other_params["D_A"]
 
-            self.prefactor_y0 = 10.**(self.params["A_szifi"])*E_z**2/(3./h70/self.params["bias_sz"])**self.params["alpha_szifi"]/np.sqrt(h70)
+            A_szifi = self.params["A_szifi"]
+
+        #    print("A1",A_szifi)
+
+        #    A_szifi = np.log10(10.**self.params["log10_Y_star"]*np.sqrt(h70)/2**self.params["alpha"]*0.000147507321605513)
+        #    print("A2",A_szifi)
+
+            self.prefactor_y0 = 10.**(A_szifi)*E_z**2*(self.params["bias_sz"]/3.*h70)**self.params["alpha_szifi"]/np.sqrt(h70)
             self.prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
 
         if observable == 'xi':
@@ -277,7 +278,7 @@ class scaling_relations:
             self.spt_ln1pzs,self.spt_lndas_hmpc = np.loadtxt(root_path +  'data/spt/spt_cosmoref1_ln1pz_lndahmpc.txt',
                                                              unpack=True)
 
-    def eval_scaling_relation(self,x0,layer=0,patch_index=0,other_params=None,direction="forward"):
+    def eval_scaling_relation(self,x0,layer=0,patch_index=0,other_params=None):
 
         observable = self.observable
 
@@ -316,7 +317,7 @@ class scaling_relations:
 
             if layer == 0:
 
-                x1 = np.log(self.params["bias_cmblens"]) + x0
+                x1 = np.log(self.params["bias_lens"]) + x0
 
             if layer == 1:
 
@@ -335,6 +336,17 @@ class scaling_relations:
             elif layer == 1:
 
                 x1 = np.exp(x0)
+
+        if observable == "p_zc19_stacked":
+
+            if layer == 0:
+
+                M_500 = np.exp(x0)
+                self.theta_500_lensing = self.prefactor_M_500_to_theta_lensing*M_500**(1./3.)
+
+                sigma = np.interp(self.theta_500_lensing,self.sigma_theta_lens_vec[patch_index,0,:],self.sigma_theta_lens_vec[patch_index,1,:])
+                x1 = (M_500*0.1*self.params["bias_cmblens"])**(1./3.)*self.prefactor_lens/sigma*self.params["a_lens"] #with change from 1e14 to 1e15 units
+
 
         if observable == "q_szifi":
 
@@ -623,7 +635,8 @@ class scaling_relations:
 
                     theta_vec = self.sigma_theta_lens_vec[patch_index,0,:]
                     sigma_vec = self.sigma_theta_lens_vec[patch_index,1,:]
-                    log_sigma_vec_derivative = np.interp(np.log(self.theta_500_lensing),np.log(sigma_vec),np.gradient(np.log(sigma_vec),np.log(theta_vec)))
+                    log_sigma_vec_derivative = np.interp(np.log(self.theta_500_lensing),np.log(theta_vec),np.gradient(np.log(sigma_vec),np.log(theta_vec)))
+
                     dx1_dx0 = 1./3. - log_sigma_vec_derivative/3.
 
                 elif layer == 1:
@@ -642,6 +655,45 @@ class scaling_relations:
     #            dx1_dx0 = exp/np.sqrt(exp+dof)
 
         return dx1_dx0
+
+    def get_mean(self,x0,patch_index=0,scatter=None,compute_var=False):
+
+        if self.observable == "p_zc19":
+
+            M_500 = np.exp(x0)
+            self.theta_500_lensing = self.prefactor_M_500_to_theta_lensing*M_500**(1./3.)
+
+            sigma = np.interp(self.theta_500_lensing,self.sigma_theta_lens_vec[patch_index,0,:],self.sigma_theta_lens_vec[patch_index,1,:])
+            lnp_mean = np.log((M_500*0.1*self.params["bias_cmblens"])**(1./3.)*self.prefactor_lens/sigma*self.params["a_lens"]) #with change from 1e14 to 1e15 units
+
+            sigma_intrinsic = np.sqrt(scatter.get_cov(observable1=self.observable,
+                                                         observable2=self.observable,
+                                                         layer=0,patch1=patch_index,patch2=patch_index))
+
+            mean = np.exp(lnp_mean + sigma_intrinsic**2*0.5)
+            ret = mean
+
+            if compute_var == True:
+
+                var_intrinsic = (np.exp(sigma_intrinsic**2)-1.)*np.exp(2.*lnp_mean+sigma_intrinsic**2)
+                var_total = var_intrinsic + 1.
+                ret = [mean,var_total]
+
+        return ret
+
+    def get_cutoff(self,layer=0):
+
+        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi":
+
+            if layer == 0:
+
+                cutoff = -np.inf
+
+            elif layer == 1:
+
+                cutoff = self.params["q_cutoff"]
+
+        return cutoff
 
     def get_beta(self,catalog,patch_index,other_params):
         """Compute <beta> and <beta^2> from distribution of redshift galaxies."""
@@ -849,11 +901,11 @@ class scatter:
 
             elif observable1 == "WLMegacam" and observable2 == "WLMegacam":
 
-                cov = 1
+                cov = 1.
 
             elif observable1 == "WLHST" and observable2 == "WLHST":
 
-                cov = 1
+                cov = 1.
 
             elif observable1 == "xi" and observable2 == "xi":
 
