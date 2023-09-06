@@ -115,6 +115,10 @@ class cosmology_model:
 
         if cosmology_tool == "classy_sz":
 
+            from classy_sz import Class
+
+            self.classy = Class()
+
             classy_params = {
                            'H0': self.cosmo_params["h"]*100.,
                            'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
@@ -157,6 +161,8 @@ class cosmology_model:
 
                 classy_params['ln10^{10}A_s'] = np.log(self.cosmo_params["A_s"]*1e10)
 
+
+
             self.classy.set(classy_params)
             self.classy.compute_class_szfast()
             self.T_CMB_0 = self.classy.T_cmb()
@@ -169,7 +175,7 @@ class cosmology_model:
             self.background_cosmology.H0.value = self.classy.h()*100.
             self.get_m500c_to_m200c_at_z_and_M = np.vectorize(self.classy.get_m500c_to_m200c_at_z_and_M)
             self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
-            
+
         if cosmology_tool == "astropy":
 
             self.background_cosmology = self.cosmology_tool.FlatLambdaCDM(self.cosmo_params["h"]*100.,

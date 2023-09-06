@@ -9,3 +9,7 @@ mcmcs/cobaya/chains
 *060423.zip
 data/*
 data/spt/*
+test_files/*
+test_files/n_q_new.txt
+test_files/n_z_new.txt
+test_files/test.py

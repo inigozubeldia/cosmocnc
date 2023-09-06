@@ -14,7 +14,7 @@ t1 = time.time()
 
 print("Time total number counts",time.time()-t0)
 
-log_lik_binned = number_counts.get_lik_binned()
+log_lik_binned = number_counts.get_log_lik_binned()
 
 t11 = time.time()
 
@@ -38,8 +38,8 @@ q = number_counts.obs_select_vec
 
 n_tot = number_counts.n_tot
 
-np.savetxt("n_z.txt",np.c_[z,n_z])
-np.savetxt("n_q.txt",np.c_[q,n_q])
+np.savetxt("n_z_new.txt",np.c_[z,n_z])
+np.savetxt("n_q_new.txt",np.c_[q,n_q])
 
 print("N tot",n_tot)
 

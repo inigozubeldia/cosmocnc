@@ -16,6 +16,7 @@ theory:
     observables: [["q_mmf3_mean"]]
     z_errors : False
     cluster_catalogue : 'Planck_MMF3_cosmo'
+    parallelise_type : patch # there seem to be a problem with "redshift"
 
 
 params:
