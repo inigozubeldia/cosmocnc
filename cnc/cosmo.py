@@ -214,7 +214,7 @@ class cosmology_model:
             # exit(0)
 
             te = time.time()
-            print('time to do cosmo:  %.3e s'%(te-ts))
+            # print('time to do cosmo:  %.3e s'%(te-ts))
 
 
 

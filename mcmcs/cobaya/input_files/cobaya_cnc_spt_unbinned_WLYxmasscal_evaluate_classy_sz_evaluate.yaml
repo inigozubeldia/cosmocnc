@@ -1,6 +1,6 @@
 # run with:
 # cobaya-run /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/input_files/cobaya_soliket_cnc_unbinned_cluster_counts_planck_template.yaml -f
-output: /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/chains/cnc_unbinned_cluster_counts_spt_unbinned_WLYxmasscal_evaluate
+output: /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/chains/cnc_unbinned_cluster_counts_spt_unbinned_WLYxmasscal_evaluate_5sept23
 
 # output: /home/iz221/cnc/mcmcs/cobaya/chains_paper/cnc_planck_sim_unbinned_masscal_2
 

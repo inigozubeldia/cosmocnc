@@ -328,20 +328,20 @@ class cluster_number_counts:
         log_lik_data = 0.
 
 
-        print('indices_no_z',indices_no_z)
-        print('self.obs_select_vec:',self.obs_select_vec)
-        print('self.n_obs_matrix',self.n_obs_matrix)
+        # print('indices_no_z',indices_no_z)
+        # print('self.obs_select_vec:',self.obs_select_vec)
+        # print('self.n_obs_matrix',self.n_obs_matrix)
         # exit(0)
 
         for i in range(0,len(indices_no_z)):
-            print('interpolating at :',self.catalogue.catalogue[self.cnc_params["obs_select"]][int(indices_no_z[i])])
+            # print('interpolating at :',self.catalogue.catalogue[self.cnc_params["obs_select"]][int(indices_no_z[i])])
             loglikc =  np.log(np.interp(self.catalogue.catalogue[self.cnc_params["obs_select"]][int(indices_no_z[i])],
                                             self.obs_select_vec,
                                             self.n_obs_matrix[self.catalogue.catalogue_patch[self.cnc_params["obs_select"]][int(indices_no_z[i])]]))
 
             log_lik_data = log_lik_data\
                          + loglikc
-            print('got :',loglikc)
+            # print('got :',loglikc)
 
         #Computes log lik of data for clusters with z if there is only the selection observable
 
@@ -417,7 +417,7 @@ class cluster_number_counts:
 
                             log_lik_clusters = log_lik_clusters + np.log(lik_cluster)
 
-                print('log_lik_data,log_lik_clusters',log_lik_data,log_lik_clusters)
+                # print('log_lik_data,log_lik_clusters',log_lik_data,log_lik_clusters)
                 log_lik_data = log_lik_data + log_lik_clusters
 
         #Computes log lik of data if there are more observables than the selection observable
@@ -902,7 +902,7 @@ class cluster_number_counts:
 
         self.t_total = time.time()-t0
 
-        print("Time",self.t_total)
+        # print("Time",self.t_total)
 
         if np.isnan(log_lik) == True:
             log_lik = -np.inf
