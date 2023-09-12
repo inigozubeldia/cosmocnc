@@ -2,6 +2,7 @@ import numpy as np
 import pylab as pl
 import scipy.integrate as integrate
 import scipy.special as special
+import cmath as sm
 from .hmf import *
 from .params import *
 from .config import *
@@ -19,17 +20,13 @@ class scaling_relations:
 
         observable = self.observable
 
-        if observable == "q_mmf3" or observable == "q_mmf3_mean" or observable == "p_zc19" or observable == 'xi' or observable == "q_szifi":
-
-            n_layers = 2
-
-        elif observable == "m_lens":
-
-            n_layers = 2
-
-        elif observable == "p_zc19_stacked":
+        if observable == "p_zc19_stacked":
 
             n_layers = 1
+
+        else:
+
+            n_layers = 2
 
         return n_layers
 
@@ -43,8 +40,6 @@ class scaling_relations:
             f = open(root_path + "data/thetas_planck_arcmin.txt","r")
             self.theta_500_vec = np.array(f.readlines()).astype(np.float)
             f.close()
-
-            print(self.cnc_params["catalogue_params"])
 
             if self.cnc_params["catalogue_params"]["downsample"] == True and observable == "q_mmf3":
 
@@ -72,15 +67,10 @@ class scaling_relations:
 
             #False detection pdf
 
-            q_vec = np.linspace(5.,10.,2**13)
-            q_mean = 3.25
-            q_std = 1.
-            x = (q_vec-q_mean)/q_std
-            cpdf = special.erf(x) #fraction of false detections to total detections with min = q (just a model)
-            pdf = np.gradient(cpdf,q_vec)
-            pdf = pdf/integrate.simps(pdf,q_vec)
-
-            self.pdf_false_detection = [q_vec,pdf]
+            q_vec = np.linspace(6.,10.,self.cnc_params["n_points"])
+            pdf_fd = np.exp(-(q_vec-3.)**2/1.5**2)
+            pdf_fd = pdf_fd/integrate.simps(pdf_fd,q_vec)
+            self.pdf_false_detection = [q_vec,pdf_fd]
 
         if observable == "p_zc19" or observable == "p_zc19_stacked":
 
@@ -235,6 +225,7 @@ class scaling_relations:
 
 
         if observable == 'Yx':
+
             h = other_params["H0"]/100.
             E_z = other_params["E_z"]
             self.prefactor_Yx = 3 * (h/.7)**-2.5 \
@@ -392,39 +383,32 @@ class scaling_relations:
                 M_500 = np.exp(x0)*h*1e14 #### Msun/h
                 x1 = self.prefactor_Yx*(M_500/1e14)**(1/self.params['B_x'])
 
-                # print('now adding radial dependence:')
                 # here we implement aq. 19 of Bocquet et al.
                 # # Angular diameter distances in current and reference cosmology [Mpc]
                 # dA = cosmo.dA(self.catalog['redshift'][dataID], self.cosmology)/self.cosmology['h']
                 dA = other_params['D_A'] # in Mpc
-                # print('dA:',dA)
                 # dAref = cosmo.dA(self.catalog['redshift'][dataID], cosmologyRef)/cosmologyRef['h']
                 zcluster = other_params['zc']
                 dAref = np.exp(np.interp(np.log(1.+zcluster),
                                          self.spt_ln1pzs_masscal,
                                          self.spt_lndas_hmpc_masscal))/self.spt_cosmoRef_masscal['h']
-                # print('dAref',dAref)
                 # # R500 [kpc]
                 # rho_c_z = cosmo.RHOCRIT * cosmo.Ez(self.catalog['redshift'][dataID], self.cosmology)**2
                 rho_c_hunits = other_params['rho_c']/h**2
-                # print('rho_c_hunits = %.5e'%rho_c_hunits)
-                # print('M_obsArr',M_500)
+
                 # exit(0)
                 # r500 = 1000 * (3*M_obsArr/(4*np.pi*500*rho_c_z))**(1/3) / self.cosmology['h']
                 r500 = 1000 * (3*M_500/(4*np.pi*500*rho_c_hunits))**(1/3) / h
                 # # r500 in reference cosmology [kpc]
                 r500ref = r500 * dAref/dA
-                # print('r500,dAref,dA:',patch_index,r500,dAref,dA)
-                # print('r500,r500ref',r500,r500ref)
+
                 # # Xray observable at fiducial r500...
                 # obsArr*= (self.catalog['r500'][dataID]/r500ref)**self.scaling['dlnMg_dlnr']
                 rcorr = (self.catalogue.catalogue['r500'][patch_index]/r500ref)**self.params['dlnMg_dlnr']
-                # print('r500,r500ref',self.catalogue.catalogue['r500'][patch_index],r500ref,self.params['dlnMg_dlnr'])
-                # print('x1,rcorr:',x1,rcorr)
+
                 # exit(0)
                 x1 *= rcorr
                 # # ... corrected to reference cosmology
-                # print('adding radial dep for Xray obs: %s %.3e'%(obsname,self.scaling['dlnMg_dlnr']))
                 # obsArr*= (dAref/dA)**2.5
                 # exit(0)
 
@@ -455,7 +439,7 @@ class scaling_relations:
                 self.rho_c_z =  rho_c_hunits
                 Dl = other_params['D_A']*h
 
-                self.get_beta(catalog,patch_index,other_params)
+                self.get_beta(self.catalogue,patch_index,other_params)
 
                 ##### M200 and scale radius, wrt critical density, everything in h units
                 mArr = x1*h # mass in msun/h
@@ -486,8 +470,9 @@ class scaling_relations:
                 rInclude = range(len(self.catalogue.catalogue['WLdata'][patch_index]['r_deg']))
                 self.rInclude = rInclude
 
-                x1 = g_2d
-                x1[rInclude[-1]:,:] = 0.
+                #x1 = g_2d[rInclude[-1]:,:]
+                x1 = g_2d[rInclude,:]
+                #x1[rInclude[-1]:,:] = 0.
 
 
         if observable == 'WLHST':
@@ -508,7 +493,7 @@ class scaling_relations:
                 self.rho_c_z =  rho_c_hunits
                 Dl = other_params['D_A']*h
 
-                self.get_beta(catalog,patch_index,other_params)
+                self.get_beta(self.catalogue,patch_index,other_params)
 
 
                 ##### M200 and scale radius, wrt critical density, everything in h units
@@ -562,19 +547,19 @@ class scaling_relations:
 
 
                 # Only consider 500<r/kpc/1500 in reference cosmology
-                cosmoRef = other_params['cosmology'].spt_cosmoRef
+                cosmoRef = self.spt_cosmoRef
 
                 DlRef = np.exp(np.interp(np.log(1.+zcluster),
-                                         other_params['cosmology'].spt_ln1pzs,
-                                         other_params['cosmology'].spt_lndas_hmpc))
+                                         self.spt_ln1pzs,
+                                         self.spt_lndas_hmpc))
                 rPhysRef = self.catalogue.catalogue['WLdata'][patch_index]['r_deg'] * DlRef * np.pi/180. /cosmoRef['h']
                 rInclude = np.where((rPhysRef>.5)&(rPhysRef<1.5))[0]
 
 
                 self.rInclude = rInclude
-                #x1 = g_2d[rInclude,:]
-                x1 = g_2d
-                x1[rInclude[-1]:,:] = 0.
+                x1 = g_2d[rInclude,:]
+                #x1 = g_2d
+                #x1[rInclude[-1]:,:] = 0.
 
         self.x1 = x1
 
@@ -733,13 +718,11 @@ class scaling_relations:
         fac = 2 * self.rs * self.rho_c_z * self.delta_c
         val1 = 1. / (1 - self.x_2d**2)
         num = ((3 * self.x_2d**2) - 2) * self.arcsec(self.x_2d)
-        div = self.x_2d**2 * (sm.sqrt(self.x_2d**2 - 1))**3
+        div = self.x_2d**2 * (np.emath.sqrt(self.x_2d**2 - 1))**3
         val2 = (num / div).real
         val3 = 2 * np.log(self.x_2d / 2) / self.x_2d**2
         result = fac * (val1+val2+val3)
         return result
-
-
 
     ########################################
     ##### Sigma_NFW[Radius][Mass]
@@ -747,21 +730,21 @@ class scaling_relations:
     #from Bocquet's code
     def get_Sigma(self):
         val1 = 1. / (self.x_2d**2 - 1)
-        val2 = (self.arcsec(self.x_2d) / (sm.sqrt(self.x_2d**2 - 1))**3).real
+        val2 = (self.arcsec(self.x_2d) / (np.emath.sqrt(self.x_2d**2 - 1))**3).real
+
         return 2 * self.rs * self.rho_c_z * self.delta_c * (val1-val2)
-
-
-
 
     ########################################
     ##### Compute the inverse sec of the complex number z.
     # by Joerg Dietrich
     # from the spt code (Bocquet et al)
-    def arcsec(self, z):
-        val1 = 1j / z
-        val2 = sm.sqrt(1 - 1./z**2)
-        val = 1j * np.log(val2 + val1)
-        return .5 * np.pi + val
+    def arcsec(self,z):
+
+        val1 = 1j/z
+        val2 = np.emath.sqrt(1.-1./z**2)
+        val = 1j*np.log(val2+val1)
+
+        return .5*np.pi+val
 
 
 class covariance_matrix:
@@ -789,13 +772,14 @@ class covariance_matrix:
 
 class scatter:
 
-    def __init__(self,params=None):
+    def __init__(self,params=None,catalogue=None):
 
         if params is None:
 
             params = scaling_relation_params_default
 
         self.params = params
+        self.catalogue = catalogue
 
     def get_cov(self,observable1="q_mmf3",observable2="q_mmf3",patch1=0,patch2=0,layer=0):
 
@@ -913,7 +897,7 @@ class scatter:
 
             elif observable1 == "Yx" and observable2 == "Yx":
 
-                cov = self.self.catalogue.catalogue["Yx_std"][patch1]**2 ### patch1 is the cluster index
+                cov = self.catalogue.catalogue["Yx_std"][patch1]**2 ### patch1 is the cluster index
 
             else:
 

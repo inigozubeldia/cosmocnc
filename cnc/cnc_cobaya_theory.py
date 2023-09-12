@@ -12,7 +12,7 @@ class cnc(classy):
     number_cores_abundance : Optional[str] = 8
     number_cores_data : Optional[str] = 8
     number_cores_stacked : Optional[str] = 8
-    parallelise_type : Optional[str] = "redshift" #"patch" or "redshift"
+    parallelise_type : Optional[str] = "patch" #"patch" or "redshift"
 
     #Precision parameters
 
@@ -36,6 +36,9 @@ class cnc(classy):
     data_lik_from_abundance :Optional[str] =  True #if True, and if the only observable is the selection observable,
     compute_abundance_matrix: Optional[str] = False
     apply_obs_cutoff: Optional[str] = False
+    catalogue_params = {"downsample":True}
+    data_lik_type: Optional[str] = "backward_convolutional"
+    abundance_integral_type": Optional[str] = "fft" #fft or direct
 
     #Range of abundance observables
 
@@ -64,7 +67,7 @@ class cnc(classy):
     compute_stacked_cov: Optional[str] = True
 
     likelihood_cal_alt: Optional[str] = False
-    observables_cal: Optional[str] = ["p_zc19"]
+    observables_cal_alt: Optional[str] = ["p_zc19"]
 
     #Redshift errors parameters
 
@@ -91,7 +94,7 @@ class cnc(classy):
     # scaling relation parameter:
     dof: Optional[str] = 0
 
-    parallelise_type : Optional[str] = "redshift" #"patch" or "redshift"
+    #parallelise_type : Optional[str] = "redshift" #"patch" or "redshift"
 
     def initialize(self):
 
@@ -130,6 +133,9 @@ class cnc(classy):
         #"cluster_catalogue":"q_mlens_simulated",
         self.cnc.cnc_params["data_lik_from_abundance"] = self.data_lik_from_abundance #True, #if True, and if the only observable is the selection observable,
         self.cnc.cnc_params["apply_obs_cutoff"] = self.apply_obs_cutoff
+        self.cnc.cnc_params["catalogue_params"] = self.catalogue_params # 6.,
+        self.cnc.cnc_params["data_lik_type"] = self.data_lik_type
+        self.cnc.cnc_params["abundance_integral_type"] = self.abundance_integral_type
 
         #Range of abundance observables
 
@@ -169,7 +175,7 @@ class cnc(classy):
         self.cnc.cnc_params["compute_stacked_cov"] = self.compute_stacked_cov
 
         self.cnc.cnc_params["likelihood_cal_alt"] = self.likelihood_cal_alt
-        self.cnc.cnc_params["observables_cal"] = self.observables_cal
+        self.cnc.cnc_params["observables_cal_alt"] = self.observables_cal_alt
 
         #Priors
 
@@ -293,6 +299,7 @@ class cnc(classy):
         assign_parameter_value(scal_rel_params,params_values,"sigma_lnq")
         assign_parameter_value(scal_rel_params,params_values,"sigma_lnp")
         assign_parameter_value(scal_rel_params,params_values,"corr_lnq_lnp")
+        assign_parameter_value(scal_rel_params,params_values,"a_lens")
 
         # SPT-style parameters:
 

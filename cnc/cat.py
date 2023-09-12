@@ -1,8 +1,12 @@
 import numpy as np
 import pylab as pl
+import scipy.integrate as integrate
 from astropy.io import fits
 from astropy.table import Table
 from .config import *
+from .sr import *
+from .utils import *
+from .params import *
 import imp
 import pickle
 
@@ -14,13 +18,19 @@ class cluster_catalogue:
                  bins_z_edges=np.exp(np.linspace(np.log(6.),np.log(100),6)),
                  observables=None, # "q_mmf3_mean","p_zc19", etc
                  obs_select=None,
-                 cnc_params=None):
+                 cnc_params=None,
+                 scal_rel_params=None):
+
+        if scal_rel_params is None:
+
+            scal_rel_params = scaling_relation_params_default
 
         self.catalogue_name = catalogue_name
         self.catalogue = {}
         self.catalogue_patch = {}
         self.precompute_cnc_quantities = precompute_cnc_quantities
         self.cnc_params = cnc_params
+        self.scal_rel_params = scal_rel_params
 
 
         if isinstance(bins_obs_select_edges,str):
@@ -135,22 +145,7 @@ class cluster_catalogue:
             self.stacked_data["p_zc19_stacked"]["cluster_index"] = indices_z
             self.stacked_data["p_zc19_stacked"]["observable"] = "p_zc19"
 
-            #CMB lensing data stacked but not really
-
-            if self.cnc_params["stacked_data"] == "all":
-
-                self.stacked_data = {}
-                self.stacked_data_labels = []
-
-                for i in range(0,len(indices_z)):
-
-                    self.stacked_data_labels.append("p_zc19_stacked_" + str(i))
-                    self.stacked_data["p_zc19_stacked_" + str(i)] = {}
-
-                    self.stacked_data["p_zc19_stacked_" + str(i)]["data_vec"] = self.catalogue["p_zc19"][indices_z[i]]
-                    self.stacked_data["p_zc19_stacked_" + str(i)]["inv_cov"] = 1.
-                    self.stacked_data["p_zc19_stacked_" + str(i)]["cluster_index"] = [indices_z[i]]
-                    self.stacked_data["p_zc19_stacked_" + str(i)]["observable"] = "p_zc19"
+            self.catalogue["validated"] = np.ones(len(self.catalogue["q_mmf3"]))
 
         elif self.catalogue_name[0:14] == "zc19_simulated":
 
@@ -186,77 +181,64 @@ class cluster_catalogue:
             self.stacked_data["p_zc19_stacked"]["cluster_index"] = np.arange(len(self.catalogue["p_zc19"]))
             self.stacked_data["p_zc19_stacked"]["observable"] = "p_zc19"
 
-            #CMB lensing data stacked but not really
+            #False detections (to test false detection likelihood implementation)
 
-            if self.cnc_params["stacked_data"] == "all":
+            #Add non-validated clusters for clusters with q < 7
 
-                self.stacked_data = {}
-                self.stacked_data_labels = []
+            if "non_val" in self.cnc_params["catalogue_params"]:
 
-                for i in range(0,len(self.catalogue["p_zc19"])):
+                if self.cnc_params["catalogue_params"]["non_val"] == True:
 
-                    self.stacked_data_labels.append("p_zc19_stacked_" + str(i))
-                    self.stacked_data["p_zc19_stacked_" + str(i)] = {}
+                    N_td_nonval = self.cnc_params["catalogue_params"]["N_td_nonval"]
+                    N_fd = self.cnc_params["catalogue_params"]["N_fd"]
 
-                    self.stacked_data["p_zc19_stacked_" + str(i)]["data_vec"] = self.catalogue["p_zc19"][i]
-                    self.stacked_data["p_zc19_stacked_" + str(i)]["inv_cov"] = 1.
-                    self.stacked_data["p_zc19_stacked_" + str(i)]["cluster_index"] = [i]
-                    self.stacked_data["p_zc19_stacked_" + str(i)]["observable"] = "p_zc19"
+                    np.random.seed(seed=0)
 
-        elif self.catalogue_name[0:14] == "zc19_paper_simulated":
+                    #indices = np.where(self.catalogue["q_mmf3_mean"] < 7.)[0]
+                    indices = np.arange(len(self.catalogue["q_mmf3_mean"]))
 
-            catalogue = np.load(root_path + "data/catalogues_sim/catalogue_" + self.catalogue_name + "_paper.npy",allow_pickle=True)[0]
+                    indices_nonval = np.random.choice(indices,N_td_nonval,replace=False)
 
-            self.catalogue = {}
-            self.catalogue_patch = {}
+                    self.catalogue["validated"][indices_nonval] = np.zeros(N_td_nonval)
+                    self.catalogue["z"][indices_nonval] = np.array([float('nan')]*N_td_nonval)
 
-            self.catalogue["q_mmf3_mean"] = catalogue["q_mmf3_mean"]
-            self.catalogue_patch["q_mmf3_mean"] = catalogue["q_mmf3_mean_patch"]
-            self.catalogue["p_zc19"] = catalogue["p_zc19"]
-            self.catalogue_patch["p_zc19"] = catalogue["p_zc19_patch"]
-            self.catalogue["z"] = catalogue["z"]
+                    f_v = (len(self.catalogue["z"])-N_td_nonval)/len(self.catalogue["z"])
 
-            n_fd = 0
-            self.catalogue["z"][0:n_fd] = [None]*n_fd
-            self.catalogue["z_std"] = np.ones(len(self.catalogue["z"]))*1e-2
-            self.catalogue["validated"] = np.ones(len(self.catalogue["z"])) #1. or 0.
-            self.catalogue["validated"][0:n_fd] = np.zeros(n_fd)
+                    #Add false detections
 
-            self.obs_select = "q_mmf3_mean"
+                    q_vec = np.linspace(6.,10.,self.cnc_params["n_points"])
+                    pdf_fd = np.exp(-(q_vec-3.)**2/1.5**2)
+                    pdf_fd = pdf_fd/integrate.simps(pdf_fd,q_vec)
+                    self.pdf_false_detection = [q_vec,pdf_fd]
 
-            #Stacked CMB lensing data
+                    q_fd = rejection_sample_1d(q_vec,pdf_fd,N_fd)
 
-            self.stacked_data_labels = ["p_zc19_stacked"]
+                    self.catalogue["q_mmf3_mean"] = np.concatenate((self.catalogue["q_mmf3_mean"],q_fd))
+                    self.catalogue_patch["q_mmf3_mean"] = np.concatenate((self.catalogue_patch["q_mmf3_mean"],np.zeros(len(q_fd))))
+                    self.catalogue["z"] = np.concatenate((self.catalogue["z"],np.array([float('nan')]*N_fd)))
+                    self.catalogue["z_std"] = np.concatenate((self.catalogue["z_std"],np.array([float('nan')]*N_fd)))
+                    self.catalogue["p_zc19"] = np.concatenate((self.catalogue["p_zc19"],np.array([float('nan')]*N_fd)))
+                    self.catalogue_patch["p_zc19"] = np.concatenate((self.catalogue_patch["p_zc19"],np.array([float('nan')]*N_fd)))
 
-            self.catalogue_patch["p_zc19_stacked"] = self.catalogue_patch["p_zc19"] #if one wants to use p with just one layer
+                    self.catalogue["validated"] = np.concatenate((self.catalogue["validated"],np.zeros(N_fd)))
 
-            self.stacked_data = {"p_zc19_stacked":{}}
+                    if self.cnc_params["catalogue_params"]["none_validated"] == True:
 
-            self.stacked_data["p_zc19_stacked"]["data_vec"] = np.mean(self.catalogue["p_zc19"])
-            self.stacked_data["p_zc19_stacked"]["inv_cov"] = float(len(self.catalogue["p_zc19"]))
-            self.stacked_data["p_zc19_stacked"]["cluster_index"] = np.arange(len(self.catalogue["p_zc19"]))
-            self.stacked_data["p_zc19_stacked"]["observable"] = "p_zc19"
+                        self.catalogue["validated"] = np.zeros(len(self.catalogue["validated"]))
+                        self.catalogue["z"] = np.array([float('nan')]*len(self.catalogue["z"]))
+                        f_v = 0.
 
-            #CMB lensing data stacked but not really
+                    self.cnc_params["f_true_validated"] = f_v
 
-            if self.cnc_params["stacked_data"] == "all":
+        elif self.catalogue_name == "zc19_lensboosted_simulated" or self.catalogue_name == "zc19_lensboosted40_simulated":
 
-                self.stacked_data = {}
-                self.stacked_data_labels = []
+            if self.catalogue_name == "zc19_lensboosted_simulated":
 
-                for i in range(0,len(self.catalogue["p_zc19"])):
+                catalogue = np.load(root_path + "data/catalogues_sim/catalogue_zc19_simulated_3_alens1.npy",allow_pickle=True)[0]
 
-                    self.stacked_data_labels.append("p_zc19_stacked_" + str(i))
-                    self.stacked_data["p_zc19_stacked_" + str(i)] = {}
+            elif self.catalogue_name == "zc19_lensboosted40_simulated":
 
-                    self.stacked_data["p_zc19_stacked_" + str(i)]["data_vec"] = self.catalogue["p_zc19"][i]
-                    self.stacked_data["p_zc19_stacked_" + str(i)]["inv_cov"] = 1.
-                    self.stacked_data["p_zc19_stacked_" + str(i)]["cluster_index"] = [i]
-                    self.stacked_data["p_zc19_stacked_" + str(i)]["observable"] = "p_zc19"
-
-        elif self.catalogue_name == "zc19_lensboosted_simulated":
-
-            catalogue = np.load(root_path + "data/catalogues_sim/catalogue_zc19_simulated_3_alens1.npy",allow_pickle=True)[0]
+                catalogue = np.load(root_path + "data/catalogues_sim/catalogue_zc19_simulated_3_alens40.npy",allow_pickle=True)[0]
 
             self.catalogue = {}
             self.catalogue_patch = {}
@@ -425,11 +407,17 @@ class cluster_catalogue:
             indices_catalog = []
             bounds_vec = []
 
+            print(spt_catalog["xi"])
+
             for i in range(0,len(spt_catalog["xi"])):
                 ## add a seperate zmin threshold, for observed clusters.
                 if (spt_catalog["xi"][i] > threshold):
 
+                    print(i,spt_catalog['redshift'][i])
+
                     if spt_catalog['redshift'][i]>self.cnc_params["z_min"]:
+
+                        print("included",i)
 
                         indices_catalog.append(i)
                         bounds_vec.append(False)
@@ -461,7 +449,11 @@ class cluster_catalogue:
 
             self.catalogue["z_std"] = np.asarray(spt_catalog['redshift_err'][indices_catalog])
 
+            print("indices",indices_catalog)
+
             self.catalogue["xi"] = np.asarray(spt_catalog['xi'][indices_catalog])
+
+            print("cattt",self.catalogue["xi"])
 
             self.catalogue_patch['xi'] = np.zeros(len(self.catalogue['xi'])).astype(np.int)
             for id,field in enumerate(spt_catalog['field'][indices_catalog]):
@@ -589,16 +581,37 @@ class cluster_catalogue:
         self.indices_no_z = np.argwhere(np.isnan(self.catalogue["z"]))[:,0]
         self.indices_with_z = np.argwhere(~np.isnan(self.catalogue["z"]))[:,0]
 
-        self.number_counts = np.zeros((len(self.bins_z_edges)-1,len(self.bins_obs_select_edges)-1))
+        if self.cnc_params["non_validated_clusters"] == True:
 
-        for i in range(0,len(self.bins_z_edges)-1):
+            self.n_val = len(np.where(self.catalogue["validated"] > 0.5)[0])
+
+        self.n_tot = len(self.catalogue["z"])
+
+        if self.cnc_params["binned_lik_type"] == "obs_select":
+
+            self.number_counts_obs_select = np.zeros(len(self.bins_obs_select_edges)-1)
 
             for j in range(0,len(self.bins_obs_select_edges)-1):
 
                 indices = np.where((self.catalogue[self.obs_select] > self.bins_obs_select_edges[j]) & (self.catalogue[self.obs_select] < self.bins_obs_select_edges[j+1])
-                & (self.catalogue["z"] > self.bins_z_edges[i]) & (self.catalogue["z"] < self.bins_z_edges[i+1]))[0]
-                self.number_counts[i,j] = len(indices)
+                )[0]
+                self.number_counts_obs_select[j] = len(indices)
 
+        else:
+
+            self.number_counts = np.zeros((len(self.bins_z_edges)-1,len(self.bins_obs_select_edges)-1))
+
+            for i in range(0,len(self.bins_z_edges)-1):
+
+                for j in range(0,len(self.bins_obs_select_edges)-1):
+
+                    indices = np.where((self.catalogue[self.obs_select] > self.bins_obs_select_edges[j]) & (self.catalogue[self.obs_select] < self.bins_obs_select_edges[j+1])
+                    & (self.catalogue["z"] > self.bins_z_edges[i]) & (self.catalogue["z"] < self.bins_z_edges[i+1]))[0]
+                    self.number_counts[i,j] = len(indices)
+
+        print(self.obs_select)
+        print(self.catalogue.keys())
+        print(self.catalogue[self.obs_select])
         self.obs_select_max = np.max(self.catalogue[self.obs_select])
 
         self.observable_dict = {}

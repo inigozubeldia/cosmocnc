@@ -9,17 +9,17 @@ cnc_params_default = {
     #Number of cores
 
     "number_cores_hmf": 1,
-    "number_cores_abundance": 1,
-    "number_cores_data": 1,
-    "number_cores_stacked":1,
+    "number_cores_abundance": 8,
+    "number_cores_data": 8,
+    "number_cores_stacked":8,
 
     "parallelise_type": "patch", #"patch" or "redshift"
 
     #Precision parameters
 
-    "n_points": 4096,#2**13, ##number of points in which the mass function at each redshift (and all the convolutions) is evaluated
-    "n_obs_select": 4096,#2**13,
-    "n_z": 100,
+    "n_points": 4096, ##number of points in which the mass function at each redshift (and all the convolutions) is evaluated
+    "n_obs_select": 4096,
+    "n_z": 50,
     "n_points_data_lik": 128, #number of points for the computation of the cluster data part of the likelihood
     "sigma_mass_prior": 5.,
 
@@ -37,6 +37,8 @@ cnc_params_default = {
     "cluster_catalogue":"Planck_MMF3_cosmo",#"Planck_MMF3_cosmo",
     #"cluster_catalogue":"q_mlens_simulated",
     "data_lik_from_abundance":True, #if True, and if the only observable is the selection observable,
+    "data_lik_type":"backward_convolutional", #"backward_convolutional" or "direct_integral". Note that "direct_integral" only works with one correlation set
+    "abundance_integral_type":"fft", #"fft" or "direct"
     "compute_abundance_matrix":False, #only true if the abundance matrix is needed
     "catalogue_params":{"downsample":True},
     "apply_obs_cutoff":False,
@@ -51,7 +53,7 @@ cnc_params_default = {
     #cosmology and hmf parameters
 
     "cosmology_tool": "astropy", #"astropy" or "classy_sz"
-    "M_min": 1e13,
+    "M_min": 5e13,
     "M_max": 5e15,
     "hmf_calc": "cnc", #"cnc", "hmf", or "MiraTitan"
     "hmf_type": "Tinker08",
@@ -82,14 +84,13 @@ cnc_params_default = {
     #Stacked likelihood params
 
     "stacked_likelihood": False,
-    "stacked_data": ["p_zc19_stacked"], #list of stacked data or "all", in which case all the stack data defined in the catalogue are considered
+    "stacked_data": ["p_zc19_stacked"], #list of stacked data
     "compute_stacked_cov": True,
 
     #Parms to compute mass calibration likelihood in an alternative way
 
     "likelihood_cal_alt": False,
     "observables_cal": ["p_zc19"],
-
 
     #Priors
 
@@ -116,6 +117,7 @@ scaling_relation_params_default = {
 "corr_lnq_lnp":0.77,
 "a_lens":1.,
 "f_false_detection":0.0, #N_F / (N_F + N_T) fraction of false detections to total detections
+"f_true_validated":1.,#fraction of true clusters which have been validated
 "q_cutoff":2.,
 
 #SZiFi Planck

@@ -49,7 +49,8 @@ class cluster_number_counts:
                                            bins_z_edges=self.cnc_params["bins_edges_z"],
                                            observables=self.cnc_params["observables"],
                                            obs_select=self.cnc_params["obs_select"],
-                                           cnc_params = self.cnc_params)
+                                           cnc_params = self.cnc_params,
+                                           scal_rel_params=self.scal_rel_params)
 
         self.scaling_relations = {}
 
@@ -62,20 +63,14 @@ class cluster_number_counts:
 
         if self.cnc_params["likelihood_cal_alt"] == True:
 
-            for observable in self.cnc_params["observables_cal"]:
+            for observable in self.cnc_params["observables_cal_alt"]:
 
                 self.scaling_relations[observable] = scaling_relations(observable=observable,cnc_params=self.cnc_params,catalogue=self.catalogue)
                 self.scaling_relations[observable].initialise_scaling_relation()
 
         if self.cnc_params["stacked_likelihood"] == True:
 
-            if self.cnc_params["stacked_data"] == "all":
-
-                self.stacked_data_labels = self.catalogue.stacked_data_labels
-
-            else:
-
-                self.stacked_data_labels = self.cnc_params["stacked_data"]
+            self.stacked_data_labels = self.cnc_params["stacked_data"]
 
             for key in self.stacked_data_labels:
 
@@ -86,7 +81,7 @@ class cluster_number_counts:
                     self.scaling_relations[observable] = scaling_relations(observable=observable,cnc_params=self.cnc_params,catalogue=self.catalogue)
                     self.scaling_relations[observable].initialise_scaling_relation()
 
-        self.scatter = scatter(params=self.scal_rel_params)
+        self.scatter = scatter(params=self.scal_rel_params,catalogue=self.catalogue)
         # self.priors = priors(prior_params={"cosmology":self.cosmology,"theta_mc_prior":self.cnc_params["theta_mc_prior"]})
 
         if self.cnc_params["hmf_calc"] == "MiraTitan":
@@ -116,13 +111,14 @@ class cluster_number_counts:
 
             self.scal_rel_params[key] = scal_rel_params[key]
 
-        self.scatter = scatter(params=self.scal_rel_params)
+        self.scatter = scatter(params=self.scal_rel_params,catalogue=self.catalogue)
 
         self.abundance_matrix = None
         self.n_obs_matrix = None
         self.hmf_matrix = None
         self.n_tot = None
         self.abundance_tensor = None
+        self.n_obs_matrix_fd = None
 
     #Computes the hmf as a function of redshift
 
@@ -154,7 +150,6 @@ class cluster_number_counts:
         indices_split = np.array_split(np.arange(self.cnc_params["n_z"]),n_cores)
 
         t0 = time.time()
-
 
         if self.cnc_params["hmf_calc"] == "cnc" or self.cnc_params["hmf_calc"] == "hmf":
 
@@ -230,7 +225,6 @@ class cluster_number_counts:
         self.n_tot_vec = np.zeros(self.n_patches)
     #    self.scal_rel_selection.preprecompute_scaling_relation(params=self.scal_rel_params,other_params={"lnM":self.ln_M})
 
-
         def f_mp(rank,out_q):
 
             return_dict = {}
@@ -290,12 +284,7 @@ class cluster_number_counts:
                                 indices = np.where(x1_interp < cutoff)
                                 dn_dx1[indices] = 0.
 
-                                #indices = np.where(x1_interp > cutoff)
-                                #x1_interp = x1_interp[indices]
-                                #dn_dx1 = dn_dx1[indices]
-
-
-                            dn_dx1 = convolve_1d(x1_interp,dn_dx1,sigma_scatter)
+                            dn_dx1 = convolve_1d(x1_interp,dn_dx1,sigma_scatter,type=self.cnc_params["abundance_integral_type"])
 
                             x0 = x1_interp
                             dn_dx0 = dn_dx1
@@ -307,12 +296,6 @@ class cluster_number_counts:
                     return_dict[str(patch_index) + "_" + str(redshift_index)] = abundance  #number counts per patch
 
                     abundance_matrix[redshift_index] = abundance
-
-                n_obs = integrate.simps(abundance_matrix,self.redshift_vec,axis=0)
-                n_tot = integrate.simps(n_obs,self.obs_select_vec,axis=0)
-
-                return_dict[str(patch_index) + "_n_obs"] = n_obs
-                return_dict[str(patch_index) + "_n_tot"] = n_tot
 
             if n_cores > 1:
 
@@ -326,17 +309,16 @@ class cluster_number_counts:
 
         for i in range(0,self.n_patches):
 
-            self.n_obs_matrix[i,:] = return_dict[str(i) + "_n_obs"]
-            self.n_tot_vec[i] = return_dict[str(i) + "_n_tot"]
-
             for j in range(0,len(self.redshift_vec)):
 
                 self.abundance_tensor[i,j,:] = return_dict[str(i) + "_" + str(j)]
 
+            self.n_obs_matrix[i,:] = integrate.simps(self.abundance_tensor[i,:,:],self.redshift_vec,axis=0)
+            self.n_tot_vec[i] = integrate.simps(self.n_obs_matrix[i,:],self.obs_select_vec,axis=0)
+
         if self.cnc_params["compute_abundance_matrix"] == True:
 
-            self.abundance_matrix = self.get_abundance_matrix()
-
+            self.get_abundance_matrix()
 
     #Computes the data part of the unbinned likelihood
 
@@ -366,7 +348,7 @@ class cluster_number_counts:
 
                     if self.catalogue.catalogue["validated"][cluster_index] < 0.5: #i.e., if "validated" == 0
 
-                        n_obs = n_obs + self.n_obs_matrix_fd[cluster_patch]
+                            n_obs = n_obs*(1.-self.cnc_params["f_true_validated"]) + self.n_obs_matrix_fd[cluster_patch]
 
                 log_lik_data = log_lik_data + np.log(np.interp(obs_select,self.obs_select_vec,n_obs))
 
@@ -381,7 +363,7 @@ class cluster_number_counts:
 
                         if self.catalogue.catalogue["validated"][cluster_index] < 0.5: #i.e., if "validated" == 0
 
-                            n_obs = n_obs + self.n_obs_matrix_fd[cluster_patch]
+                            n_obs = n_obs*(1.-self.cnc_params["f_true_validated"]) + self.n_obs_matrix_fd[cluster_patch]
 
                     log_lik_data = log_lik_data + np.log(np.interp(obs_select,self.obs_select_vec,n_obs))
 
@@ -412,7 +394,6 @@ class cluster_number_counts:
 
             indices_unique = self.catalogue.indices_unique
             indices_unique_dict = self.catalogue.indices_unique_dict
-            # print(indices_unique,indices_unique_dict)
 
             for i in range(0,len(indices_unique)):
 
@@ -581,7 +562,10 @@ class cluster_number_counts:
 
                         for i in layers:
 
-                            x1 = self.scaling_relations[obs_mass_def].eval_scaling_relation(x0,layer=i,patch_index=int(observable_patches[obs_mass_def]))
+                            x1 = self.scaling_relations[obs_mass_def].eval_scaling_relation(x0,
+                            layer=i,
+                            patch_index=int(observable_patches[obs_mass_def]),
+                            other_params=other_params)
                             x0 = x1
 
                         x_obs_massdef = self.catalogue.catalogue[obs_mass_def][cluster_index]
@@ -596,13 +580,13 @@ class cluster_number_counts:
 
                             if self.cnc_params["scalrel_type_deriv"] == "analytical":
 
-                                x1_centre = self.scaling_relations[obs_mass_def].eval_scaling_relation(x0_centre,layer=i,patch_index=int(observable_patches[obs_mass_def]))
+                                x1_centre = self.scaling_relations[obs_mass_def].eval_scaling_relation(x0_centre,layer=i,patch_index=int(observable_patches[obs_mass_def]),other_params=other_params)
                                 der = self.scaling_relations[obs_mass_def].eval_derivative_scaling_relation(x0_centre,layer=i,patch_index=int(observable_patches[obs_mass_def]),
                                 scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
 
                             elif self.cnc_params["scalrel_type_deriv"] == "numerical":
 
-                                x11 = self.scaling_relations[obs_mass_def].eval_scaling_relation(lnM,layer=i,patch_index=int(observable_patches[obs_mass_def]))
+                                x11 = self.scaling_relations[obs_mass_def].eval_scaling_relation(lnM,layer=i,patch_index=int(observable_patches[obs_mass_def]),other_params=other_params)
                                 der = self.scaling_relations[obs_mass_def].eval_derivative_scaling_relation(lnM,layer=i,patch_index=int(observable_patches[obs_mass_def]),
                                 scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
                                 x1_centre = x11[i_min]
@@ -630,135 +614,230 @@ class cluster_number_counts:
 
                         #Backpropagate the scatter
 
-                        cpdf_product = 1.
+                        if self.cnc_params["data_lik_type"] == "backward_convolutional":
 
-                        for observable_set in observables_select:
+                            cpdf_product = 1.
+
+                            for observable_set in observables_select:
+
+                                x_obs = []
+
+                                for observable in observable_set:
+
+                                    x_obs.append(self.catalogue.catalogue[observable][cluster_index])
+
+                                x_obs = np.array(x_obs)
+
+                                covariance = covariance_matrix(self.scatter,observable_set,
+                                observable_patches,layer=layers)
+
+                                n_obs = len(observable_set)
+
+                                if len(layers) == 1:
+
+                                    lay = layers[0]
+
+                                    x1 = np.zeros((n_obs,len(lnM)))
+
+                                    for i in range(0,n_obs):
+
+                                        x1[i,:] = self.scaling_relations[observable_set[i]].eval_scaling_relation(lnM,layer=lay,patch_index=int(observable_patches[observable_set[i]]),other_params=other_params)-x_obs[i]
+
+                                    cpdf = stats.multivariate_normal.pdf(np.transpose(x1),cov=covariance.cov[lay])
+                                    cpdf = np.interp(lnM0,lnM,cpdf,left=0,right=0)
+
+                                elif len(layers) > 1:
+
+                                    x_list_linear = []
+                                    x_list = []
+                                    x = lnM
+
+                                    x = np.zeros((n_obs,len(lnM)))
+
+                                    for i in range(0,n_obs):
+
+                                        x[i,:] = lnM
+
+                                    for i in layers[0:-1]:
+
+                                        x1 = np.zeros((n_obs,len(lnM)))
+                                        x1_linear = np.zeros((n_obs,len(lnM)))
+
+                                        for j in range(0,n_obs):
+
+                                            x1[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x[j,:],layer=i,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)
+                                            x1_linear[j,:] = np.linspace(x1[j,0],x1[j,-1],self.cnc_params["n_points_data_lik"])
+
+                                        x_list.append(x1)
+                                        x_list_linear.append(x1_linear)
+                                        x = x1
+
+                                    for i in np.flip(layers[0:-1]):
+
+                                        lay = i
+                                        x_p = x_list_linear[lay]
+
+                                        if lay == layers[-2]:
+
+                                            x1 = np.zeros((n_obs,len(lnM)))
+
+                                            for j in range(0,n_obs):
+
+                                                x_obs_j = x_obs[j]
+
+                                                if isinstance(x_obs_j,(float,int,np.float32)) == True:
+
+                                                    x1[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],layer=lay+1,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)-x_obs_j
+
+                                                else:
+
+                                                    xx = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],layer=lay+1,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)
+                                                    std = self.catalogue.catalogue[observable_set[j] + "_std"][cluster_index]
+
+                                                    rInclude = self.scaling_relations[observable_set[j]].rInclude
+
+                                                    dxwl = xx - x_obs_j[rInclude,None]
+                                                    dxwl_std = std[rInclude,None]
+
+                                                    x1[j,:] = np.sqrt(np.sum((dxwl/dxwl_std)**2.,axis=0))
+
+                                            x_mesh = get_mesh(x1)
+                                            cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
+
+                                        x_p_m = np.zeros((n_obs,len(lnM)))
+
+                                        for j in range(0,n_obs):
+
+                                            x_p_m[j,:] = x_p[j,:] - np.mean(x_p[j,:])
+
+                                        x_p_mesh = get_mesh(x_p_m)
+                                        kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
+
+                                        cpdf = apodise(cpdf)
+                                        cpdf = convolve_nd(cpdf,kernel)
+
+                                        cpdf[np.where(cpdf < 0.)] = 0.
+
+                                        x_mesh_interp = get_mesh(x_list[lay])
+                                        shape = x_mesh.shape
+                                        x_mesh_interp = np.transpose(x_mesh_interp.reshape(*x_mesh.shape[:-2],-1))
+
+                                        cpdf = interpolate.RegularGridInterpolator(x_p,cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp)
+                                        cpdf = np.transpose(cpdf.reshape(shape[1:]))
+
+                                        if lay == layers[0]:
+
+                                            if n_obs > 1:
+
+                                                cpdf = extract_diagonal(cpdf)
+
+                                            cpdf = np.interp(lnM0,lnM,cpdf,left=0,right=0)
+
+                                        else:
+
+                                            cpdf = np.interp(x_list_linear[lay-1],x_list[lay-1],cpdf)
+
+                                cpdf_product = cpdf_product*cpdf
+
+                            patch_select = int(observable_patches[self.cnc_params["obs_select"]])
+
+                            cpdf_product_with_hmf = cpdf_product*halo_mass_function_z*4.*np.pi*self.scal_rel_selection.skyfracs[patch_select]
+
+                            return_dict["cpdf_" + str(cluster_index) + "_" + str(redshift_error_id)] = cpdf_product_with_hmf
+                            return_dict["lnm_vec_" + str(cluster_index) + "_" + str(redshift_error_id)] = lnM0
+
+                            lik_cluster_vec[redshift_error_id] = integrate.simps(cpdf_product_with_hmf,lnM0)
+
+                        elif self.cnc_params["data_lik_type"] == "direct_integral":
+
+                            observable_set = observables_select[0]
 
                             x_obs = []
+                            observable_patches = {}
 
                             for observable in observable_set:
 
                                 x_obs.append(self.catalogue.catalogue[observable][cluster_index])
+                                observable_patches[observable] = self.catalogue.catalogue_patch[observable][cluster_index]
 
-                            x_obs = np.array(x_obs)
+                            patch_select = int(observable_patches[self.cnc_params["obs_select"]])
 
                             covariance = covariance_matrix(self.scatter,observable_set,
                             observable_patches,layer=layers)
 
-                            n_obs = len(observable_set)
+                            x_obs = np.array(x_obs)
+                            n_obs = len(x_obs)
 
-                            if len(layers) == 1:
+                            hmf_cluster = np.interp(lnM,lnM0,halo_mass_function_z)*4.*np.pi*self.scal_rel_selection.skyfracs[patch_select]
+                            integrand_m = np.zeros(len(hmf_cluster))
 
-                                lay = layers[0]
-
-                                x1 = np.zeros((n_obs,len(lnM)))
-
-                                for i in range(0,n_obs):
-
-                                    x1[i,:] = self.scaling_relations[observable_set[i]].eval_scaling_relation(lnM,layer=lay,patch_index=int(observable_patches[observable_set[i]]))-x_obs[i]
-
-                                cpdf = stats.multivariate_normal.pdf(np.transpose(x1),cov=covariance.cov[lay])
-                                cpdf = np.interp(lnM0,lnM,cpdf,left=0,right=0)
-
-                            elif len(layers) > 1:
+                            if len(layers) > 1:
 
                                 x_list_linear = []
                                 x_list = []
-                                x = lnM
-
+                                x_list_fromlinear = []
                                 x = np.zeros((n_obs,len(lnM)))
 
                                 for i in range(0,n_obs):
 
                                     x[i,:] = lnM
 
-                                for i in layers[0:-1]:
+                                x1_fromlinear = x
+
+                                for i in layers:
 
                                     x1 = np.zeros((n_obs,len(lnM)))
                                     x1_linear = np.zeros((n_obs,len(lnM)))
+                                    x1_fromlinear = np.zeros((n_obs,len(lnM)))
 
                                     for j in range(0,n_obs):
 
-                                        x1[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x[j,:],layer=i,patch_index=int(observable_patches[observable_set[j]]))
+                                        x1[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x[j,:],layer=i,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)
                                         x1_linear[j,:] = np.linspace(x1[j,0],x1[j,-1],self.cnc_params["n_points_data_lik"])
+
+                                        if i == 1:
+
+                                            x1_fromlinear[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_list_linear[0][j,:],layer=i,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)
+
 
                                     x_list.append(x1)
                                     x_list_linear.append(x1_linear)
+
+                                    if i == 1:
+
+                                        x_list_fromlinear.append(x1_fromlinear)
+
                                     x = x1
 
-                                for i in np.flip(layers[0:-1]):
+                            for layer in layers[0:-1]:
 
-                                    lay = i
-                                    x_p = x_list_linear[lay]
+                                x_variables = np.zeros((n_obs,len(lnM)))
+                                x_variables_obs = np.zeros((n_obs,len(lnM)))
 
-                                    if lay == layers[-2]:
+                                for j in range(0,n_obs):
 
-                                        x1 = np.zeros((n_obs,len(lnM)))
+                                    x_variables[j] = x_list_linear[layer][j]
+                                    x_variables_obs[j] = x_list_fromlinear[0][j]-x_obs[j]
 
-                                        for j in range(0,n_obs):
+                            x_mesh_obs = get_mesh(x_variables_obs)
+                            pdf_obs = stats.multivariate_normal.pdf(np.transpose(x_mesh_obs),cov=covariance.cov[1])
+                            x_mesh = get_mesh(x_variables)
 
-                                            x_obs_j = x_obs[j]
+                            for m in range(0,len(lnM)):
 
-                                            if isinstance(x_obs_j,(float,int,np.float32)) == True:
+                                x_true = x_list[0][:,m]
+                                pdf_int = stats.multivariate_normal.pdf(np.transpose(x_mesh),cov=covariance.cov[0],mean=x_true)
+                                integrand = pdf_int*pdf_obs*hmf_cluster[m]
 
-                                                x1[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],layer=lay+1,patch_index=int(observable_patches[observable_set[j]]))-x_obs_j
+                                for o in range(0,n_obs):
 
-                                            else:
+                                    integrand = integrate.simps(integrand,x_variables[o],axis=0)
 
-                                                xx = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],layer=lay+1,patch_index=int(observable_patches[observable_set[j]]))
-                                                std = self.catalogue.catalogue[observable_set[j] + "_std"][cluster_index]
+                                integrand_m[m] = integrand
 
-                                                indices = np.where(xx>0.)
-                                                x1[j,:] = np.sqrt(np.sum((xx[indices]-x_obs_j[indices]/std[indices])**2.,axis=0))
+                            integral = integrate.simps(integrand_m,lnM)
+                            lik_cluster_vec[redshift_error_id] = integral
 
-                                        x_mesh = get_mesh(x1)
-                                        cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
-
-                                    x_p_m = np.zeros((n_obs,len(lnM)))
-
-                                    for j in range(0,n_obs):
-
-                                        x_p_m[j,:] = x_p[j,:] - np.mean(x_p[j,:])
-
-                                    x_p_mesh = get_mesh(x_p_m)
-
-                                    kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
-
-                                    cpdf = apodise(cpdf)
-                                    cpdf = convolve_nd(cpdf,kernel)
-                                    cpdf[np.where(cpdf < 0.)] = 0.
-
-                                    x_mesh_interp = get_mesh(x_list[lay])
-                                    shape = x_mesh.shape
-                                    x_mesh_interp = np.transpose(x_mesh_interp.reshape(*x_mesh.shape[:-2],-1))
-
-                                    cpdf = interpolate.RegularGridInterpolator(x_p,cpdf,method="linear")(x_mesh_interp)
-                                    cpdf = np.transpose(cpdf.reshape(shape[1:]))
-
-                                    if lay == layers[0]:
-
-                                        if n_obs > 1:
-
-                                            cpdf = extract_diagonal(cpdf)
-
-                                        cpdf = np.interp(lnM0,lnM,cpdf,left=0,right=0)
-
-                                    else:
-
-                                        cpdf = np.interp(x_list_linear[lay-1],x_list[lay-1],cpdf)
-
-                            cpdf_product = cpdf_product*cpdf
-
-                        patch_select = int(observable_patches[self.cnc_params["obs_select"]])
-
-                        cpdf_product_with_hmf = cpdf_product*halo_mass_function_z*4.*np.pi*self.scal_rel_selection.skyfracs[patch_select]
-
-                        return_dict["cpdf_" + str(cluster_index) + "_" + str(redshift_error_id)] = cpdf_product_with_hmf
-                        return_dict["lnm_vec_" + str(cluster_index) + "_" + str(redshift_error_id)] = lnM0
-
-                        lik_cluster_vec[redshift_error_id] = integrate.simps(cpdf_product_with_hmf,lnM0)
-                        #halo_mass_function_z_int = np.interp(lnM,lnM0,halo_mass_function_z)
-                        #lik_cluster_vec[redshift_error_id] = integrate.simps(cpdf_product*halo_mass_function_z_int,lnM)*4.*np.pi*self.scal_rel_selection.skyfracs[patch_select]
 
                         t4 = time.time()
 
@@ -771,7 +850,6 @@ class cluster_number_counts:
                         return_dict["z_err_lik_" + str(cluster_index)] = z_error_likelihood
 
                         lik_cluster = integrate.simps(lik_cluster_vec*z_error_likelihood,z_eval_vec)
-
 
                     else:
 
@@ -971,8 +1049,6 @@ class cluster_number_counts:
                 observable = cluster_observable[indices_split[rank][i]]
                 x_obs = self.catalogue.catalogue[observable][cluster_index]
 
-                #print(cluster_index,x_obs)
-
                 cluster_patch = int(self.catalogue.catalogue_patch[observable][cluster_index])
                 n_layer = self.scaling_relations[observable].get_n_layers()
 
@@ -1010,7 +1086,7 @@ class cluster_number_counts:
 
                     for layer in range(0,n_layer-1):
 
-                        x1 = self.scaling_relations[observable].eval_scaling_relation(x0,layer=layer,patch_index=cluster_patch)
+                        x1 = self.scaling_relations[observable].eval_scaling_relation(x0,layer=layer,patch_index=cluster_patch,other_params=other_params)
 
                         dx1_dx0 = self.scaling_relations[observable].eval_derivative_scaling_relation(x0,
                                                           layer=layer,patch_index=cluster_patch,
@@ -1031,7 +1107,7 @@ class cluster_number_counts:
 
                     cpdf = dn_dx1
 
-                    x1 = self.scaling_relations[observable].eval_scaling_relation(x0,layer=n_layer-1,patch_index=cluster_patch)
+                    x1 = self.scaling_relations[observable].eval_scaling_relation(x0,layer=n_layer-1,patch_index=cluster_patch,other_params=other_params)
 
                     sigma_scatter = np.sqrt(self.scatter.get_cov(observable1=observable,
                                                                  observable2=observable,
@@ -1182,6 +1258,12 @@ class cluster_number_counts:
 
         log_lik = -n_tot
 
+        if self.cnc_params["non_validated_clusters"] == True:
+
+            if self.catalogue.n_val > 0.5:
+
+                log_lik = log_lik + self.catalogue.n_val*np.log(self.cnc_params["f_true_validated"])
+
         t2 = time.time()
 
         self.t_abundance = t2-t1
@@ -1267,7 +1349,7 @@ class cluster_number_counts:
                 n_interp = np.interp(obs_select_vec_interp,self.obs_select_vec,n_obs)
 
                 n_theory = integrate.simps(n_interp,obs_select_vec_interp)
-                n_observed = np.sum(self.catalogue.number_counts[:,i])
+                n_observed = self.catalogue.number_counts_obs_select[i]
                 self.n_binned_obs[i] = n_observed
                 self.n_binned[i] = n_theory
 
