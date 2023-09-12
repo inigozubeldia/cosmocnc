@@ -1,6 +1,6 @@
 # run with:
 # cobaya-run /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/input_files/cobaya_soliket_cnc_unbinned_cluster_counts_planck_template.yaml -f
-output: /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/chains/cnc_unbinned_cluster_counts_spt_unbinned_WLYxmasscal_evaluate_5sept23
+output: /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/chains/cnc_unbinned_cluster_counts_spt_unbinned_WLYxmasscal_mcmc_5sept23
 
 # output: /home/iz221/cnc/mcmcs/cobaya/chains_paper/cnc_planck_sim_unbinned_masscal_2
 
@@ -340,41 +340,41 @@ prior:
 sampler:
 
   #settings for covmat see https://cobaya.readthedocs.io/en/latest/sampler_mcmc.html
-  evaluate:
-    override:
-       H0 : 68.
-       sigma_8 : 0.8122313347357
-       n_s : 0.97
-       Om0 : 0.3
-       Ob0 : 0.049008687903764746
-
-       A_sz : 5.5
-       B_sz : 1.75
-       C_sz:  0.5
-
-       A_x : 6.5
-       B_x : 0.6
-       C_x : -0.25
-
-       sigma_lnq : 0.255
-       sigma_lnYx : 0.255
-
-       corr_xi_Yx : 0.1
-       corr_xi_WL : 0.12
-       corr_Yx_WL : 0.02
-
-       MegacamBias : 0.01
-       MegacamScatterLSS : 0.002
-
-       HSTbias : 0.012
-       HSTscatterLSS : 0.0023
-
-
-       WLbias: 0.03
-       WLscatter: 0.035
-
-
-       dlnMg_dlnr: 1.12
+  # evaluate:
+  #   override:
+  #      H0 : 68.
+  #      sigma_8 : 0.8122313347357
+  #      n_s : 0.97
+  #      Om0 : 0.3
+  #      Ob0 : 0.049008687903764746
+  #
+  #      A_sz : 5.5
+  #      B_sz : 1.75
+  #      C_sz:  0.5
+  #
+  #      A_x : 6.5
+  #      B_x : 0.6
+  #      C_x : -0.25
+  #
+  #      sigma_lnq : 0.255
+  #      sigma_lnYx : 0.255
+  #
+  #      corr_xi_Yx : 0.1
+  #      corr_xi_WL : 0.12
+  #      corr_Yx_WL : 0.02
+  #
+  #      MegacamBias : 0.01
+  #      MegacamScatterLSS : 0.002
+  #
+  #      HSTbias : 0.012
+  #      HSTscatterLSS : 0.0023
+  #
+  #
+  #      WLbias: 0.03
+  #      WLscatter: 0.035
+  #
+  #
+  #      dlnMg_dlnr: 1.12
 
 
   # #    # #parameter values:
@@ -384,16 +384,16 @@ sampler:
   #      n_s: 0.96
   # #     # H0: 69.
   #      H0: 70.
-  # mcmc:
-  #
-  #   #covmat: /home/iz221/cnc/mcmcs/cobaya/covmats/cluster_counts_planck.covmat
-  #   Rminus1_stop: 0.01
-  #   burn_in: 0
-  #   # drag: true
-  #   proposal_scale: 1.
-  #   learn_proposal: True
-  #   learn_every: 40
-  #   learn_proposal_Rminus1_max: 100.
-  #   max_tries : 100000
-  #   learn_proposal_Rminus1_max_early: 100.
+  mcmc:
+
+    covmat: /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/covmats/cluster_counts_planck.covmat
+    Rminus1_stop: 0.01
+    burn_in: 0
+    # drag: true
+    proposal_scale: 1.
+    learn_proposal: True
+    learn_every: 40
+    learn_proposal_Rminus1_max: 100.
+    max_tries : 100000
+    learn_proposal_Rminus1_max_early: 100.
 timing: True
