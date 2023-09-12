@@ -230,6 +230,8 @@ class cluster_catalogue:
 
                     self.cnc_params["f_true_validated"] = f_v
 
+                    print(self.catalogue["z"])
+
         elif self.catalogue_name == "zc19_lensboosted_simulated" or self.catalogue_name == "zc19_lensboosted40_simulated":
 
             if self.catalogue_name == "zc19_lensboosted_simulated":
@@ -371,9 +373,10 @@ class cluster_catalogue:
                 q_patches_new[i] = np.where(indices_sigma[0] == int(q_patches[i]))[0]
 
             self.catalogue_patch["q_szifi"] = q_patches_new
+        #    self.catalogue_patch["q_szifi"] = q_patches
 
         elif self.catalogue_name == "SPT2500d":
-
+            # print('loading spt catalogue')
             # here are some spt-specific  quantities.
             # these are pasted from Bocquet's SPT_SZ_cluster_likelihood/SPTcluster_data.py
             SPTfieldNames = ('ra5h30dec-55', 'ra23h30dec-55', 'ra21hdec-60', 'ra3h30dec-60',
@@ -432,6 +435,8 @@ class cluster_catalogue:
 
                     validated_vec[i] = False
 
+        #    print(np.where(self.catalogue["low_z"] < 1e-8)[0])
+        #    validated_vec[np.where(self.catalogue["low_z"] < 1e-8)[0]] = False
             self.catalogue["validated"] = validated_vec
 
             self.catalogue["z"] = np.asarray(spt_catalog['redshift'][indices_catalog])
@@ -439,14 +444,19 @@ class cluster_catalogue:
             self.catalogue["z"][indices_no_z] = None
 
             self.catalogue["z_std"] = np.asarray(spt_catalog['redshift_err'][indices_catalog])
+
+            print("indices",indices_catalog)
+
             self.catalogue["xi"] = np.asarray(spt_catalog['xi'][indices_catalog])
+
+            print("cattt",self.catalogue["xi"])
 
             self.catalogue_patch['xi'] = np.zeros(len(self.catalogue['xi'])).astype(np.int)
             for id,field in enumerate(spt_catalog['field'][indices_catalog]):
                 self.catalogue_patch['xi'][id] = SPTfieldNames.index(field)
 
             if 'Yx' in self.observables[0]:
-
+                # print('adding Yx data')
                 self.catalogue["Yx"] = np.asarray(spt_catalog['Yx_fid'][indices_catalog])
                 self.catalogue["Yx_std"] = np.asarray(spt_catalog['Yx_err'][indices_catalog])
                 self.catalogue["r500"] = np.asarray(spt_catalog['r500'][indices_catalog])
@@ -462,13 +472,16 @@ class cluster_catalogue:
                 # WLsimcalibfile = options.get_string(option_section, 'WLsimcalibfile')
                 WLsimcalibfile = root_path + "data/spt/WLsimcalib_data.py"
                 WLsimcalib = imp.load_source('WLsimcalib', WLsimcalibfile)
+                # print("WLsimcalib:",WLsimcalib)
 
                 self.WLcalib = WLsimcalib.WLcalibration
+                # print("WLcalib:",self.WLcalib)
                 spt_catalog['WLdata'] = [None for i in range(len(spt_catalog['SPT_ID']))]
 
                 # exit(0)
 
             if 'WLMegacam' in self.observables[0]:
+                # print('collecting WLMegacam data')
                 spt_catalog['WLMegacam'] = [None for i in range(len(spt_catalog['SPT_ID']))]
                 spt_catalog['WLMegacam_std'] = [None for i in range(len(spt_catalog['SPT_ID']))]
 
@@ -478,10 +491,13 @@ class cluster_catalogue:
                     prefix = self.MegacamDir+'/'+name+'/'+name
                     if os.path.isfile(prefix+'_shear.txt'):
                         shear = np.loadtxt(prefix+'_shear.txt', unpack=True)
+                        # print('loading shear data:',prefix+'_shear.txt')
                         Nz = np.loadtxt(prefix+'_Nz.txt', unpack=True)
                         spt_catalog['WLMegacam'][i] = shear[1]
-
+                        # print('shear[1]',shear[1])
+                        # exit(0)
                         spt_catalog['WLMegacam_std'][i] = shear[2]
+                        # print('shear size',i,len(spt_catalog['WLMegacam_std'][i]))
                         spt_catalog['WLdata'][i] = {'datatype':'Megacam',
                                                        'r_deg':shear[0],
                                                        'shear':shear[1],
@@ -492,11 +508,16 @@ class cluster_catalogue:
                                                        'massModelErr': (self.WLcalib['MegacamSim'][1]**2 + self.WLcalib['MegacamMcErr']**2 + self.WLcalib['MegacamCenterErr']**2)**.5,
                                                        'zDistShearErr': (self.WLcalib['MegacamzDistErr']**2 + self.WLcalib['MegacamShearErr']**2)**.5}
 
+                # print(spt_catalog['WLdata'])
             # if 'WLMegacam' or 'WLHST' in self.observables[0]:
+                # self.catalogue['WLMegacam'] = np.asarray(spt_catalog['WLMegacam'][indices_catalog])
                 self.catalogue['WLMegacam'] = np.asarray(list(map(lambda x: np.nan if x is None else x, spt_catalog['WLMegacam'][indices_catalog])))
                 self.catalogue['WLMegacam_std'] = np.asarray(list(map(lambda x: np.nan if x is None else x, spt_catalog['WLMegacam_std'][indices_catalog])))
                 self.catalogue_patch['WLMegacam'] = np.arange(len(self.catalogue['WLMegacam'])).astype(np.int)# index of all clusters.
-
+                # print(self.catalogue_patch['WLMegacam'])
+                # print(self.catalogue['WLMegacam'])
+                # print(np.shape(self.catalogue['WLMegacam_std']))
+                # exit(0)
 
             if 'WLHST' in self.observables[0]:
                 spt_catalog['WLHST'] = [None for i in range(len(spt_catalog['SPT_ID']))]
@@ -512,7 +533,7 @@ class cluster_catalogue:
                             Ntot[j] = np.sum(HSTdata[name]['pzs'][j])
                         spt_catalog['WLHST'][i] = HSTdata[name]['shear']
                         spt_catalog['WLHST_std'][i] = HSTdata[name]['shearerr']
-
+                        # print(name,len(spt_catalog['WLHST'][i]))
                         spt_catalog['WLdata'][i] = {'datatype':'HST',
                                                 'center':HSTdata[name]['center'],
                                                 'r_deg':HSTdata[name]['r_deg'],
@@ -531,12 +552,20 @@ class cluster_catalogue:
                 self.catalogue_patch['WLHST'] = np.arange(len(self.catalogue['WLHST'])).astype(np.int)# index of all clusters.
                 self.catalogue['SPT_ID'] = np.asarray(list(map(lambda x: np.nan if x is None else x, spt_catalog['SPT_ID'][indices_catalog])))
 
-            if 'WLMegacam' or 'WLHST' in self.observables[0]:
+                # print(self.catalogue['WLHST'],self.catalogue['WLHST_std'])
+                # print(self.catalogue['WLHST'],self.catalogue['WLHST_std'])
+                # exit(0)
 
+
+            if 'WLMegacam' or 'WLHST' in self.observables[0]:
                 self.catalogue['WLdata'] = np.asarray(spt_catalog['WLdata'][indices_catalog])
+                # print("self.catalogue['WLdata']",self.catalogue['WLdata'])
+                # exit(0)
+            # exit(0)
 
 
         self.n_clusters = len(self.catalogue[self.obs_select])
+        # print('self.n_clusters',self.n_clusters)
 
         if self.precompute_cnc_quantities == True:
 

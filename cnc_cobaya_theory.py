@@ -38,7 +38,6 @@ class cnc(classy):
     apply_obs_cutoff: Optional[str] = False
     catalogue_params = {"downsample":True}
     data_lik_type: Optional[str] = "backward_convolutional"
-    abundance_integral_type: Optional[str] = "fft" #fft or direct
 
     #Range of abundance observables
 
@@ -50,8 +49,8 @@ class cnc(classy):
     #hmf parameters
 
     cosmology_tool:  Optional[str] = "astropy" # current options are astropy (and cosmopower), classy, and classy_sz (fast-mode)
-    M_min : Optional[str] =  5e14
-    M_max : Optional[str] =  1e15
+    M_min : Optional[str] =  1e13
+    M_max : Optional[str] =  1e16
     hmf_calc : Optional[str] =  "cnc" #"cnc", "hmf", or "MiraTitan"
     hmf_type : Optional[str] =  "Tinker08"
     mass_definition : Optional[str] =  "500c"
@@ -135,7 +134,6 @@ class cnc(classy):
         self.cnc.cnc_params["apply_obs_cutoff"] = self.apply_obs_cutoff
         self.cnc.cnc_params["catalogue_params"] = self.catalogue_params # 6.,
         self.cnc.cnc_params["data_lik_type"] = self.data_lik_type
-        self.cnc.cnc_params["abundance_integral_type"] = self.abundance_integral_type
 
         #Range of abundance observables
 
