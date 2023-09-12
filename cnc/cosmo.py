@@ -15,14 +15,17 @@ class cosmology_model:
     def __init__(self,cosmo_params=None,cosmology_tool = "astropy", power_spectrum_type="cosmopower",amplitude_parameter="sigma_8"):
 
         if cosmo_params is None:
+
             cosmo_params = cosmo_params_default
+
         self.cosmo_params = cosmo_params
         self.amplitude_parameter = amplitude_parameter
+
         if cosmology_tool == "classy_sz":
+
             from classy_sz import Class
 
             self.classy = Class()
-
 
             self.classy.set({
                            'H0': self.cosmo_params["h"]*100.,
@@ -61,13 +64,6 @@ class cosmology_model:
             self.power_spectrum = classy_sz(self.classy)
             self.background_cosmology = classy_sz(self.classy)
             self.background_cosmology.H0.value = self.classy.h()*100.
-
-
-            # print('cosmo computed',self.sigma8)
-
-
-
-
 
         if cosmology_tool == "astropy":
 
@@ -118,7 +114,6 @@ class cosmology_model:
         self.cosmo_params = cosmo_params_new
 
         if cosmology_tool == "classy_sz":
-            ts = time.time()
 
             classy_params = {
                            'H0': self.cosmo_params["h"]*100.,
@@ -134,7 +129,6 @@ class cosmology_model:
                            'T_ncdm' : 0.71611,
 
                           'output': 'mPk',
-
                           'skip_background_and_thermo': 0,
                           'skip_chi': 1,
                           'skip_hubble': 1,
@@ -160,44 +154,9 @@ class cosmology_model:
                 classy_params['sigma8'] = self.cosmo_params["sigma_8"]
 
             elif self.amplitude_parameter == "A_s":
+
                 classy_params['ln10^{10}A_s'] = np.log(self.cosmo_params["A_s"]*1e10)
 
-
-            spt_cosmoRef = {'Omega_m':.3,
-                            'Omega_l':.7,
-                            'h':.7,
-                            'w0':-1.,
-                            'wa':0,
-                            # "Ob0":
-                            }
-
-            self.spt_cosmoRef = spt_cosmoRef
-
-            self.spt_ln1pzs,self.spt_lndas_hmpc = np.loadtxt(root_path +  'data/spt/spt_cosmoref1_ln1pz_lndahmpc.txt',
-                                                             unpack=True)
-
-
-
-            # cosmologyRef = {'Omega_m':.272, 'Omega_l':.728, 'h':.702, 'w0':-1, 'wa':0}
-            spt_cosmoRef_masscal = {'Omega_m':.272,
-                                    'Omega_l':.728,
-                                    'h':.702,
-                                    'w0':-1.,
-                                    'wa':0,
-                                    # "Ob0":
-                                    }
-            self.spt_cosmoRef_masscal = spt_cosmoRef_masscal
-            self.spt_ln1pzs_masscal,self.spt_lndas_hmpc_masscal = np.loadtxt(root_path +  'data/spt/spt_cosmoref2_ln1pz_lndahmpc.txt',
-                                                                             unpack=True)
-
-
-
-
-
-
-            # print('spt cosmoref re-computed',self.background_cosmology_sptref.H0.value/100.)
-            # exit(0)
-            # self.classy.set(classy_params)
             self.classy.set(classy_params)
             self.classy.compute_class_szfast()
             self.T_CMB_0 = self.classy.T_cmb()
@@ -210,14 +169,7 @@ class cosmology_model:
             self.background_cosmology.H0.value = self.classy.h()*100.
             self.get_m500c_to_m200c_at_z_and_M = np.vectorize(self.classy.get_m500c_to_m200c_at_z_and_M)
             self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
-            # print('spt cosmoref re-computed 2',self.background_cosmology_sptref.H0.value/100.)
-            # exit(0)
-
-            te = time.time()
-            # print('time to do cosmo:  %.3e s'%(te-ts))
-
-
-
+            
         if cosmology_tool == "astropy":
 
             self.background_cosmology = self.cosmology_tool.FlatLambdaCDM(self.cosmo_params["h"]*100.,
@@ -231,6 +183,7 @@ class cosmology_model:
             self.D_CMB = self.background_cosmology.angular_diameter_distance(self.z_CMB).value
 
             if self.power_spectrum_type == "cosmopower":
+
                 self.power_spectrum.set_cosmology(H0=self.cosmo_params["h"]*100.,
                                                   Ob0=self.cosmo_params["Ob0"],
                                                   Oc0=self.cosmo_params["Om0"]-self.cosmo_params["Ob0"],
@@ -281,7 +234,7 @@ class cosmology_model:
 
         return z_cmb
 
-class classy_sz(object):
+class classy_sz:
 
     def __init__(self,classy):
 

@@ -30,15 +30,6 @@ class halo_mass_function:
 
         self.const = constants()
 
-        # do class_sz stuff
-        # M = Class()
-        # M.set(common_params)
-        # M.set(cosmo_params_comparison)
-        # M.set(szcounts_param)
-        # # M.set({'output':''})
-        # M.compute_class_szfast()
-        # self.classy_sz_object = M
-
         if self.hmf_type == "Tinker08":
 
             self.rho_c_0 = self.cosmology.background_cosmology.critical_density(0.).value*self.const.mpc**3/self.const.solar*1e3
@@ -162,20 +153,7 @@ class halo_mass_function:
 
         if volume_element == True and self.hmf_calc != "MiraTitan":
 
-
-            # print('hmf at z ',redshift)
-            # print(hmf[:10],np.exp(M_eval[:10])*1e14)
-            # print(np.shape(hmf),np.shape(M_eval))
-            # hmf_class = np.vectorize(self.classy_sz_object.get_dndlnM_at_z_and_M)(redshift,np.exp(M_eval)*1e14*hparam)
-            # hmf_class *= hparam**3
-            # # print('hmfclass:',hmf_class[:10])
-            # hmf = hmf_class
-            # vol = self.cosmology.background_cosmology.differential_comoving_volume(redshift).value
-            # print('vol:',vol,redshift)
-            # exit(0)
             hmf = hmf*self.cosmology.background_cosmology.differential_comoving_volume(redshift).value
-
-        # exit(0)
 
         return M_eval,hmf
 

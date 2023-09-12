@@ -5,39 +5,16 @@ import scipy.stats as stats
 import functools
 import math
 
-def convolve_1d_b(x,dn_dx,sigma_scatter): #alternative convolution function, slower
+def convolve_1d(x,dn_dx,sigma_scatter,type="fft"):
 
     if sigma_scatter > 0.:
 
         kernel = gaussian_1d(x-np.mean(x),sigma_scatter)
-        dn_dx = signal.convolve(dn_dx,kernel,mode="same",method="fft")/np.sum(kernel)
-
-    return dn_dx
-
-def convolve_1d(x,dn_dx,sigma_scatter):
-
-    if sigma_scatter > 0.:
-
-        kernel = gaussian_1d(x-np.mean(x),sigma_scatter)
-
-        padding_fraction = 0.5
-        array = dn_dx
-
-        pad_size = int(len(kernel)*padding_fraction)
-
-        padded_array = np.pad(array,pad_size,mode='constant')
-        kernel = np.pad(kernel,pad_size,mode='constant')
-
-        array_fft = np.fft.rfft(padded_array)
-        kernel_fft = np.fft.rfft(kernel)
-
-        dn_dx = np.fft.fftshift(np.fft.irfft(array_fft*kernel_fft))[pad_size:pad_size+len(array)]/np.sum(kernel)
+        dn_dx = signal.convolve(dn_dx,kernel,mode="same",method=type)/np.sum(kernel)
 
     return dn_dx
 
 def convolve_nd(distribution,kernel):
-
-#    convolved = np.fft.fftshift(np.fft.ifftn(np.fft.fftn(distribution)* np.fft.fftn(kernel))).real/np.sum(kernel) #FASTER BUT DOES WEIRD THINGS
 
     convolved = signal.convolve(distribution,kernel,mode="same",method="fft")/np.sum(kernel)
 
@@ -48,7 +25,7 @@ def eval_gaussian_nd(x_mesh,cov=None):
     shape = x_mesh.shape
     x_mesh = x_mesh.reshape(*x_mesh.shape[:-2],-1)
     pdf = stats.multivariate_normal.pdf(np.transpose(x_mesh),cov=cov)
-    pdf = pdf.reshape(shape[1:])
+    pdf = np.transpose(pdf.reshape(shape[1:]))
 
     return pdf
 
@@ -79,6 +56,23 @@ def apodise(x_map):
     window = functools.reduce(np.multiply, np.ix_(*window))
 
     return x_map*window
+
+def extract_diagonal(tensor):
+
+    if len(tensor.shape) == 2:
+
+        diag = np.diag(tensor)
+
+    elif len(tensor.shape) == 3:
+
+        diag = np.zeros(tensor.shape[0])
+
+        for i in range(0,tensor.shape[0]):
+
+            diag[i] = tensor[i,i,i]
+
+    return diag
+
 
 def get_cash_statistic(n_obs_vec,n_mean_vec):
 
@@ -209,3 +203,48 @@ def launch_multiprocessing(function,n_cores):
         return_dict = function(0,{})
 
     return return_dict
+
+def rejection_sample_1d(x,pdf,n_samples):
+
+    samples = np.zeros(n_samples)
+
+    for i in range(0,n_samples):
+
+        pdf_eval = 0.
+        pdf_sample = 1.
+
+        while pdf_sample > pdf_eval:
+
+            x_sample = np.random.rand()*(x[-1]-x[0])+x[0]
+            pdf_sample = np.random.rand()*(pdf[-1]-pdf[0])+pdf[0]
+            pdf_eval = np.interp(x_sample,x,pdf)
+
+        samples[i] = x_sample
+
+    return samples
+
+def tile_1d_array(a,n_dim_output):
+
+    grid = np.meshgrid(*([a] * n_dim_output), indexing='ij')
+    custom_array = grid[0]
+
+    return custom_array
+
+def tile_1d_array_different_dim(original_array,n_dim_output,n_additional_dim):
+
+    m = n_dim_output
+    l = n_additional_dim
+
+    # Add the additional dimensions to the original array
+# Create coordinate grids for the additional dimensions
+# Create the shape for the result array
+    result_shape = (l,) * m + (original_array.size,)
+
+    # Create the result array by broadcasting the original array
+    result_array = original_array.reshape((1,) * m + original_array.shape)
+
+    # Repeat the result array along the new dimensions
+    for i in range(m):
+        result_array = np.repeat(result_array, l, axis=i)
+
+    return result_array
