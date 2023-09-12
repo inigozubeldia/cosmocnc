@@ -38,7 +38,7 @@ class cnc(classy):
     apply_obs_cutoff: Optional[str] = False
     catalogue_params = {"downsample":True}
     data_lik_type: Optional[str] = "backward_convolutional"
-    abundance_integral_type": Optional[str] = "fft" #fft or direct
+    abundance_integral_type: Optional[str] = "fft" #fft or direct
 
     #Range of abundance observables
 
