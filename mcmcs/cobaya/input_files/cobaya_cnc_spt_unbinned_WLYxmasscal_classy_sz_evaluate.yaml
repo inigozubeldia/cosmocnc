@@ -36,7 +36,7 @@ theory:
     obs_select_max :  47.
     bins_edges_obs_select: np.exp(np.linspace(np.log(5.),np.log(47),6))
 
-    obs_select_threshold: 5.
+    # obs_select_threshold: 5.
 
     parallelise_type: patch
 

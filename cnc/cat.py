@@ -576,9 +576,9 @@ class cluster_catalogue:
                     & (self.catalogue["z"] > self.bins_z_edges[i]) & (self.catalogue["z"] < self.bins_z_edges[i+1]))[0]
                     self.number_counts[i,j] = len(indices)
 
-        print(self.obs_select)
-        print(self.catalogue.keys())
-        print(self.catalogue[self.obs_select])
+        # print(self.obs_select)
+        # print(self.catalogue.keys())
+        # print(self.catalogue[self.obs_select])
         self.obs_select_max = np.max(self.catalogue[self.obs_select])
 
         self.observable_dict = {}

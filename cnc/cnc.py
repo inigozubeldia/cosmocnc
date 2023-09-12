@@ -1173,7 +1173,7 @@ class cluster_number_counts:
             self.n_obs_fd = np.sum(self.n_obs_matrix_fd,axis=0)
             self.n_tot_fd = np.sum(self.n_tot_vec_fd,axis=0)
 
-        print("N tot",self.n_tot)
+        # print("N tot",self.n_tot)
 
     def get_log_lik_extreme_value(self):
 
@@ -1222,7 +1222,7 @@ class cluster_number_counts:
 
         self.t_total = time.time()-t0
 
-        print("Time",self.t_total)
+        # print("Time",self.t_total)
 
         if np.isnan(log_lik) == True:
 
