@@ -20,7 +20,7 @@ theory:
     obs_select: "q_act"
     z_errors : False
     cluster_catalogue : 'act'
-    scalrel_type_deriv : "analytical"
+    scalrel_type_deriv : "numerical"
     z_min : 0.0
     z_max : 3.5
     bins_edges_z: np.linspace(0.,3.5,21) ## this needs to be set ! why ??
