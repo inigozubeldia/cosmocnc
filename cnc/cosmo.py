@@ -143,7 +143,7 @@ class cosmology_model:
                           'M_min' : 1e9,
                           'M_max' : 1e16,
                           'z_min' : 0.,
-                          'z_max' : 2.,
+                          'z_max' : 4.,
                           'ndim_redshifts' :50,
                           'ndim_masses' :50,
                           'concentration parameter':'D08'
@@ -169,7 +169,7 @@ class cosmology_model:
             self.background_cosmology.H0.value = self.classy.h()*100.
             self.get_m500c_to_m200c_at_z_and_M = np.vectorize(self.classy.get_m500c_to_m200c_at_z_and_M)
             self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
-            
+
         if cosmology_tool == "astropy":
 
             self.background_cosmology = self.cosmology_tool.FlatLambdaCDM(self.cosmo_params["h"]*100.,

@@ -247,13 +247,15 @@ class cluster_number_counts:
                         other_params = {"D_A": self.D_A[redshift_index],
                                         "E_z": self.E_z[redshift_index],
                                         "H0": self.cosmology.background_cosmology.H0.value,
-                                        "E_z0p6" : self.E_z0p6}
+                                        "E_z0p6" : self.E_z0p6,
+                                        "zc":self.redshift_vec[redshift_index],
+                                        "cosmology":self.cosmology}
 
                         dn_dx0 = self.hmf_matrix[redshift_index,:]
                         x0 = self.ln_M
 
-                        t0 = time.time()
 
+                        t0 = time.time()
                         self.scal_rel_selection.precompute_scaling_relation(params=self.scal_rel_params,
                                                 other_params=other_params,
                                                 patch_index=patch_index)
@@ -875,13 +877,7 @@ class cluster_number_counts:
 
             self.cpdf_dict = return_dict
 
-        #    print("")
-        #    print("")
-        #    print("")
-        #    print("Time hmf2",self.t_hmf2)
-        #    print("Time select",self.time_select)
-        #    print("Time mass range",self.time_mass_range)
-        #    print("Time back",self.time_back)
+
 
         return log_lik_data
 
@@ -1173,7 +1169,7 @@ class cluster_number_counts:
             self.n_obs_fd = np.sum(self.n_obs_matrix_fd,axis=0)
             self.n_tot_fd = np.sum(self.n_tot_vec_fd,axis=0)
 
-        # print("N tot",self.n_tot)
+        # print("N tot, obs",self.n_tot,self.n_obs)
 
     def get_log_lik_extreme_value(self):
 

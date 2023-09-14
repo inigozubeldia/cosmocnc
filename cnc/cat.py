@@ -147,6 +147,47 @@ class cluster_catalogue:
 
             self.catalogue["validated"] = np.ones(len(self.catalogue["q_mmf3"]))
 
+        if self.catalogue_name == "act":
+
+            #SZ data from ACT
+
+            threshold = 6.
+
+            act_cat = np.loadtxt(root_path + "data/act/SZ_cat_nemosimkit_130923.txt").transpose()
+            data_act = {}
+            data_act["SNR"] = act_cat[2]
+            data_act["REDSHIFT"] = act_cat[0]
+
+            indices_act = []
+
+            for i in range(0,len(data_act["SNR"])):
+
+                if (data_act["SNR"][i] > threshold):
+
+                    indices_act.append(i)
+
+            observable = self.obs_select
+
+            self.catalogue[observable] = data_act["SNR"][indices_act]
+            self.catalogue["z"] = data_act["REDSHIFT"][indices_act]
+            self.catalogue_patch[observable] = np.zeros(len(self.catalogue[observable])).astype(np.int)
+
+            indices_no_z = np.where(self.catalogue["z"] < 0.)[0]
+
+            self.catalogue["z"][indices_no_z] = None
+            self.catalogue["z_std"] = np.zeros(len(self.catalogue["z"]))
+
+            indices_z = np.argwhere(~np.isnan(self.catalogue["z"]))[:,0]
+
+
+            if self.obs_select == "q_act":
+
+                patch_index_vec = np.load(root_path + "data/act/SZ_cat_nemosimkit_cluster_patch_indices.npy")
+                patch_index_vec = patch_index_vec[indices_act]
+                self.catalogue_patch[observable][indices_z] = patch_index_vec[indices_z]
+
+
+
         elif self.catalogue_name[0:14] == "zc19_simulated":
 
             catalogue = np.load(root_path + "data/catalogues_sim/catalogue_" + self.catalogue_name + "_paper.npy",allow_pickle=True)[0]

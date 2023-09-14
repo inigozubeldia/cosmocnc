@@ -35,6 +35,19 @@ class scaling_relations:
         observable = self.observable
         self.const = constants()
 
+        if observable == "q_act":
+            f = open(root_path + "data/act/nemo_sim_thetas_120923_30bins.txt","r")
+            self.theta_500_vec = np.array(f.readlines()).astype(np.float)
+            f.close()
+            f = open(root_path + "data/act/nemo_sim_ylims_120923_30bins.txt","r")
+            sigma_matrix_flat = np.array(f.readlines()).astype(np.float)
+            f.close()
+            f = open(root_path + "data/act/nemo_sim_skyfracs_120923_30bins.txt","r")
+            self.skyfracs = np.array(f.readlines()).astype(np.float)
+            f.close()
+            self.sigma_matrix = sigma_matrix_flat.reshape((len(self.theta_500_vec),len(self.skyfracs)))
+
+
         if observable == "q_mmf3" or observable == "q_mmf3_mean":
 
             f = open(root_path + "data/thetas_planck_arcmin.txt","r")
@@ -159,6 +172,13 @@ class scaling_relations:
             self.M_500_alpha = self.M_500**self.params["alpha"]
             self.M_500_13 = self.M_500**(1./3.)
 
+        if self.observable == "q_act":
+            print("computing M500")
+
+            self.M_500 = np.exp(other_params["lnM"])
+            self.M_500_alpha = self.M_500**self.params["alpha"]
+            self.M_500_13 = self.M_500**(1./3.)
+            exit(0)
 
     def precompute_scaling_relation(self,params=None,other_params=None,patch_index=0):
 
@@ -169,6 +189,18 @@ class scaling_relations:
         self.params = params
 
         observable = self.observable
+
+        if observable == "q_act":
+
+            H0 = other_params["H0"]
+            E_z = other_params["E_z"]
+            D_A = other_params["D_A"]
+
+
+            # self.prefactor_Y_500 = (self.params["bias_sz"]/6.)**self.params["alpha"]*(H0/70.)**(-2.+self.params["alpha"])*10.**self.params["log10_Y_star"]*E_z**self.params["beta"]*0.00472724*(D_A/500.)**(-2.)
+            self.prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
+
+
 
         if observable == "q_mmf3" or observable == "q_mmf3_mean":
 
@@ -272,6 +304,52 @@ class scaling_relations:
     def eval_scaling_relation(self,x0,layer=0,patch_index=0,other_params=None):
 
         observable = self.observable
+
+        if observable == "q_act":
+
+            if layer == 0:
+
+                #x0 is ln M_500
+
+                self.M_500 = np.exp(x0)
+                # Y_500 = self.prefactor_Y_500*self.M_500**self.params["alpha"]
+                self.theta_500 = self.prefactor_M_500_to_theta*self.M_500**(1./3.)
+                h = other_params["H0"]/100.
+                # self.M_500 = np.exp(other_params["lnM"])
+                # print(other_params)
+                # exit(0)
+                zc = other_params["zc"]
+                self.M_200 = other_params['cosmology'].get_m500c_to_m200c_at_z_and_M(zc,self.M_500*h*1e14)/h
+                # print(self.M_500,self.M_200)
+                # exit(0)
+
+                Ez = other_params["E_z"]
+
+                A0 = self.params["tenToA0"]
+                B0 = self.params["B0"]
+                C0 = self.params["C0"]
+                bias = self.params["bias_sz"]
+                Mpivot = self.params['SZmPivot']
+
+                mb = self.M_200 * bias
+                y0 = A0 * (Ez ** 2.) * (mb / Mpivot) ** (1. + B0) #* splQ
+                y0[y0 <= 0] = 1e-9
+
+
+                sigma_vec = self.sigma_matrix[:,patch_index]
+                sigma = np.interp(self.theta_500,self.theta_500_vec,sigma_vec)
+                x1 = np.log(y0/sigma)
+                #x1 is log q_mean
+
+            if layer == 1:
+
+                #x0 is log q_true
+
+                x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
+                if np.isnan(x1).any():
+                    print('nan in x1',x0)
+                    exit(0)
+                #x1 is q_true
 
         if observable == "q_mmf3" or observable == "q_mmf3_mean":
 
@@ -571,6 +649,24 @@ class scaling_relations:
 
         if scalrel_type_deriv == "analytical":
 
+            if observable == "q_act":
+
+                if layer == 0:
+
+                    #x0 is ln M_500, returns d ln q_mean / d ln M_500
+                    sigma_vec = self.sigma_matrix[:,patch_index]
+                    log_sigma_vec_derivative = np.interp(np.log(self.theta_500),np.log(self.theta_500_vec),np.gradient(np.log(sigma_vec),np.log(self.theta_500_vec)))
+                    dx1_dx0 = (1.+self.params["B0"]) - log_sigma_vec_derivative/3.
+
+                if layer == 1:
+
+                    #x0 is log q_true, x1 is q_true, returns q_true (including optimisation correction)
+                    #dx1_dx0 = np.exp(x0)
+
+                    dof = self.params["dof"]
+                    exp = np.exp(2.*x0)
+                    dx1_dx0 = exp/np.sqrt(exp+dof)
+
             if observable == "q_mmf3" or observable == "q_mmf3_mean":
 
                 if layer == 0:
@@ -631,6 +727,9 @@ class scaling_relations:
         elif scalrel_type_deriv == "numerical": #must always be computed strictly after executing self.eval_scaling_relation()
 
             dx1_dx0 = np.gradient(self.x1,x0)
+            if np.isnan(dx1_dx0).any():
+                print('nan in dx1_dx0')
+                exit(0)
 
             ###3 check this and remove the case TBD
 
@@ -668,7 +767,7 @@ class scaling_relations:
 
     def get_cutoff(self,layer=0):
 
-        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi":
+        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi" or self.observable == "q_act":
 
             if layer == 0:
 
@@ -789,6 +888,10 @@ class scatter:
 
                 cov = self.params["sigma_lnq"]**2
 
+            elif observable1 == "q_mmf3" and observable2 == "q_mmf3":
+
+                cov = self.params["sigma_lnq"]**2
+
             elif observable1 == "xi" and observable2 == "xi":
 
                 cov = self.params["sigma_lnq"]**2
@@ -866,6 +969,9 @@ class scatter:
 
                 cov = 1.
 
+            if observable1 == "q_act" and observable2 == "q_act":
+
+                cov = 1.
 
             elif observable1 == "q_mmf3_mean" and observable2 == "q_mmf3_mean":
 

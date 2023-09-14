@@ -120,6 +120,14 @@ scaling_relation_params_default = {
 "f_true_validated":1.,#fraction of true clusters which have been validated
 "q_cutoff":2.,
 
+
+
+#ACT
+
+'tenToA0': 1.9e-5,
+'B0': 0.08,
+'C0': 0.,
+
 #SZiFi Planck
 
 "alpha_szifi":1.12333,

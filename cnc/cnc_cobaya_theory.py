@@ -213,8 +213,6 @@ class cnc(classy):
 
     def get_sz_unbinned_cluster_counts(self):
 
-        # thats the function passed to soliket
-
         # print('passing to cobaya lkl')
         cls = deepcopy(self._current_state["sz_unbinned_cluster_counts"])
         # print('cls',cls)
@@ -300,6 +298,13 @@ class cnc(classy):
         assign_parameter_value(scal_rel_params,params_values,"sigma_lnp")
         assign_parameter_value(scal_rel_params,params_values,"corr_lnq_lnp")
         assign_parameter_value(scal_rel_params,params_values,"a_lens")
+
+        # ACT parameters:
+
+        assign_parameter_value(scal_rel_params,params_values,"tenToA0")
+        assign_parameter_value(scal_rel_params,params_values,"B0")
+        assign_parameter_value(scal_rel_params,params_values,"C0")
+
 
         # SPT-style parameters:
 
