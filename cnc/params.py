@@ -103,11 +103,13 @@ scaling_relation_params_default = {
 
 #Planck
 
-"alpha":1.79,
+"alpha":1.78,
 "beta":0.66,
-"log10_Y_star":-0.19,
+# "log10_Y_star":-0.19,
+"log10_Y_star":-0.186,
 "sigma_lnq":0.173,
-"bias_sz":0.62, #a.k.a. 1-b
+# "bias_sz":0.62, #a.k.a. 1-b
+"bias_sz":0.8, #a.k.a. 1-b
 "sigma_lnmlens":0.2,
 "sigma_mlens":0.5,
 "bias_lens":1.,
@@ -165,14 +167,22 @@ scaling_relation_params_default = {
 
 cosmo_params_default = {
 
-"Om0":0.315,
+# "Om0":0.315,
+# "Ob0":0.04897,
+# "h":0.674,
+# "A_s":1.9687e-9, #if amplitude_parameter == "sigma_8", this is overriden by the value given to "sigma_8" in this dictionary
+# "n_s":0.96,
+# "m_nu":0.06, #m_nu is sum of the three neutrino masses
+# "sigma_8":0.811, #if amplitude_paramter == "A_s", this is overriden; the amplitude is taken by the value given to "A_s" in this dictionary
+"tau_reio": 0.0544,
+
+"Om0":0.3096,
 "Ob0":0.04897,
-"h":0.674,
-"A_s":1.9687e-9, #if amplitude_parameter == "sigma_8", this is overriden by the value given to "sigma_8" in this dictionary
+"h":0.6766,
+"A_s":1.9687e-9,
 "n_s":0.96,
-"m_nu":0.06, #m_nu is sum of the three neutrino masses
-"sigma_8":0.811, #if amplitude_paramter == "A_s", this is overriden; the amplitude is taken by the value given to "A_s" in this dictionary
-"tau_reio": 0.0544
+"m_nu":0.06
+
 }
 
 

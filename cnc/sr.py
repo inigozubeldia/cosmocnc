@@ -344,7 +344,7 @@ class scaling_relations:
 
 
                 sigma_vec = self.sigma_matrix[:,patch_index]
-                sigma = np.interp(self.theta_500,self.theta_500_vec,sigma_vec)
+                sigma = np.interp(self.theta_500,self.theta_500_vec,sigma_vec,left=0.,right=0.)
                 x1 = np.log(y0/sigma)
                 #x1 is log q_mean
 

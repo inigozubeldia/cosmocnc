@@ -14,7 +14,7 @@ t1 = time.time()
 
 print("Time total number counts",time.time()-t0)
 
-log_lik_binned = number_counts.get_lik_binned()
+log_lik_binned = number_counts.get_log_lik_binned()
 
 t11 = time.time()
 

@@ -37,6 +37,17 @@ class cosmology_model:
                            'tau_reio':  self.cosmo_params["tau_reio"],
                            'n_s': self.cosmo_params["n_s"],
 
+                           # 'omega_b': 0.0224178568132,
+                           # 'omega_cdm':  0.11933148326520002,
+                           # 'H0': 67.66,
+                           # 'ln10^{10}A_s':self.cosmo_params["ln10^{10}A_s"],
+                           # 'ln10^{10}A_s': 2.9799585,
+                           # 'tau_reio':  0.0561,
+                           # 'n_s': 0.96,
+                            'HMF_prescription_NCDM': 1,
+
+                            'no_spline_in_tinker': 1,
+
                            'N_ncdm' : 1,
                            'N_ur' : 2.0328,
                            'm_ncdm' : 0.06,
@@ -55,16 +66,16 @@ class cosmology_model:
                           # for mass conversion routines:
                           # 'output': 'mPk,m500c_to_m200c,m200c_to_m500c,T08M200c,dndlnM',
                           'output': 'mPk,m500c_to_m200c,m200c_to_m500c,dndlnM',
-                          'mass function': 'M500',
-                          # 'mass function': 'T08M200c',
+                          # 'mass function': 'M500',
+                          'mass function': 'T08M200c',
                           'M_min' : 1e9,
                           'M_max' : 1e17,
                           'z_min' : 0.,
                           'z_max' : 4.,
-                          'ndim_redshifts' :3850,
-                          'ndim_masses' :3000,
-                          'n_z_dndlnM' : 3850,
-                          'n_m_dndlnM' : 3000,
+                          'ndim_redshifts' :500,
+                          'ndim_masses' :500,
+                          'n_z_dndlnM' : 500,
+                          'n_m_dndlnM' : 500,
                           'concentration parameter':'B13'
                           })
 
@@ -140,9 +151,19 @@ class cosmology_model:
                            'H0': self.cosmo_params["h"]*100.,
                            'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
                            'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2,
-                           # 'ln10^{10}A_s':np.log(self.cosmo_params["A_s"]*1e10),
+                           'ln10^{10}A_s':np.log(self.cosmo_params["A_s"]*1e10),
                            'tau_reio':  self.cosmo_params["tau_reio"],
                            'n_s': self.cosmo_params["n_s"],
+
+
+                           # 'omega_b': 0.0224178568132,
+                           # 'omega_cdm':  0.11933148326520002,
+                           # 'H0': 67.66,
+                           # # 'ln10^{10}A_s':np.log(self.cosmo_params["A_s"]*1e10),
+                           # 'ln10^{10}A_s': 2.9799585,
+                           # 'tau_reio':  0.0561,
+                           # 'n_s': 0.96,
+
 
                            'N_ncdm' : 1,
                            'N_ur' : 2.0328,
@@ -161,16 +182,20 @@ class cosmology_model:
                           # for mass conversion routines:
                           # 'output': 'mPk,m500c_to_m200c,m200c_to_m500c,T08M200c,dndlnM',
                           'output': 'mPk,m500c_to_m200c,m200c_to_m500c,dndlnM',
-                          'mass function': 'M500',
-                          # 'mass function': 'T08M200c',
+                          # 'mass function': 'M500',
+                          'mass function': 'T08M200c',
+
+                        'HMF_prescription_NCDM': 1,
+
+                        'no_spline_in_tinker': 1,
                           'M_min' : 1e9,
                           'M_max' : 1e17,
                           'z_min' : 0.,
                           'z_max' : 4.,
-                          'ndim_redshifts' :3850,
-                          'ndim_masses' :3000,
-                          'n_z_dndlnM' : 3850,
-                          'n_m_dndlnM' : 3000,
+                          'ndim_redshifts' :500,
+                          'ndim_masses' :500,
+                          'n_z_dndlnM' : 500,
+                          'n_m_dndlnM' : 500,
                           'concentration parameter':'B13'
                           }
 
