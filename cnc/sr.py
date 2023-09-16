@@ -56,7 +56,7 @@ class scaling_relations:
 
             if self.cnc_params["catalogue_params"]["downsample"] == True and observable == "q_mmf3":
 
-                (self.sigma_matrix,self.skyfracs,original_tile_vec) = np.load("/home/iz221/planck_sz/test_downsample_tiles_noisebased_mmf3.npy",allow_pickle=True)
+                (self.sigma_matrix,self.skyfracs,original_tile_vec) = np.load(root_path + "data/test_downsample_tiles_noisebased_mmf3.npy",allow_pickle=True)
                 print("Total sky frac",np.sum(self.skyfracs))
 
             else:

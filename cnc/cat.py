@@ -145,7 +145,7 @@ class cluster_catalogue:
             self.stacked_data["p_zc19_stacked"]["cluster_index"] = indices_z
             self.stacked_data["p_zc19_stacked"]["observable"] = "p_zc19"
 
-            self.catalogue["validated"] = np.ones(len(self.catalogue["q_mmf3"]))
+            self.catalogue["validated"] = np.ones(len(self.obs_select))
 
         if self.catalogue_name == "act":
 

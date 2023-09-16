@@ -55,14 +55,16 @@ class cosmology_model:
                           # for mass conversion routines:
                           # 'output': 'mPk,m500c_to_m200c,m200c_to_m500c,T08M200c,dndlnM',
                           'output': 'mPk,m500c_to_m200c,m200c_to_m500c,dndlnM',
-                          # 'mass function': 'M500',
-                          'mass function': 'T08M200c',
+                          'mass function': 'M500',
+                          # 'mass function': 'T08M200c',
                           'M_min' : 1e9,
-                          'M_max' : 1e16,
+                          'M_max' : 1e17,
                           'z_min' : 0.,
                           'z_max' : 4.,
-                          'ndim_redshifts' :50,
-                          'ndim_masses' :50,
+                          'ndim_redshifts' :3850,
+                          'ndim_masses' :3000,
+                          'n_z_dndlnM' : 3850,
+                          'n_m_dndlnM' : 3000,
                           'concentration parameter':'B13'
                           })
 
@@ -159,14 +161,16 @@ class cosmology_model:
                           # for mass conversion routines:
                           # 'output': 'mPk,m500c_to_m200c,m200c_to_m500c,T08M200c,dndlnM',
                           'output': 'mPk,m500c_to_m200c,m200c_to_m500c,dndlnM',
-                          # 'mass function': 'M500',
-                          'mass function': 'T08M200c',
+                          'mass function': 'M500',
+                          # 'mass function': 'T08M200c',
                           'M_min' : 1e9,
-                          'M_max' : 1e16,
+                          'M_max' : 1e17,
                           'z_min' : 0.,
                           'z_max' : 4.,
-                          'ndim_redshifts' :50,
-                          'ndim_masses' :50,
+                          'ndim_redshifts' :3850,
+                          'ndim_masses' :3000,
+                          'n_z_dndlnM' : 3850,
+                          'n_m_dndlnM' : 3000,
                           'concentration parameter':'B13'
                           }
 
