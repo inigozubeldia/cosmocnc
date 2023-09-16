@@ -308,20 +308,27 @@ class scaling_relations:
         if observable == "q_act":
 
             if layer == 0:
+                h = other_params["H0"]/100.
+                zc = other_params["zc"]
+                #x0 is ln M
 
-                #x0 is ln M_500
-
-                self.M_500 = np.exp(x0)
+                if self.cnc_params["mass_definition"] == "500c":
+                    self.M_500 = np.exp(x0)
+                    self.M_200 = other_params['cosmology'].get_m500c_to_m200c_at_z_and_M(zc,self.M_500*h*1e14)/h/1e14
+                    if np.isnan(self.M_200).any():
+                        print('nan in mass conv')
+                        exit(0)
+                elif self.cnc_params["mass_definition"] == "200c":
+                    self.M_200 = np.exp(x0)
+                    self.M_500 = other_params['cosmology'].get_m200c_to_m500c_at_z_and_M(zc,self.M_200*h*1e14)/h/1e14
+                    if np.isnan(self.M_500).any():
+                        print('nan in mass conv')
+                        exit(0)
                 # Y_500 = self.prefactor_Y_500*self.M_500**self.params["alpha"]
                 self.theta_500 = self.prefactor_M_500_to_theta*self.M_500**(1./3.)
-                h = other_params["H0"]/100.
-                # self.M_500 = np.exp(other_params["lnM"])
-                # print(other_params)
-                # exit(0)
-                zc = other_params["zc"]
-                self.M_200 = other_params['cosmology'].get_m500c_to_m200c_at_z_and_M(zc,self.M_500*h*1e14)/h
-                # print(self.M_500,self.M_200)
-                # exit(0)
+
+
+                # self.M_200 = other_params['cosmology'].get_m500c_to_m200c_at_z_and_M(zc,self.M_500*h*1e14)/h
 
                 Ez = other_params["E_z"]
 
@@ -329,7 +336,7 @@ class scaling_relations:
                 B0 = self.params["B0"]
                 C0 = self.params["C0"]
                 bias = self.params["bias_sz"]
-                Mpivot = self.params['SZmPivot']
+                Mpivot = self.params['SZmPivot']/1e14
 
                 mb = self.M_200 * bias
                 y0 = A0 * (Ez ** 2.) * (mb / Mpivot) ** (1. + B0) #* splQ
@@ -884,7 +891,7 @@ class scatter:
 
         if layer == 0:
 
-            if observable1 == "q_mmf3" and observable2 == "q_mmf3":
+            if observable1 == "q_act" and observable2 == "q_act":
 
                 cov = self.params["sigma_lnq"]**2
 

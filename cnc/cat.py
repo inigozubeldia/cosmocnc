@@ -151,7 +151,7 @@ class cluster_catalogue:
 
             #SZ data from ACT
 
-            threshold = 6.
+            threshold = 5.
 
             act_cat = np.loadtxt(root_path + "data/act/SZ_cat_nemosimkit_130923.txt").transpose()
             data_act = {}

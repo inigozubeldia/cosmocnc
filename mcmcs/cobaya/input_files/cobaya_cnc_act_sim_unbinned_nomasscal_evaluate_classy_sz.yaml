@@ -22,12 +22,14 @@ theory:
     cluster_catalogue : 'act'
     scalrel_type_deriv : "numerical"
     z_min : 0.0
-    z_max : 3.5
-    bins_edges_z: np.linspace(0.,3.5,21) ## this needs to be set ! why ??
+    z_max : 2.
+    bins_edges_z: np.linspace(0.,2.,21) ## this needs to be set ! why ??
 
-    obs_select_min: 6.
+    obs_select_min: 5.
     obs_select_max: 100.
-    bins_edges_obs_select: np.exp(np.linspace(np.log(6.),np.log(100),6))
+    bins_edges_obs_select: np.exp(np.linspace(np.log(5.),np.log(100),6))
+    dof: 3.
+
 
     # n_points : 200000
     # add all params you want here.
@@ -156,10 +158,10 @@ params:
 prior:
   # bias_cmblens_prior: 'lambda bias_cmblens: stats.norm.logpdf(bias_cmblens, loc=0.93, scale=0.05)'
   # corr_lnq_lnp_prior: 'lambda corr_lnq_lnp: stats.norm.logpdf(corr_lnq_lnp, loc=0.77, scale=0.1)'
-  n_s_prior: 'lambda n_s: stats.norm.logpdf(n_s, loc=0.96, scale=0.0042)'
-  # sigma_lnq_prior: 'lambda sigma_lnq: stats.norm.logpdf(sigma_lnq, loc=0.173, scale=0.023)'
-  bias_sz_prior: 'lambda bias_sz: stats.norm.logpdf(bias_sz, loc=0.62, scale=0.08)'
-  Ob0h2_prior: 'lambda Ob0,H0: stats.norm.logpdf(Ob0*H0**2/10000, loc=0.022245895, scale=0.00015)'
+  # n_s_prior: 'lambda n_s: stats.norm.logpdf(n_s, loc=0.96, scale=0.0042)'
+  # # sigma_lnq_prior: 'lambda sigma_lnq: stats.norm.logpdf(sigma_lnq, loc=0.173, scale=0.023)'
+  # bias_sz_prior: 'lambda bias_sz: stats.norm.logpdf(bias_sz, loc=0.62, scale=0.08)'
+  # Ob0h2_prior: 'lambda Ob0,H0: stats.norm.logpdf(Ob0*H0**2/10000, loc=0.022245895, scale=0.00015)'
 
 #   theta_mc_prior: 'lambda theta_mc: stats.norm.logpdf(theta_mc, loc=0.0104199189394683, scale=0.0000030)'
 sampler:
@@ -167,11 +169,11 @@ sampler:
   #settings for covmat see https://cobaya.readthedocs.io/en/latest/sampler_mcmc.html
   evaluate:
     override:
-       H0 : 67.4416
-       sigma_8 : 0.813132
-       n_s : 0.955518
-       Om0 : 0.318898
-       Ob0 : 0.0471481
+       H0 : 68
+       sigma_8 : 0.81
+       n_s : 0.965
+       Om0 : 0.31
+       Ob0 : 0.049
 
        tenToA0 : 1.9e-5
        B0 : 0.08

@@ -25,6 +25,8 @@ class cosmology_model:
 
             from classy_sz import Class
 
+            print('using classy_sz')
+
             self.classy = Class()
 
             self.classy.set({
@@ -49,12 +51,24 @@ class cosmology_model:
                           'skip_pkl': 0,
                           'skip_sigma8_and_der': 0,
                           'skip_sigma8_at_z': 1,
-                          # 'class_sz_verbose': 1,
-                          # 'background_verbose':3,
-                          # 'thermodynamics_verbose':3
+
+                          # for mass conversion routines:
+                          # 'output': 'mPk,m500c_to_m200c,m200c_to_m500c,T08M200c,dndlnM',
+                          'output': 'mPk,m500c_to_m200c,m200c_to_m500c,dndlnM',
+                          # 'mass function': 'M500',
+                          'mass function': 'T08M200c',
+                          'M_min' : 1e9,
+                          'M_max' : 1e16,
+                          'z_min' : 0.,
+                          'z_max' : 4.,
+                          'ndim_redshifts' :50,
+                          'ndim_masses' :50,
+                          'concentration parameter':'B13'
                           })
 
             self.classy.compute_class_szfast()
+            # print('classy_sz computed')
+            # exit(0)
 
             self.T_CMB_0 = self.classy.T_cmb()
             self.N_eff = self.classy.get_current_derived_parameters(['Neff'])['Neff']
@@ -64,6 +78,11 @@ class cosmology_model:
             self.power_spectrum = classy_sz(self.classy)
             self.background_cosmology = classy_sz(self.classy)
             self.background_cosmology.H0.value = self.classy.h()*100.
+            self.get_m500c_to_m200c_at_z_and_M = np.vectorize(self.classy.get_m500c_to_m200c_at_z_and_M)
+            self.get_m200c_to_m500c_at_z_and_M = np.vectorize(self.classy.get_m200c_to_m500c_at_z_and_M)
+            self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
+            self.get_dndlnM_at_z_and_M = np.vectorize(self.classy.get_dndlnM_at_z_and_M)
+
 
         if cosmology_tool == "astropy":
 
@@ -128,7 +147,6 @@ class cosmology_model:
                            'm_ncdm' : 0.06,
                            'T_ncdm' : 0.71611,
 
-                          'output': 'mPk',
                           'skip_background_and_thermo': 0,
                           'skip_chi': 1,
                           'skip_hubble': 1,
@@ -139,14 +157,17 @@ class cosmology_model:
                           'skip_sigma8_at_z': 1,
 
                           # for mass conversion routines:
-                          'output': 'mPk,m500c_to_m200c',
+                          # 'output': 'mPk,m500c_to_m200c,m200c_to_m500c,T08M200c,dndlnM',
+                          'output': 'mPk,m500c_to_m200c,m200c_to_m500c,dndlnM',
+                          # 'mass function': 'M500',
+                          'mass function': 'T08M200c',
                           'M_min' : 1e9,
                           'M_max' : 1e16,
                           'z_min' : 0.,
                           'z_max' : 4.,
                           'ndim_redshifts' :50,
                           'ndim_masses' :50,
-                          'concentration parameter':'D08'
+                          'concentration parameter':'B13'
                           }
 
             if self.amplitude_parameter == "sigma_8":
@@ -156,9 +177,10 @@ class cosmology_model:
             elif self.amplitude_parameter == "A_s":
 
                 classy_params['ln10^{10}A_s'] = np.log(self.cosmo_params["A_s"]*1e10)
-
+            print("classy_params",classy_params)
             self.classy.set(classy_params)
             self.classy.compute_class_szfast()
+            print("classy computed")
             self.T_CMB_0 = self.classy.T_cmb()
             self.N_eff = self.classy.get_current_derived_parameters(['Neff'])['Neff']
             self.z_CMB = self.classy.get_current_derived_parameters(['z_rec'])['z_rec']
@@ -168,7 +190,9 @@ class cosmology_model:
             self.background_cosmology = classy_sz(self.classy)
             self.background_cosmology.H0.value = self.classy.h()*100.
             self.get_m500c_to_m200c_at_z_and_M = np.vectorize(self.classy.get_m500c_to_m200c_at_z_and_M)
+            self.get_m200c_to_m500c_at_z_and_M = np.vectorize(self.classy.get_m200c_to_m500c_at_z_and_M)
             self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
+            self.get_dndlnM_at_z_and_M = np.vectorize(self.classy.get_dndlnM_at_z_and_M)
 
         if cosmology_tool == "astropy":
 

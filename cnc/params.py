@@ -55,7 +55,7 @@ cnc_params_default = {
     "cosmology_tool": "astropy", #"astropy" or "classy_sz"
     "M_min": 5e13,
     "M_max": 5e15,
-    "hmf_calc": "cnc", #"cnc", "hmf", or "MiraTitan"
+    "hmf_calc": "cnc", #"cnc", "hmf", "classy_sz", or "MiraTitan"
     "hmf_type": "Tinker08",
     "mass_definition": "500c",
     "hmf_type_deriv": "numerical", #"analytical" or "numerical"

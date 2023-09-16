@@ -186,6 +186,11 @@ class cluster_number_counts:
 
             self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=True)
 
+        elif self.cnc_params["hmf_calc"] == "classy_sz":
+
+            self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=True)
+
+
         t1 = time.time()
 
         self.t_hmf = t1-t0
@@ -1074,6 +1079,7 @@ class cluster_number_counts:
                     "zc":redshift_eval,
                     "cosmology":self.cosmology}
 
+
                     self.scaling_relations[observable].precompute_scaling_relation(params=self.scal_rel_params,
                     other_params=other_params,patch_index=cluster_patch)
 
@@ -1169,7 +1175,7 @@ class cluster_number_counts:
             self.n_obs_fd = np.sum(self.n_obs_matrix_fd,axis=0)
             self.n_tot_fd = np.sum(self.n_tot_vec_fd,axis=0)
 
-        # print("N tot, obs",self.n_tot,self.n_obs)
+        print("N tot",self.n_tot)
 
     def get_log_lik_extreme_value(self):
 
