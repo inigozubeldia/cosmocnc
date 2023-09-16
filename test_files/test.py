@@ -38,8 +38,8 @@ q = number_counts.obs_select_vec
 
 n_tot = number_counts.n_tot
 
-np.savetxt("n_z.txt",np.c_[z,n_z])
-np.savetxt("n_q.txt",np.c_[q,n_q])
+np.savetxt("n_z_16sept23.txt",np.c_[z,n_z])
+np.savetxt("n_q_16sept23.txt",np.c_[q,n_q])
 
 print("N tot",n_tot)
 
