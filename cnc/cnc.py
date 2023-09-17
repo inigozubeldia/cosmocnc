@@ -108,6 +108,7 @@ class cluster_number_counts:
                                          cosmology_tool = self.cnc_params["cosmology_tool"],
                                          power_spectrum_type=self.cnc_params["power_spectrum_type"],
                                          amplitude_parameter=self.cnc_params["cosmo_amplitude_parameter"],
+                                         cnc_params = self.cnc_params
                                          )
 
         self.catalogue = cluster_catalogue(catalogue_name=self.cnc_params["cluster_catalogue"],

@@ -12,7 +12,7 @@ import time
 
 class cosmology_model:
 
-    def __init__(self,cosmo_params=None,cosmology_tool = "astropy", power_spectrum_type="cosmopower",amplitude_parameter="sigma_8"):
+    def __init__(self,cosmo_params=None,cosmology_tool = "astropy", power_spectrum_type="cosmopower",amplitude_parameter="sigma_8",cnc_params = None):
 
         if cosmo_params is None:
 
@@ -20,14 +20,23 @@ class cosmology_model:
 
         self.cosmo_params = cosmo_params
         self.amplitude_parameter = amplitude_parameter
+        self.cnc_params = cnc_params
 
         if cosmology_tool == "classy_sz":
 
             from classy_sz import Class
 
-            print('using classy_sz')
-
             self.classy = Class()
+
+            if self.cnc_params['mass_definition'] == '500c' and self.cnc_params['hmf_type'] == 'Tinker08':
+                self.classy_sz_hmf = 'M500'
+            elif self.cnc_params['mass_definition'] == '200c' and self.cnc_params['hmf_type'] == 'Tinker08':
+                self.classy_sz_hmf = 'T08M200c'
+            else:
+                print('Check your HMF')
+                exit(0)
+            self.classy_sz_ndim_redshifts =  self.cnc_params['classy_sz_ndim_redshifts']
+            self.classy_sz_ndim_masses =  self.cnc_params['classy_sz_ndim_redshifts']
 
             self.classy.set({
                            'H0': self.cosmo_params["h"]*100.,
@@ -66,16 +75,16 @@ class cosmology_model:
                           # for mass conversion routines:
                           # 'output': 'mPk,m500c_to_m200c,m200c_to_m500c,T08M200c,dndlnM',
                           'output': 'mPk,m500c_to_m200c,m200c_to_m500c,dndlnM',
-                          # 'mass function': 'M500',
-                          'mass function': 'T08M200c',
+                          'mass function': self.classy_sz_hmf,
+                          # 'mass function': 'T08M200c',
                           'M_min' : 1e9,
                           'M_max' : 1e17,
                           'z_min' : 0.,
                           'z_max' : 4.,
-                          'ndim_redshifts' :500,
-                          'ndim_masses' :500,
-                          'n_z_dndlnM' : 500,
-                          'n_m_dndlnM' : 500,
+                          'ndim_redshifts' :self.classy_sz_ndim_redshifts,
+                          'ndim_masses' :self.classy_sz_ndim_masses,
+                          'n_z_dndlnM' : self.classy_sz_ndim_redshifts,
+                          'n_m_dndlnM' : self.classy_sz_ndim_masses,
                           'concentration parameter':'B13'
                           })
 
@@ -182,8 +191,8 @@ class cosmology_model:
                           # for mass conversion routines:
                           # 'output': 'mPk,m500c_to_m200c,m200c_to_m500c,T08M200c,dndlnM',
                           'output': 'mPk,m500c_to_m200c,m200c_to_m500c,dndlnM',
-                          # 'mass function': 'M500',
-                          'mass function': 'T08M200c',
+                          'mass function': self.classy_sz_hmf,
+                          # 'mass function': 'T08M200c',
 
                         'HMF_prescription_NCDM': 1,
 
@@ -192,10 +201,10 @@ class cosmology_model:
                           'M_max' : 1e17,
                           'z_min' : 0.,
                           'z_max' : 4.,
-                          'ndim_redshifts' :500,
-                          'ndim_masses' :500,
-                          'n_z_dndlnM' : 500,
-                          'n_m_dndlnM' : 500,
+                          'ndim_redshifts' :self.classy_sz_ndim_redshifts,
+                          'ndim_masses' :self.classy_sz_ndim_masses,
+                          'n_z_dndlnM' : self.classy_sz_ndim_redshifts,
+                          'n_m_dndlnM' : self.classy_sz_ndim_masses,
                           'concentration parameter':'B13'
                           }
 

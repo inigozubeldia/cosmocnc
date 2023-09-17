@@ -97,6 +97,10 @@ cnc_params_default = {
     "priors": False,
     "theta_mc_prior": False,
 
+    # classy_sz precision parameters when needed:
+    "classy_sz_ndim_redshifts" : 200,
+    "classy_sz_ndim_masses" : 200,
+
     }
 
 scaling_relation_params_default = {
