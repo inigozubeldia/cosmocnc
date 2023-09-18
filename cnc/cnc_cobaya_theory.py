@@ -96,6 +96,11 @@ class cnc(classy):
 
     #parallelise_type : Optional[str] = "redshift" #"patch" or "redshift"
 
+    # class_sz parameters
+    classy_sz_ndim_redshifts : Optional[str] =  200
+    classy_sz_ndim_masses : Optional[str] =  200
+    classy_sz_concentration_parameter : Optional[str] =  "B13"
+
     def initialize(self):
 
         """Importing cnc from the correct path, if given, and if not, globally."""
@@ -184,6 +189,11 @@ class cnc(classy):
 
         # scaling relation param:
         self.cnc.cnc_params["dof"] = self.dof
+
+        # classy_sz parameters
+        self.cnc.cnc_params["classy_sz_ndim_redshifts"] = self.classy_sz_ndim_redshifts
+        self.cnc.cnc_params["classy_sz_ndim_masses"] = self.classy_sz_ndim_masses
+        self.cnc.cnc_params["classy_sz_concentration_parameter"] = self.classy_sz_concentration_parameter
 
         super(classy,self).initialize()
         self.extra_args["output"] = self.extra_args.get("output","")

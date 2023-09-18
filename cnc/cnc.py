@@ -3,6 +3,7 @@ import pylab as pl
 import scipy.integrate as integrate
 import scipy.interpolate as interpolate
 import scipy.stats as stats
+from scipy.stats import norm
 from .cosmo import *
 from .hmf import *
 from .sr import *
@@ -773,6 +774,19 @@ class cluster_number_counts:
 
                                                     dxwl = xx - x_obs_j[rInclude,None]
                                                     dxwl_std = std[rInclude,None]
+                                                    if (self.catalogue.catalogue['WLdata'][cluster_index]['SPT_ID'] == 'SPT-CLJ2355-5055'):
+                                                        print('x1',np.sqrt(np.sum((dxwl/dxwl_std)**2.,axis=0)))
+                                                        x1p = np.sqrt(np.sum((dxwl/dxwl_std)**2.,axis=0))
+                                                        likelihood = norm.pdf(xx,x_obs_j[rInclude,None],dxwl_std)
+                                                        print(x_obs_j[rInclude,None],dxwl_std)
+                                                        exit(0)
+                                                        print('likelihood:',np.shape(likelihood),likelihood)
+                                                        pOfMass = np.prod(likelihood, axis=0)
+                                                        print('pOfMass',pOfMass)
+                                                        masses_hunits = np.exp(lnM)*1e14*self.cosmo_params['h']
+                                                        print('Masses',np.shape(masses_hunits),masses_hunits)
+                                                        np.savetxt('/Users/boris/Desktop/SPT-CLJ2355-5055_pOfMass_cnc.txt',np.c_[masses_hunits,pOfMass])
+                                                        exit(0)
 
                                                     x1[j,:] = np.sqrt(np.sum((dxwl/dxwl_std)**2.,axis=0))
 

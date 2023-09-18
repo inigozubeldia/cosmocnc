@@ -13,6 +13,10 @@ likelihood:
 theory:
   cnc.cnc_cobaya_theory.cnc:
     cosmology_tool: "classy_sz"
+    hmf_type: "Tinker08"
+    mass_definition: "500c"
+    hmf_calc: "classy_sz"
+    classy_sz_concentration_parameter: 'D08'
     number_cores_abundance : 10
     number_cores_data : 10
     number_cores_hmf : 10
@@ -25,7 +29,9 @@ theory:
     z_min : .25
     z_max : 2.
 
-    M_min: 5e13
+    sigma_mass_prior : 8
+    n_points_data_lik : 128
+    M_min: 1e13
     M_max: 5e15
 
     bins_edges_z: np.linspace(.25,2.,21)
@@ -346,7 +352,7 @@ sampler:
   #settings for covmat see https://cobaya.readthedocs.io/en/latest/sampler_mcmc.html
   evaluate:
     override:
-       H0 : 68.
+       H0 : 67.
        sigma_8 : 0.8122313347357
        n_s : 0.97
        Om0 : 0.3

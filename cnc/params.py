@@ -100,6 +100,7 @@ cnc_params_default = {
     # classy_sz precision parameters when needed:
     "classy_sz_ndim_redshifts" : 200,
     "classy_sz_ndim_masses" : 200,
+    "classy_sz_concentration_parameter" : "B13",
 
     }
 

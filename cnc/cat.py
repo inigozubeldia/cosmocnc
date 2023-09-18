@@ -523,7 +523,9 @@ class cluster_catalogue:
                         spt_catalog['WLMegacam'][i] = shear[1]
 
                         spt_catalog['WLMegacam_std'][i] = shear[2]
-                        spt_catalog['WLdata'][i] = {'datatype':'Megacam',
+                        spt_catalog['WLdata'][i] = {
+                        'SPT_ID':spt_catalog['SPT_ID'][i],
+                        'datatype':'Megacam',
                                                        'r_deg':shear[0],
                                                        'shear':shear[1],
                                                        'shearerr':shear[2],
@@ -554,7 +556,9 @@ class cluster_catalogue:
                         spt_catalog['WLHST'][i] = HSTdata[name]['shear']
                         spt_catalog['WLHST_std'][i] = HSTdata[name]['shearerr']
 
-                        spt_catalog['WLdata'][i] = {'datatype':'HST',
+                        spt_catalog['WLdata'][i] = {
+                        'SPT_ID':spt_catalog['SPT_ID'][i],
+                        'datatype':'HST',
                                                 'center':HSTdata[name]['center'],
                                                 'r_deg':HSTdata[name]['r_deg'],
                                                 'shear':HSTdata[name]['shear'],

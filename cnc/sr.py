@@ -557,6 +557,16 @@ class scaling_relations:
 
                 #x1 = g_2d[rInclude[-1]:,:]
                 x1 = g_2d[rInclude,:]
+                if (self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'] == 'SPT-CLJ2355-5055'):
+                    print(self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'])
+                    print('MC SPT-CLJ2355-5055')
+                    print('Dl',Dl)
+                    np.savetxt('/Users/boris/Desktop/SPT-CLJ2355-5055_cnc.txt',
+                        np.c_[mArr,m200c,c200c,gamma_2d[0],kappa_2d[0],g_2d[0]])
+                    # print('rPhysRef',rPhysRef)
+                    print('file saved',self.rInclude)
+                    # exit(0)
+                # exit(0)
                 #x1[rInclude[-1]:,:] = 0.
 
 
@@ -645,6 +655,11 @@ class scaling_relations:
                 x1 = g_2d[rInclude,:]
                 #x1 = g_2d
                 #x1[rInclude[-1]:,:] = 0.
+                if (self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'] == 'SPT-CLJ2355-5055'):
+                    print('HST SPT-CLJ2355-5055')
+                    print('DlRef',DlRef)
+                    exit(0)
+
 
         self.x1 = x1
 

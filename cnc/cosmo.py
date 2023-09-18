@@ -37,6 +37,7 @@ class cosmology_model:
                 exit(0)
             self.classy_sz_ndim_redshifts =  self.cnc_params['classy_sz_ndim_redshifts']
             self.classy_sz_ndim_masses =  self.cnc_params['classy_sz_ndim_redshifts']
+            self.classy_sz_concentration_parameter =  self.cnc_params['classy_sz_concentration_parameter']
 
             self.classy.set({
                            'H0': self.cosmo_params["h"]*100.,
@@ -85,7 +86,7 @@ class cosmology_model:
                           'ndim_masses' :self.classy_sz_ndim_masses,
                           'n_z_dndlnM' : self.classy_sz_ndim_redshifts,
                           'n_m_dndlnM' : self.classy_sz_ndim_masses,
-                          'concentration parameter':'B13'
+                          'concentration parameter': self.classy_sz_concentration_parameter
                           })
 
             self.classy.compute_class_szfast()
@@ -205,7 +206,7 @@ class cosmology_model:
                           'ndim_masses' :self.classy_sz_ndim_masses,
                           'n_z_dndlnM' : self.classy_sz_ndim_redshifts,
                           'n_m_dndlnM' : self.classy_sz_ndim_masses,
-                          'concentration parameter':'B13'
+                          'concentration parameter':self.classy_sz_concentration_parameter
                           }
 
             if self.amplitude_parameter == "sigma_8":
@@ -219,6 +220,7 @@ class cosmology_model:
             self.classy.set(classy_params)
             self.classy.compute_class_szfast()
             print("classy computed")
+            # exit(0)
             self.T_CMB_0 = self.classy.T_cmb()
             self.N_eff = self.classy.get_current_derived_parameters(['Neff'])['Neff']
             self.z_CMB = self.classy.get_current_derived_parameters(['z_rec'])['z_rec']
