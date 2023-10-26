@@ -1,6 +1,6 @@
 # run with:
 # cobaya-run /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/input_files/cobaya_soliket_cnc_unbinned_cluster_counts_planck_template.yaml -f
-output: /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/chains/cnc_unbinned_cluster_counts_spt_unbinned_WLYxmasscal_evaluate_5sept23
+output: /mnt/ceph/users/bbolliet/cnc_project/cnc/mcmcs/cobaya/chains/cnc_unbinned_cluster_counts_spt_unbinned_WLYxmasscal_evaluate_5sept23
 
 # output: /home/iz221/cnc/mcmcs/cobaya/chains_paper/cnc_planck_sim_unbinned_masscal_2
 
@@ -13,9 +13,9 @@ likelihood:
 theory:
   cnc.cnc_cobaya_theory.cnc:
     cosmology_tool: "classy_sz"
-    number_cores_abundance : 10
-    number_cores_data : 10
-    number_cores_hmf : 10
+    number_cores_abundance : 12
+    number_cores_data : 32
+    number_cores_hmf : 8
     cluster_catalogue : 'SPT2500d'
     obs_select : 'xi'
     observables : [["xi","Yx","WLMegacam","WLHST"]]
@@ -31,12 +31,13 @@ theory:
     bins_edges_z: np.linspace(.25,2.,21)
     z_errors : True
     z_error_min: 1e-5
+    
+    n_z_error_integral: 10
 
     obs_select_min : 5.
-    obs_select_max :  47.
-    bins_edges_obs_select: np.exp(np.linspace(np.log(5.),np.log(47),6))
+    obs_select_max :  100.
+    bins_edges_obs_select: np.exp(np.linspace(np.log(5.),np.log(100),6))
 
-    # obs_select_threshold: 5.
 
     parallelise_type: patch
 
@@ -44,7 +45,10 @@ theory:
     dof : 3
 
     scalrel_type_deriv : numerical
-    n_points : 1024
+    n_points : 2048
+    n_points_data_lik: 64
+    n_z : 50
+    
     # add all params you want here.
     # default values are in cnc_cobaya_theory
     # bins_edges_z: np.linspace(0.01,1.01,11)

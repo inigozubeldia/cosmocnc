@@ -668,7 +668,7 @@ class scaling_relations:
 
     def get_cutoff(self,layer=0):
 
-        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi":
+        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "xi" or self.observable == "q_szifi":
 
             if layer == 0:
 
