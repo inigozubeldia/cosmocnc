@@ -85,7 +85,6 @@ class cluster_catalogue:
 
             indices_z = np.argwhere(~np.isnan(self.catalogue["z"]))[:,0]
 
-
             if self.obs_select == "q_mmf3":
 
                 patch_index_vec = np.load(root_path + "data/cluster_patch_index.npy")
@@ -145,7 +144,7 @@ class cluster_catalogue:
             self.stacked_data["p_zc19_stacked"]["cluster_index"] = indices_z
             self.stacked_data["p_zc19_stacked"]["observable"] = "p_zc19"
 
-            self.catalogue["validated"] = np.ones(len(self.catalogue["q_mmf3"]))
+            self.catalogue["validated"] = np.ones(len(self.catalogue[self.obs_select]))
 
         elif self.catalogue_name[0:14] == "zc19_simulated":
 
@@ -277,6 +276,24 @@ class cluster_catalogue:
             self.stacked_data["p_zc19_stacked"]["inv_cov"] = float(len(self.catalogue["p_zc19"]))
             self.stacked_data["p_zc19_stacked"]["cluster_index"] = np.arange(len(self.catalogue["p_zc19"]))
             self.stacked_data["p_zc19_stacked"]["observable"] = "p_zc19"
+
+        elif self.catalogue_name[0:7] == "SO_sim_":
+
+            catalogue = np.load(root_path + "data/catalogues_sim/catalogue_so_simulated_" + str(self.catalogue_name[7:]) + ".npy",allow_pickle=True)[0]
+
+            self.catalogue = {}
+            self.catalogue["q_so_sim"] = catalogue["q_so_sim"]
+            self.catalogue["z"] = catalogue["z"]
+            self.catalogue["z_std"] = np.zeros(len(self.catalogue["z"]))
+            self.catalogue["p_so_sim"] = catalogue["p_so_sim"]
+
+            print("n tot obs",len(catalogue["q_so_sim"]),np.sqrt(len(catalogue["q_so_sim"])))
+
+            self.catalogue_patch = {}
+            self.catalogue_patch["q_so_sim"] = catalogue["q_so_sim_patch"]
+            self.catalogue_patch["p_so_sim"] = catalogue["p_so_sim_patch"]
+            #catalogue = np.load(root_path + "data/catalogues_sim/catalogue_" + self.catalogue_name + ".py",allow_pickle=True)[0]
+
 
         elif self.catalogue_name == "q_mlens_simulated":
 
@@ -493,12 +510,14 @@ class cluster_catalogue:
                                                        'zDistShearErr': (self.WLcalib['MegacamzDistErr']**2 + self.WLcalib['MegacamShearErr']**2)**.5}
 
             # if 'WLMegacam' or 'WLHST' in self.observables[0]:
+
                 self.catalogue['WLMegacam'] = np.asarray(list(map(lambda x: np.nan if x is None else x, spt_catalog['WLMegacam'][indices_catalog])))
                 self.catalogue['WLMegacam_std'] = np.asarray(list(map(lambda x: np.nan if x is None else x, spt_catalog['WLMegacam_std'][indices_catalog])))
                 self.catalogue_patch['WLMegacam'] = np.arange(len(self.catalogue['WLMegacam'])).astype(np.int)# index of all clusters.
 
 
             if 'WLHST' in self.observables[0]:
+
                 spt_catalog['WLHST'] = [None for i in range(len(spt_catalog['SPT_ID']))]
                 spt_catalog['WLHST_std'] = [None for i in range(len(spt_catalog['SPT_ID']))]
                 prefix =  root_path + "data/spt/"

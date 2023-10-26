@@ -300,6 +300,9 @@ class cnc(classy):
         assign_parameter_value(scal_rel_params,params_values,"sigma_lnp")
         assign_parameter_value(scal_rel_params,params_values,"corr_lnq_lnp")
         assign_parameter_value(scal_rel_params,params_values,"a_lens")
+        assign_parameter_value(scal_rel_params,params_values,"alpha_szifi")
+        assign_parameter_value(scal_rel_params,params_values,"A_szifi")
+        assign_parameter_value(scal_rel_params,params_values,"sigma_lnq_szifi")
 
         # SPT-style parameters:
 

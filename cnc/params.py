@@ -26,6 +26,7 @@ cnc_params_default = {
 
     #Observables and catalogue
 
+    "load_catalogue": True,
     "likelihood_type": "unbinned", #"unbinned", "binned", or "extreme_value"
     #"obs_select": "q_mmf3_mean", #"q_mmf3_mean",
     "obs_select": "q_mmf3", #"q_mmf3_mean",

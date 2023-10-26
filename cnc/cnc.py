@@ -3,6 +3,7 @@ import pylab as pl
 import scipy.integrate as integrate
 import scipy.interpolate as interpolate
 import scipy.stats as stats
+from numba import jit
 from .cosmo import *
 from .hmf import *
 from .sr import *
@@ -43,14 +44,20 @@ class cluster_number_counts:
                                          amplitude_parameter=self.cnc_params["cosmo_amplitude_parameter"],
                                          )
 
-        self.catalogue = cluster_catalogue(catalogue_name=self.cnc_params["cluster_catalogue"],
-                                           precompute_cnc_quantities=True,
-                                           bins_obs_select_edges=self.cnc_params["bins_edges_obs_select"],
-                                           bins_z_edges=self.cnc_params["bins_edges_z"],
-                                           observables=self.cnc_params["observables"],
-                                           obs_select=self.cnc_params["obs_select"],
-                                           cnc_params = self.cnc_params,
-                                           scal_rel_params=self.scal_rel_params)
+        if self.cnc_params["load_catalogue"] == True:
+
+            self.catalogue = cluster_catalogue(catalogue_name=self.cnc_params["cluster_catalogue"],
+                                               precompute_cnc_quantities=True,
+                                               bins_obs_select_edges=self.cnc_params["bins_edges_obs_select"],
+                                               bins_z_edges=self.cnc_params["bins_edges_z"],
+                                               observables=self.cnc_params["observables"],
+                                               obs_select=self.cnc_params["obs_select"],
+                                               cnc_params = self.cnc_params,
+                                               scal_rel_params=self.scal_rel_params)
+
+        elif self.cnc_params["load_catalogue"] == False:
+
+            self.catalogue = None
 
         self.scaling_relations = {}
 
@@ -131,7 +138,7 @@ class cluster_number_counts:
         self.redshift_vec = np.linspace(self.cnc_params["z_min"],self.cnc_params["z_max"],self.cnc_params["n_z"])
         self.obs_select_vec = np.linspace(self.cnc_params["obs_select_min"],self.cnc_params["obs_select_max"],self.cnc_params["n_obs_select"])
 
-        #Evaluate some useful quantities (to be passed potentially to scaling relations)
+        #Evaluate some useful quantities (to be potentially passed to scaling relations)
 
         self.D_A = self.cosmology.background_cosmology.angular_diameter_distance(self.redshift_vec).value
         self.E_z = self.cosmology.background_cosmology.H(self.redshift_vec).value/(self.cosmology.cosmo_params["h"]*100.)
@@ -194,6 +201,16 @@ class cluster_number_counts:
         self.time_hmf2 = 0.
         self.time_select = 0.
         self.time_mass_range = 0.
+        self.t_00 = 0.
+        self.t_11 = 0.
+        self.t_22 = 0.
+        self.t_33 = 0.
+        self.t_44 = 0.
+        self.t_55 = 0.
+        self.t_66 = 0.
+        self.t_77 = 0.
+        self.t_88 = 0.
+        self.t_99 = 0.
 
     #Computes the cluster abundance across selection observable and redshift
 
@@ -620,6 +637,9 @@ class cluster_number_counts:
 
                             for observable_set in observables_select:
 
+
+                                tt = time.time()
+
                                 x_obs = []
 
                                 for observable in observable_set:
@@ -632,6 +652,10 @@ class cluster_number_counts:
                                 observable_patches,layer=layers)
 
                                 n_obs = len(observable_set)
+
+                                tt1 = time.time()
+
+                                self.t_00 = self.t_00 + tt1-tt
 
                                 if len(layers) == 1:
 
@@ -658,6 +682,10 @@ class cluster_number_counts:
 
                                         x[i,:] = lnM
 
+
+                                    tt2 = time.time()
+                                    self.t_11 = self.t_11 + tt2 - tt1
+
                                     for i in layers[0:-1]:
 
                                         x1 = np.zeros((n_obs,len(lnM)))
@@ -671,6 +699,9 @@ class cluster_number_counts:
                                         x_list.append(x1)
                                         x_list_linear.append(x1_linear)
                                         x = x1
+
+                                    tt3 = time.time()
+                                    self.t_22 = self.t_22  + tt3 - tt2
 
                                     for i in np.flip(layers[0:-1]):
 
@@ -699,10 +730,15 @@ class cluster_number_counts:
                                                     dxwl = xx - x_obs_j[rInclude,None]
                                                     dxwl_std = std[rInclude,None]
 
-                                                    x1[j,:] = np.sqrt(np.sum((dxwl/dxwl_std)**2.,axis=0))
+                                                    x1[j,:] = np.sqrt(np.sum((dxwl/dxwl_std)**2,axis=0))
+
+                                            tt3 = time.time()
 
                                             x_mesh = get_mesh(x1)
                                             cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
+
+                                        tt4 = time.time()
+                                        self.t_33 = self.t_33  + tt4 - tt3
 
                                         x_p_m = np.zeros((n_obs,len(lnM)))
 
@@ -711,19 +747,42 @@ class cluster_number_counts:
                                             x_p_m[j,:] = x_p[j,:] - np.mean(x_p[j,:])
 
                                         x_p_mesh = get_mesh(x_p_m)
+
+                                        tt4b = time.time()
+
+                                        self.t_44 = self.t_44 + tt4b - tt4
+
                                         kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
+
+                                        tt5 = time.time()
+                                        self.t_55 = self.t_55  + tt5 - tt4b
 
                                         cpdf = apodise(cpdf)
                                         cpdf = convolve_nd(cpdf,kernel)
 
+                                        tt6 = time.time()
+                                        self.t_66 = self.t_66 + tt6 - tt5
+
                                         cpdf[np.where(cpdf < 0.)] = 0.
 
-                                        x_mesh_interp = get_mesh(x_list[lay])
-                                        shape = x_mesh.shape
-                                        x_mesh_interp = np.transpose(x_mesh_interp.reshape(*x_mesh.shape[:-2],-1))
+                                        if n_obs > 1:
 
-                                        cpdf = interpolate.RegularGridInterpolator(x_p,cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp)
-                                        cpdf = np.transpose(cpdf.reshape(shape[1:]))
+                                            x_mesh_interp = get_mesh(x_list[lay])
+                                            shape = x_mesh.shape
+                                            x_mesh_interp = np.transpose(x_mesh_interp.reshape(*x_mesh.shape[:-2],-1))
+
+                                            cpdf = interpolate.RegularGridInterpolator(x_p,cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp)
+                                            #cpdf = interpolate_nd(x_mesh_interp,x_p,cpdf,method="linear")
+
+                                            cpdf = np.transpose(cpdf.reshape(shape[1:]))
+
+                                        else:
+
+                                            cpdf = np.interp(x_list[lay][0,:],x_p[0,:],cpdf)
+
+                                        tt7 = time.time()
+
+                                        self.t_77 = self.t_77 + tt7 - tt6
 
                                         if lay == layers[0]:
 
@@ -737,6 +796,9 @@ class cluster_number_counts:
 
                                             cpdf = np.interp(x_list_linear[lay-1],x_list[lay-1],cpdf)
 
+                                        tt8 = time.time()
+                                        self.t_88 = self.t_88 + tt8 - tt7
+
                                 cpdf_product = cpdf_product*cpdf
 
                             patch_select = int(observable_patches[self.cnc_params["obs_select"]])
@@ -746,7 +808,11 @@ class cluster_number_counts:
                             return_dict["cpdf_" + str(cluster_index) + "_" + str(redshift_error_id)] = cpdf_product_with_hmf
                             return_dict["lnm_vec_" + str(cluster_index) + "_" + str(redshift_error_id)] = lnM0
 
+                            tt9 = time.time()
+
                             lik_cluster_vec[redshift_error_id] = integrate.simps(cpdf_product_with_hmf,lnM0)
+
+                            self.t_99 = self.t_99 + time.time() - tt9
 
                         elif self.cnc_params["data_lik_type"] == "direct_integral":
 
@@ -875,13 +941,24 @@ class cluster_number_counts:
 
             self.cpdf_dict = return_dict
 
-        #    print("")
-        #    print("")
-        #    print("")
-        #    print("Time hmf2",self.t_hmf2)
-        #    print("Time select",self.time_select)
-        #    print("Time mass range",self.time_mass_range)
-        #    print("Time back",self.time_back)
+            # print("")
+            # print("")
+            # print("")
+            # print("Time hmf2",self.time_hmf2)
+            # print("Time select",self.time_select)
+            # print("Time mass range",self.time_mass_range)
+            # print("Time back",self.time_back)
+            # print("T0",self.t_00)
+            # print("T1",self.t_11)
+            # print("T2",self.t_22)
+            # print("T3",self.t_33)
+            # print("T4",self.t_44)
+            # print("T5",self.t_55)
+            # print("T6",self.t_66)
+            # print("T7",self.t_77)
+            # print("T8",self.t_88)
+            # print("T9",self.t_99)
+            # print("T sum",self.t_00+self.t_11+self.t_22+self.t_33+self.t_44+self.t_55+self.t_66+self.t_77+self.t_88+self.t_99)
 
         return log_lik_data
 
@@ -1224,9 +1301,13 @@ class cluster_number_counts:
 
         print("Time",self.t_total)
 
+        print("log_lik",log_lik)
+
         if np.isnan(log_lik) == True:
 
             log_lik = -np.inf
+
+        self.log_lik = log_lik
 
         return log_lik
 
@@ -1319,10 +1400,10 @@ class cluster_number_counts:
 
                     redshift_vec_interp = np.linspace(self.cnc_params["bins_edges_z"][i],self.cnc_params["bins_edges_z"][i+1],10)
                     obs_select_vec_interp = np.linspace(self.cnc_params["bins_edges_obs_select"][j],self.cnc_params["bins_edges_obs_select"][j+1],100)
-
-                    abundance_matrix_interp = interpolate.RegularGridInterpolator((self.redshift_vec,self.obs_select_vec),self.abundance_matrix)
                     X,Y = np.meshgrid(redshift_vec_interp,obs_select_vec_interp)
-                    abundance_matrix_interp = abundance_matrix_interp((X,Y))
+
+                    abundance_matrix_interp = interpolate.RegularGridInterpolator((self.redshift_vec,self.obs_select_vec),self.abundance_matrix)((X,Y))
+                #    abundance_matrix_interp = interpolate_nd((X,Y),(self.redshift_vec,self.obs_select_vec),self.abundance_matrix,method="linear")
 
                     n_theory = integrate.simps(integrate.simps(abundance_matrix_interp,redshift_vec_interp),obs_select_vec_interp)
                     n_observed = self.catalogue.number_counts[i,j]
@@ -1336,6 +1417,7 @@ class cluster_number_counts:
 
             self.n_binned = np.zeros(len(self.cnc_params["bins_edges_obs_select"])-1)
             self.n_binned_obs = np.zeros(len(self.cnc_params["bins_edges_obs_select"])-1)
+            self.bins_centres = (self.cnc_params["bins_edges_obs_select"][1:] + self.cnc_params["bins_edges_obs_select"][0:-1])*0.5
 
             for i in range(0,len(self.cnc_params["bins_edges_obs_select"])-1):
 
@@ -1363,6 +1445,7 @@ class cluster_number_counts:
 
             self.n_binned = np.zeros(len(self.cnc_params["bins_edges_z"])-1)
             self.n_binned_obs = np.zeros(len(self.cnc_params["bins_edges_z"])-1)
+            self.bins_centres = (self.cnc_params["bins_edges_z"][1:] + self.cnc_params["bins_edges_z"][0:-1])*0.5
 
             for i in range(0,len(self.cnc_params["bins_edges_z"])-1):
 
@@ -1371,8 +1454,8 @@ class cluster_number_counts:
 
                 n_theory = integrate.simps(n_interp,redshift_vec_interp)
                 n_observed = np.sum(self.catalogue.number_counts[i,:])
-                self.n_z_binned_obs[i] = n_observed
-                self.n_z_binned[i] = n_theory
+                self.n_binned_obs[i] = n_observed
+                self.n_binned[i] = n_theory
 
                 log_lik = log_lik - n_theory + n_observed*np.log(n_theory)
 

@@ -20,7 +20,7 @@ class scaling_relations:
 
         observable = self.observable
 
-        if observable == "p_zc19_stacked":
+        if observable == "p_zc19_stacked" or observable == "p_so_sim_stacked":
 
             n_layers = 1
 
@@ -43,7 +43,7 @@ class scaling_relations:
 
             if self.cnc_params["catalogue_params"]["downsample"] == True and observable == "q_mmf3":
 
-                (self.sigma_matrix,self.skyfracs,original_tile_vec) = np.load("/home/iz221/planck_sz/test_downsample_tiles_noisebased_mmf3.npy",allow_pickle=True)
+                (self.sigma_matrix,self.skyfracs,original_tile_vec) = np.load(root_path + "data/test_downsample_tiles_noisebased_mmf3.npy",allow_pickle=True)
                 print("Total sky frac",np.sum(self.skyfracs))
 
             else:
@@ -76,6 +76,17 @@ class scaling_relations:
 
             self.sigma_theta_lens_vec = np.load(root_path + "data/sigma_theta_lens_vec.npy") #first index is patch index, from 0 to 417
             self.sigma_theta_lens_vec[:,0,:] = self.sigma_theta_lens_vec[:,0,:]*180.*60./np.pi #in arcmin
+
+        if observable == "p_so_sim" or observable == "p_so_sim_stacked":
+
+            self.sigma_theta_lens_vec = np.load(root_path + "data/sigma_theta_lens_vec.npy")
+
+            [theta_500_vec,sigma_lens_vec] = np.load(root_path + "data/so_sim_lensing_mf_noise.npy")
+            theta_500_vec = theta_500_vec*180.*60./np.pi #in arcmin
+
+            self.sigma_theta_lens_vec = np.zeros((1,2,len(theta_500_vec))) #first index is patch index, just 0
+            self.sigma_theta_lens_vec[0,0,:] = theta_500_vec
+            self.sigma_theta_lens_vec[0,1,:] = sigma_lens_vec
 
         if observable == "q_szifi":
 
@@ -124,6 +135,16 @@ class scaling_relations:
             self.theta_500_vec = np.exp(np.linspace(np.log(0.5),np.log(15.),15))
 
             self.pdf_false_detection = np.load("/rds-d4/user/iz221/hpc-work/catalogues_def/planck_hpc/false_detections_abundance_szifi.npy",allow_pickle=True)[()][dep_type]
+
+        if observable == "q_so_sim":
+
+            theta_500_vec,sigma_sz_vec = np.load("/home/iz221/cnc/data/so_sim_sz_mf_noise.npy")
+
+            self.sigma_matrix = np.zeros((1,len(sigma_sz_vec)))
+            self.sigma_matrix[0,:] = sigma_sz_vec
+            self.theta_500_vec = theta_500_vec*180.*60./np.pi
+            self.skyfracs = [0.4] #from SO goals and forecasts paper
+
 
         # SPT case:
         if observable == 'xi':
@@ -179,7 +200,7 @@ class scaling_relations:
             self.prefactor_Y_500 = (self.params["bias_sz"]/6.)**self.params["alpha"]*(H0/70.)**(-2.+self.params["alpha"])*10.**self.params["log10_Y_star"]*E_z**self.params["beta"]*0.00472724*(D_A/500.)**(-2.)
             self.prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
 
-        if observable == "p_zc19" or observable== "p_zc19_stacked":
+        if observable == "p_zc19" or observable== "p_zc19_stacked" or observable == "p_so_sim" or observable == "p_so_sim_stacked":
 
             H0 = other_params["H0"]
             E_z = other_params["E_z"]
@@ -200,7 +221,7 @@ class scaling_relations:
             self.prefactor_lens = factor*convergence
             self.prefactor_M_500_to_theta_lensing = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_cmblens"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
 
-        if observable == "q_szifi":
+        if observable == "q_szifi" or observable == "q_so_sim":
 
             E_z = other_params["E_z"]
             H0 = other_params["H0"]
@@ -239,8 +260,17 @@ class scaling_relations:
                                     'wa':0,
                                     # "Ob0":
                                     }
-            self.spt_ln1pzs_masscal,self.spt_lndas_hmpc_masscal = np.loadtxt(root_path +  'data/spt/spt_cosmoref2_ln1pz_lndahmpc.txt',
-                                                                             unpack=True)
+            self.spt_ln1pzs_masscal,self.spt_lndas_hmpc_masscal = np.loadtxt(root_path +'data/spt/spt_cosmoref2_ln1pz_lndahmpc.txt',unpack=True)
+
+            dA = other_params['D_A'] # in Mpc
+            # dAref = cosmo.dA(self.catalog['redshift'][dataID], cosmologyRef)/cosmologyRef['h']
+            zcluster = other_params['zc']
+            dAref = np.exp(np.interp(np.log(1.+zcluster),
+                                     self.spt_ln1pzs_masscal,
+                                     self.spt_lndas_hmpc_masscal))/self.spt_cosmoRef_masscal['h']
+            # # R500 [kpc]
+            rho_c_hunits = other_params['rho_c']/h**2
+            self.prefactor_r500ref = 1000.*(3./(4.*np.pi*500.*rho_c_hunits))**(1./3.)/h*dAref/dA
 
         if observable == 'WLMegacam':
 
@@ -314,7 +344,7 @@ class scaling_relations:
 
                 x1 = np.exp(x0)
 
-        if observable == "p_zc19":
+        if observable == "p_zc19" or observable == "p_so_sim":
 
             if layer == 0:
 
@@ -328,7 +358,7 @@ class scaling_relations:
 
                 x1 = np.exp(x0)
 
-        if observable == "p_zc19_stacked":
+        if observable == "p_zc19_stacked" or observable == "p_so_sim_stacked":
 
             if layer == 0:
 
@@ -339,7 +369,7 @@ class scaling_relations:
                 x1 = (M_500*0.1*self.params["bias_cmblens"])**(1./3.)*self.prefactor_lens/sigma*self.params["a_lens"] #with change from 1e14 to 1e15 units
 
 
-        if observable == "q_szifi":
+        if observable == "q_szifi" or observable == "q_so_sim":
 
             if layer == 0:
 
@@ -361,7 +391,6 @@ class scaling_relations:
             if layer == 0:
 
                 h = other_params["H0"]/100.
-
                 M_500 = np.exp(x0)*h*1e14 #### Msun/h
 
                 xi = self.prefactor_xi*(M_500/self.params['SZmPivot'])**self.params["B_sz"]
@@ -379,42 +408,19 @@ class scaling_relations:
             if layer == 0:
 
                 h = other_params["H0"]/100.
-                #x0 is ln M_500
                 M_500 = np.exp(x0)*h*1e14 #### Msun/h
                 x1 = self.prefactor_Yx*(M_500/1e14)**(1/self.params['B_x'])
-
-                # here we implement aq. 19 of Bocquet et al.
-                # # Angular diameter distances in current and reference cosmology [Mpc]
-                # dA = cosmo.dA(self.catalog['redshift'][dataID], self.cosmology)/self.cosmology['h']
-                dA = other_params['D_A'] # in Mpc
-                # dAref = cosmo.dA(self.catalog['redshift'][dataID], cosmologyRef)/cosmologyRef['h']
-                zcluster = other_params['zc']
-                dAref = np.exp(np.interp(np.log(1.+zcluster),
-                                         self.spt_ln1pzs_masscal,
-                                         self.spt_lndas_hmpc_masscal))/self.spt_cosmoRef_masscal['h']
-                # # R500 [kpc]
-                # rho_c_z = cosmo.RHOCRIT * cosmo.Ez(self.catalog['redshift'][dataID], self.cosmology)**2
-                rho_c_hunits = other_params['rho_c']/h**2
-
-                # exit(0)
-                # r500 = 1000 * (3*M_obsArr/(4*np.pi*500*rho_c_z))**(1/3) / self.cosmology['h']
-                r500 = 1000 * (3*M_500/(4*np.pi*500*rho_c_hunits))**(1/3) / h
-                # # r500 in reference cosmology [kpc]
-                r500ref = r500 * dAref/dA
+                r500ref = self.prefactor_r500ref*M_500**(1./3.)
 
                 # # Xray observable at fiducial r500...
                 # obsArr*= (self.catalog['r500'][dataID]/r500ref)**self.scaling['dlnMg_dlnr']
                 rcorr = (self.catalogue.catalogue['r500'][patch_index]/r500ref)**self.params['dlnMg_dlnr']
 
-                # exit(0)
-                x1 *= rcorr
+                x1 = x1*rcorr
                 # # ... corrected to reference cosmology
                 # obsArr*= (dAref/dA)**2.5
-                # exit(0)
 
-
-                x1 = np.log(x1) ## scaling relation
-
+                x1 = np.log(x1)
 
             elif layer == 1:
                 # x0 is lnYx(M)
@@ -429,8 +435,8 @@ class scaling_relations:
                 x1 = M_500*self.params['bWL_Megacam'] # eq. 3 in 1812.01679 (Bocquet et al)
                 x1 = np.log(x1)
 
-
             elif layer == 1:
+
                 # x0 is lnMwl
 
                 x1 = np.exp(x0)*1e14
@@ -452,7 +458,6 @@ class scaling_relations:
                 self.rs = r200c/c200c
 
                 Sigma_c = 1.6624541593797974e+18/Dl/self.beta_avg
-
 
                 ##### dimensionless radial distance [Radius][Mass]
                 self.x_2d = self.catalogue.catalogue['WLdata'][patch_index]['r_deg'][:,None] * Dl * np.pi/180. / self.rs[None,:]
@@ -589,7 +594,7 @@ class scaling_relations:
                     exp = np.exp(2.*x0)
                     dx1_dx0 = exp/np.sqrt(exp+dof)
 
-            if observable == "q_szifi":
+            if observable == "q_szifi" or observable == "q_so_sim":
 
                 if layer == 0:
 
@@ -614,7 +619,7 @@ class scaling_relations:
 
                     dx1_dx0 = np.exp(x0)
 
-            if observable == "p_zc19":
+            if observable == "p_zc19" or observable == "p_so_sim":
 
                 if layer == 0:
 
@@ -643,7 +648,7 @@ class scaling_relations:
 
     def get_mean(self,x0,patch_index=0,scatter=None,compute_var=False):
 
-        if self.observable == "p_zc19":
+        if self.observable == "p_zc19" or self.observable == "p_so_sim":
 
             M_500 = np.exp(x0)
             self.theta_500_lensing = self.prefactor_M_500_to_theta_lensing*M_500**(1./3.)
@@ -668,7 +673,7 @@ class scaling_relations:
 
     def get_cutoff(self,layer=0):
 
-        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi":
+        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi" or self.observable == "xi" or self.observable == "q_so_sim":
 
             if layer == 0:
 
@@ -768,7 +773,6 @@ class covariance_matrix:
                     patch2=observable_patches[observables[j]],layer=self.layer[k])
 
             self.cov.append(cov_matrix)
-            self.inv_cov.append(np.linalg.inv(cov_matrix))
 
 class scatter:
 
@@ -809,6 +813,14 @@ class scatter:
 
                 cov = self.params["sigma_lnp"]**2
 
+            elif observable1 == "p_so_sim" and observable2 == "p_so_sim":
+
+                cov = self.params["sigma_lnp"]**2
+
+            elif observable1 == "p_so_sim" and observable2 == "q_so_sim":
+
+                cov =  self.params["corr_lnq_lnp"]*self.params["sigma_lnq_szifi"]*self.params["sigma_lnp"]
+
             elif (observable1 == "q_mmf3" and observable2 == "p_zc19") or (observable1 == "p_zc19" and observable2 == "q_mmf3"):
 
                 cov = self.params["corr_lnq_lnp"]*self.params["sigma_lnp"]*self.params["sigma_lnq"]
@@ -821,6 +833,9 @@ class scatter:
 
                 cov = self.params["sigma_lnq_szifi"]**2
 
+            elif (observable1 == "q_so_sim" and observable2 == "q_so_sim"):
+
+                cov = self.params["sigma_lnq_szifi"]**2
 
             elif (observable1 == "xi" and observable2 == "Yx") or (observable2 == "xi" and observable1 == "Yx"):
 
@@ -879,7 +894,15 @@ class scatter:
 
                 cov = 1.
 
+            elif observable1 == "p_so_sim" and observable2 == "p_so_sim":
+
+                cov = 1.
+
             elif (observable1 == "q_szifi" and observable2 == "q_szifi"):
+
+                cov = 1.
+
+            elif (observable1 == "q_so_sim" and observable2 == "q_so_sim"):
 
                 cov = 1.
 
