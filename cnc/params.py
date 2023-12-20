@@ -9,7 +9,7 @@ cnc_params_default = {
     #Number of cores
 
     "number_cores_hmf": 1,
-    "number_cores_abundance": 8,
+    "number_cores_abundance": 1,
     "number_cores_data": 8,
     "number_cores_stacked":8,
 
@@ -43,6 +43,7 @@ cnc_params_default = {
     "compute_abundance_matrix":False, #only true if the abundance matrix is needed
     "catalogue_params":{"downsample":True},
     "apply_obs_cutoff":False,
+    "get_masses":False,
 
     #Range of abundance observables
 
@@ -119,13 +120,13 @@ scaling_relation_params_default = {
 "a_lens":1.,
 "f_false_detection":0.0, #N_F / (N_F + N_T) fraction of false detections to total detections
 "f_true_validated":1.,#fraction of true clusters which have been validated
-"q_cutoff":2.,
+"q_cutoff":0.,
 
 #SZiFi Planck
 
 "alpha_szifi":1.12333,
 "A_szifi": -4.3054, #Arnaud values, respectively
-"sigma_lnq_szifi":0.173,
+"sigma_lnq_szifi": 0.173,
 
 #SPT
 # spt style lkl:
@@ -165,7 +166,10 @@ cosmo_params_default = {
 "n_s":0.96,
 "m_nu":0.06, #m_nu is sum of the three neutrino masses
 "sigma_8":0.811, #if amplitude_paramter == "A_s", this is overriden; the amplitude is taken by the value given to "A_s" in this dictionary
-"tau_reio": 0.0544
+"tau_reio": 0.0544,
+
+"k_cutoff": 1e8,
+"ps_cutoff": 1,
 }
 
 

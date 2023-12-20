@@ -27,17 +27,24 @@ class cosmology_model:
 
             self.classy = Class()
 
+            if self.amplitude_parameter == "sigma_8":
+
+                self.classy.set({"sigma8": self.cosmo_params["sigma_8"]})
+
+            elif self.amplitude_parameter == "sigma_8":
+
+                self.classy.set({"ln10^{10}A_s": np.log(self.cosmo_params["A_s"]*1e10)})
+
             self.classy.set({
                            'H0': self.cosmo_params["h"]*100.,
                            'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
                            'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2,
-                           'ln10^{10}A_s':np.log(self.cosmo_params["A_s"]*1e10),
                            'tau_reio':  self.cosmo_params["tau_reio"],
                            'n_s': self.cosmo_params["n_s"],
 
                            'N_ncdm' : 1,
                            'N_ur' : 2.0328,
-                           'm_ncdm' : 0.06,
+                           'm_ncdm' : self.cosmo_params["m_nu"],
                            'T_ncdm' : 0.71611,
 
                           'output': 'mPk',
@@ -94,6 +101,8 @@ class cosmology_model:
                                                   ln10A_s=np.log(self.cosmo_params["A_s"]*1e10),
                                                   n_s=self.cosmo_params["n_s"])
 
+                self.power_spectrum.cosmo_params = self.cosmo_params
+
                 if self.amplitude_parameter == "sigma_8":
 
                     self.sigma_8 = self.cosmo_params["sigma_8"]
@@ -119,13 +128,12 @@ class cosmology_model:
                            'H0': self.cosmo_params["h"]*100.,
                            'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
                            'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2,
-                           # 'ln10^{10}A_s':np.log(self.cosmo_params["A_s"]*1e10),
                            'tau_reio':  self.cosmo_params["tau_reio"],
                            'n_s': self.cosmo_params["n_s"],
 
                            'N_ncdm' : 1,
                            'N_ur' : 2.0328,
-                           'm_ncdm' : 0.06,
+                           'm_ncdm' : self.cosmo_params["m_nu"],
                            'T_ncdm' : 0.71611,
 
                           'output': 'mPk',
@@ -169,7 +177,7 @@ class cosmology_model:
             self.background_cosmology.H0.value = self.classy.h()*100.
             self.get_m500c_to_m200c_at_z_and_M = np.vectorize(self.classy.get_m500c_to_m200c_at_z_and_M)
             self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
-            
+
         if cosmology_tool == "astropy":
 
             self.background_cosmology = self.cosmology_tool.FlatLambdaCDM(self.cosmo_params["h"]*100.,

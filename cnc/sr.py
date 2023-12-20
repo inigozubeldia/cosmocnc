@@ -2,10 +2,13 @@ import numpy as np
 import pylab as pl
 import scipy.integrate as integrate
 import scipy.special as special
+import scipy.interpolate as interpolate
+import scipy.optimize as optimize
 import cmath as sm
 from .hmf import *
 from .params import *
 from .config import *
+from .utils import *
 
 class scaling_relations:
 
@@ -34,6 +37,10 @@ class scaling_relations:
 
         observable = self.observable
         self.const = constants()
+
+        if observable == "ln_M":
+
+            self.skyfracs = [0.4]
 
         if observable == "q_mmf3" or observable == "q_mmf3_mean":
 
@@ -77,9 +84,7 @@ class scaling_relations:
             self.sigma_theta_lens_vec = np.load(root_path + "data/sigma_theta_lens_vec.npy") #first index is patch index, from 0 to 417
             self.sigma_theta_lens_vec[:,0,:] = self.sigma_theta_lens_vec[:,0,:]*180.*60./np.pi #in arcmin
 
-        if observable == "p_so_sim" or observable == "p_so_sim_stacked":
-
-            self.sigma_theta_lens_vec = np.load(root_path + "data/sigma_theta_lens_vec.npy")
+        if observable == "p_so_sim_original" or observable == "p_so_sim_stacked":
 
             [theta_500_vec,sigma_lens_vec] = np.load(root_path + "data/so_sim_lensing_mf_noise.npy")
             theta_500_vec = theta_500_vec*180.*60./np.pi #in arcmin
@@ -87,6 +92,17 @@ class scaling_relations:
             self.sigma_theta_lens_vec = np.zeros((1,2,len(theta_500_vec))) #first index is patch index, just 0
             self.sigma_theta_lens_vec[0,0,:] = theta_500_vec
             self.sigma_theta_lens_vec[0,1,:] = sigma_lens_vec
+
+        if observable == "p_so_sim":
+
+            [theta_500_vec,sigma_lens_vec] = np.load(root_path + "data/so_sim_lensing_mf_noise.npy")
+            theta_500_vec = theta_500_vec*180.*60./np.pi #in arcmin
+
+            x = np.log(theta_500_vec)
+            y = np.log(sigma_lens_vec)
+            self.sigma_lens_poly = np.polyfit(x,y,deg=3)
+
+            sigma_sz_vec_eval = np.exp(np.polyval(self.sigma_lens_poly,x))
 
         if observable == "q_szifi":
 
@@ -140,11 +156,14 @@ class scaling_relations:
 
             theta_500_vec,sigma_sz_vec = np.load("/home/iz221/cnc/data/so_sim_sz_mf_noise.npy")
 
-            self.sigma_matrix = np.zeros((1,len(sigma_sz_vec)))
-            self.sigma_matrix[0,:] = sigma_sz_vec
             self.theta_500_vec = theta_500_vec*180.*60./np.pi
-            self.skyfracs = [0.4] #from SO goals and forecasts paper
 
+            x = np.log(self.theta_500_vec)
+            y = np.log(sigma_sz_vec)
+            self.sigma_sz_poly = np.polyfit(x,y,deg=3)
+            self.sigma_sz_polyder = np.polyder(self.sigma_sz_poly)
+
+            self.skyfracs = [0.4] #from SO goals and forecasts paper
 
         # SPT case:
         if observable == 'xi':
@@ -211,7 +230,7 @@ class scaling_relations:
             gamma = self.const.gamma
 
             c = 3.
-            r_s = (3./4./rho_c/500./np.pi/c**3*10.**15)**(1./3.)
+            r_s = (3./4./rho_c/500./np.pi/c**3*1e15)**(1./3.)
             rho_0 = rho_c*500./3.*c**3/(np.log(1.+c)-c/(1.+c))
             Sigma_c = 1./(4.*np.pi*D_A*D_l_CMB*gamma)*D_CMB
             R = 5.*c
@@ -221,7 +240,7 @@ class scaling_relations:
             self.prefactor_lens = factor*convergence
             self.prefactor_M_500_to_theta_lensing = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_cmblens"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
 
-        if observable == "q_szifi" or observable == "q_so_sim":
+        if observable == "q_szifi":
 
             E_z = other_params["E_z"]
             H0 = other_params["H0"]
@@ -230,12 +249,18 @@ class scaling_relations:
 
             A_szifi = self.params["A_szifi"]
 
-        #    print("A1",A_szifi)
-
-        #    A_szifi = np.log10(10.**self.params["log10_Y_star"]*np.sqrt(h70)/2**self.params["alpha"]*0.000147507321605513)
-        #    print("A2",A_szifi)
-
             self.prefactor_y0 = 10.**(A_szifi)*E_z**2*(self.params["bias_sz"]/3.*h70)**self.params["alpha_szifi"]/np.sqrt(h70)
+            self.prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
+
+        elif observable == "q_so_sim":
+
+            E_z = other_params["E_z"]
+            h70 = other_params["H0"]/70.
+            H0 = other_params["H0"]
+            D_A = other_params["D_A"]
+
+            A_szifi = self.params["A_szifi"]
+            self.prefactor_logy0 = np.log(10.**(A_szifi)*E_z**2*(self.params["bias_sz"]/3.*h70)**self.params["alpha_szifi"]/np.sqrt(h70))
             self.prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
 
         if observable == 'xi':
@@ -303,6 +328,10 @@ class scaling_relations:
 
         observable = self.observable
 
+        if observable == "ln_M":
+
+            x1 = x0
+
         if observable == "q_mmf3" or observable == "q_mmf3_mean":
 
             if layer == 0:
@@ -344,7 +373,7 @@ class scaling_relations:
 
                 x1 = np.exp(x0)
 
-        if observable == "p_zc19" or observable == "p_so_sim":
+        if observable == "p_zc19":
 
             if layer == 0:
 
@@ -358,7 +387,20 @@ class scaling_relations:
 
                 x1 = np.exp(x0)
 
-        if observable == "p_zc19_stacked" or observable == "p_so_sim_stacked":
+        if observable == "p_so_sim":
+
+            if layer == 0:
+
+                log_theta_500_lensing = np.log(self.prefactor_M_500_to_theta_lensing) + x0/3.
+                log_sigma = np.polyval(self.sigma_lens_poly,log_theta_500_lensing)
+
+                x1 = np.log(self.prefactor_lens*self.params["a_lens"]*(0.1*self.params["bias_cmblens"])**(1./3.)) + x0/3. - log_sigma
+
+            elif layer == 1:
+
+                x1 = np.exp(x0)
+
+        if observable == "p_zc19_stacked":
 
             if layer == 0:
 
@@ -368,8 +410,17 @@ class scaling_relations:
                 sigma = np.interp(self.theta_500_lensing,self.sigma_theta_lens_vec[patch_index,0,:],self.sigma_theta_lens_vec[patch_index,1,:])
                 x1 = (M_500*0.1*self.params["bias_cmblens"])**(1./3.)*self.prefactor_lens/sigma*self.params["a_lens"] #with change from 1e14 to 1e15 units
 
+        if observable == "p_so_sim_stacked":
 
-        if observable == "q_szifi" or observable == "q_so_sim":
+            if layer == 0:
+
+                log_theta_500_lensing = np.log(self.prefactor_M_500_to_theta_lensing) + x0/3.
+                log_sigma = np.polyval(self.sigma_lens_poly,log_theta_500_lensing)
+
+                x1 = np.log(self.prefactor_lens*self.params["a_lens"]*(0.1*self.params["bias_cmblens"])**(1./3.)) + x0/3. - log_sigma
+
+
+        if observable == "q_szifi":
 
             if layer == 0:
 
@@ -385,6 +436,21 @@ class scaling_relations:
             if layer == 1:
 
                 x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
+
+        if observable == "q_so_sim":
+
+            if layer == 0:
+
+                log_y0 = x0*self.params["alpha_szifi"] + self.prefactor_logy0
+                log_theta_500 = np.log(self.prefactor_M_500_to_theta) + x0/3.
+                self.log_theta_500 = log_theta_500
+                log_sigma_sz = np.polyval(self.sigma_sz_poly,log_theta_500)
+                x1 = log_y0 - log_sigma_sz
+
+            if layer == 1:
+
+                x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
+
 
         if observable == 'xi':
 
@@ -576,6 +642,10 @@ class scaling_relations:
 
         if scalrel_type_deriv == "analytical":
 
+            if observable == "ln_M":
+
+                dx1_dx0 = 1.
+
             if observable == "q_mmf3" or observable == "q_mmf3_mean":
 
                 if layer == 0:
@@ -594,7 +664,7 @@ class scaling_relations:
                     exp = np.exp(2.*x0)
                     dx1_dx0 = exp/np.sqrt(exp+dof)
 
-            if observable == "q_szifi" or observable == "q_so_sim":
+            if observable == "q_szifi":
 
                 if layer == 0:
 
@@ -609,6 +679,19 @@ class scaling_relations:
                     exp = np.exp(2.*x0)
                     dx1_dx0 = exp/np.sqrt(exp+dof)
 
+            if observable == "q_so_sim":
+
+                if layer == 0:
+
+                    dx1_dx0 = self.params["alpha_szifi"] - np.polyval(self.sigma_sz_polyder,self.log_theta_500)/3.
+
+                if layer == 1:
+
+                    dof = self.params["dof"]
+                    exp = np.exp(2.*x0)
+                    dx1_dx0 = exp/np.sqrt(exp+dof)
+
+
             if observable == "m_lens":
 
                 if layer == 0:
@@ -619,7 +702,7 @@ class scaling_relations:
 
                     dx1_dx0 = np.exp(x0)
 
-            if observable == "p_zc19" or observable == "p_so_sim":
+            if observable == "p_zc19":
 
                 if layer == 0:
 
@@ -632,6 +715,7 @@ class scaling_relations:
                 elif layer == 1:
 
                     dx1_dx0 = np.exp(x0)
+
 
         elif scalrel_type_deriv == "numerical": #must always be computed strictly after executing self.eval_scaling_relation()
 
@@ -646,9 +730,167 @@ class scaling_relations:
 
         return dx1_dx0
 
+    def eval_scaling_relation_no_precompute(self,x0,layer=0,patch_index=0,other_params=None,params=None):
+
+        self.params = params
+        self.other_params = other_params
+        observable = self.observable
+
+        if observable == "ln_M":
+
+            x1 = x0
+
+        if observable == "q_mmf3" or observable == "q_mmf3_mean":
+
+            if layer == 0:
+
+                H0 = other_params["H0"]
+                E_z = other_params["E_z"]
+                D_A = other_params["D_A"]
+
+                prefactor_Y_500 = (self.params["bias_sz"]/6.)**self.params["alpha"]*(H0/70.)**(-2.+self.params["alpha"])*10.**self.params["log10_Y_star"]*E_z**self.params["beta"]*0.00472724*(D_A/500.)**(-2.)
+                prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
+
+                M_500 = np.exp(x0)
+                Y_500 = prefactor_Y_500*M_500**self.params["alpha"]
+                theta_500 = prefactor_M_500_to_theta*M_500**(1./3.)
+
+                sigma_vec = self.sigma_matrix[:,patch_index]
+                sigma = interpolate_deep(theta_500,self.theta_500_vec,np.transpose(sigma_vec))
+
+                x1 = np.log(Y_500/sigma)
+
+            elif layer == 1:
+
+                x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
+
+        if observable == "q_szifi":
+
+            if layer == 0:
+
+                E_z = other_params["E_z"]
+                H0 = other_params["H0"]
+                h70 = H0/70.
+                D_A = other_params["D_A"]
+
+                A_szifi = self.params["A_szifi"]
+
+                prefactor_y0 = 10.**(A_szifi)*E_z**2*(self.params["bias_sz"]/3.*h70)**self.params["alpha_szifi"]/np.sqrt(h70)
+                prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
+
+                M_500 = np.exp(x0)
+                y0 = prefactor_y0*M_500**self.params["alpha_szifi"]
+                theta_500 = prefactor_M_500_to_theta*M_500**(1./3.)
+
+                sigma_vec = self.sigma_matrix[patch_index,:]
+                sigma = interpolate_deep(theta_500,self.theta_500_vec,sigma_vec)
+
+                print("bias_sz",self.params["bias_sz"])
+
+                x1 = np.log(y0/sigma)
+
+            elif layer == 1:
+
+                x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
+
+        if observable == "q_so_sim":
+
+            if layer == 0:
+
+                E_z = other_params["E_z"]
+                H0 = other_params["H0"]
+                h70 = H0/70.
+                D_A = other_params["D_A"]
+                A_szifi = self.params["A_szifi"]
+
+                prefactor_logy0 = np.log(10.**(A_szifi)*E_z**2*(self.params["bias_sz"]/3.*h70)**self.params["alpha_szifi"]/np.sqrt(h70))
+                log_y0 = prefactor_logy0 + x0*self.params["alpha_szifi"]
+
+                prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
+
+                log_theta_500 = np.log(prefactor_M_500_to_theta) + x0/3.
+                log_sigma_sz = np.polyval(self.sigma_sz_poly,log_theta_500)
+                x1 = log_y0 - log_sigma_sz
+
+            elif layer == 1:
+
+                x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
+
+        if observable == "p_zc19" or observable== "p_zc19_stacked":
+
+            if layer == 0:
+
+                H0 = other_params["H0"]
+                E_z = other_params["E_z"]
+                D_A = other_params["D_A"]
+                D_CMB = other_params["D_CMB"]
+                D_l_CMB = other_params["D_l_CMB"]
+                rho_c = other_params["rho_c"] # cosmology.critical_density(z_obs).value*1000.*mpc**3/solar
+                gamma = self.const.gamma
+
+                c = 3.
+                r_s = (3./4./rho_c/500./np.pi/c**3*1e15)**(1./3.)
+                rho_0 = rho_c*500./3.*c**3/(np.log(1.+c)-c/(1.+c))
+                Sigma_c = 1./(4.*np.pi*D_A*D_l_CMB*gamma)*D_CMB
+                R = 5.*c
+                factor = r_s*rho_0/Sigma_c
+                convergence = 2.*(2.-3.*R+R**3)/(3.*(-1.+R**2)**(3./2.))
+
+                prefactor_lens = factor*convergence
+                prefactor_M_500_to_theta_lensing = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_cmblens"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
+
+                M_500 = np.exp(x0)
+                theta_500_lensing = prefactor_M_500_to_theta_lensing*M_500**(1./3.)
+
+                sigma_vec = self.sigma_theta_lens_vec[patch_index,1,:]
+                theta_vec = self.sigma_theta_lens_vec[patch_index,0,:]
+                sigma = interpolate_deep(theta_500_lensing,theta_vec[0,:],sigma_vec)
+
+                x1 = np.log((M_500*0.1*self.params["bias_cmblens"])**(1./3.)*prefactor_lens/sigma*self.params["a_lens"]) #with change from 1e14 to 1e15 units
+
+            elif layer == 1:
+
+                x1 = np.exp(x0)
+
+        if observable == "p_so_sim" or observable == "p_so_sim_stacked":
+
+            if layer == 0:
+
+                H0 = other_params["H0"]
+                E_z = other_params["E_z"]
+                D_A = other_params["D_A"]
+                D_CMB = other_params["D_CMB"]
+                D_l_CMB = other_params["D_l_CMB"]
+                rho_c = other_params["rho_c"] # cosmology.critical_density(z_obs).value*1000.*mpc**3/solar
+                gamma = self.const.gamma
+
+                c = 3.
+                r_s = (3./4./rho_c/500./np.pi/c**3*1e15)**(1./3.)
+                rho_0 = rho_c*500./3.*c**3/(np.log(1.+c)-c/(1.+c))
+                Sigma_c = 1./(4.*np.pi*D_A*D_l_CMB*gamma)*D_CMB
+                R = 5.*c
+                factor = r_s*rho_0/Sigma_c
+                convergence = 2.*(2.-3.*R+R**3)/(3.*(-1.+R**2)**(3./2.))
+
+                prefactor_lens = factor*convergence
+                prefactor_M_500_to_theta_lensing = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_cmblens"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
+
+
+                log_theta_500_lensing = np.log(prefactor_M_500_to_theta_lensing) + x0/3.
+                log_sigma = np.polyval(self.sigma_lens_poly,log_theta_500_lensing)
+
+                x1 = np.log(prefactor_lens*self.params["a_lens"]*(0.1*self.params["bias_cmblens"])**(1./3.)) + x0/3. - log_sigma
+
+            elif layer == 1:
+
+                x1 = np.exp(x0)
+
+        return x1
+
+
     def get_mean(self,x0,patch_index=0,scatter=None,compute_var=False):
 
-        if self.observable == "p_zc19" or self.observable == "p_so_sim":
+        if self.observable == "p_zc19":
 
             M_500 = np.exp(x0)
             self.theta_500_lensing = self.prefactor_M_500_to_theta_lensing*M_500**(1./3.)
@@ -656,6 +898,25 @@ class scaling_relations:
             sigma = np.interp(self.theta_500_lensing,self.sigma_theta_lens_vec[patch_index,0,:],self.sigma_theta_lens_vec[patch_index,1,:])
             lnp_mean = np.log((M_500*0.1*self.params["bias_cmblens"])**(1./3.)*self.prefactor_lens/sigma*self.params["a_lens"]) #with change from 1e14 to 1e15 units
 
+            sigma_intrinsic = np.sqrt(scatter.get_cov(observable1=self.observable,
+                                                         observable2=self.observable,
+                                                         layer=0,patch1=patch_index,patch2=patch_index))
+
+            mean = np.exp(lnp_mean + sigma_intrinsic**2*0.5)
+            ret = mean
+
+            if compute_var == True:
+
+                var_intrinsic = (np.exp(sigma_intrinsic**2)-1.)*np.exp(2.*lnp_mean+sigma_intrinsic**2)
+                var_total = var_intrinsic + 1.
+                ret = [mean,var_total]
+
+        elif self.observable == "p_so_sim":
+
+            log_theta_500_lensing = np.log(self.prefactor_M_500_to_theta_lensing) + x0/3.
+            log_sigma = np.polyval(self.sigma_lens_poly,log_theta_500_lensing)
+
+            lnp_mean = np.log(self.prefactor_lens*self.params["a_lens"]*(0.1*self.params["bias_cmblens"])**(1./3.)) + x0/3. - log_sigma
             sigma_intrinsic = np.sqrt(scatter.get_cov(observable1=self.observable,
                                                          observable2=self.observable,
                                                          layer=0,patch1=patch_index,patch2=patch_index))

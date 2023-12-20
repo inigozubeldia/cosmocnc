@@ -7,13 +7,14 @@ import math
 import time
 import sys
 import pylab as pl
+#import numba
 #from .fast_interp import *
 
 def convolve_1d(x,dn_dx,sigma_scatter,type="fft"):
 
     if sigma_scatter > 0.:
 
-        kernel = gaussian_1d(x-np.mean(x),sigma_scatter)
+        kernel = gaussian_1d(x-np.mean(x)+(x[1]-x[0])*0.5,sigma_scatter)
         dn_dx = signal.convolve(dn_dx,kernel,mode="same",method=type)/np.sum(kernel)
 
     return dn_dx
@@ -294,3 +295,14 @@ def interpolate_nd(r_interp,r_in,f_in,method="linear"):
         cpdf = interp2d([x_in[0],y_in[0]],[x_in[-1],y_in[-1]],[dx,dy],f_in,k=1,p=[False,False],e=[0,0])(x_interp,y_interp)
 
     return cpdf
+
+#@numba.njit
+def interpolate_deep(x_interp,x,f):
+
+    ret = np.empty(len(x_interp))
+
+    for i in range(0,len(x_interp)):
+
+        ret[i] = np.interp(x_interp[i],x,f[i,:])
+
+    return ret

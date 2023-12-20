@@ -279,7 +279,7 @@ class cluster_catalogue:
 
         elif self.catalogue_name[0:7] == "SO_sim_":
 
-            catalogue = np.load(root_path + "data/catalogues_sim/catalogue_so_simulated_" + str(self.catalogue_name[7:]) + ".npy",allow_pickle=True)[0]
+            catalogue = np.load(root_path + "data/catalogues_sim/catalogue_so_simulated_" + str(self.catalogue_name[7:]) + "_simple.npy",allow_pickle=True)[0]
 
             self.catalogue = {}
             self.catalogue["q_so_sim"] = catalogue["q_so_sim"]
@@ -287,12 +287,38 @@ class cluster_catalogue:
             self.catalogue["z_std"] = np.zeros(len(self.catalogue["z"]))
             self.catalogue["p_so_sim"] = catalogue["p_so_sim"]
 
-            print("n tot obs",len(catalogue["q_so_sim"]),np.sqrt(len(catalogue["q_so_sim"])))
-
             self.catalogue_patch = {}
             self.catalogue_patch["q_so_sim"] = catalogue["q_so_sim_patch"]
             self.catalogue_patch["p_so_sim"] = catalogue["p_so_sim_patch"]
-            #catalogue = np.load(root_path + "data/catalogues_sim/catalogue_" + self.catalogue_name + ".py",allow_pickle=True)[0]
+
+            self.M = catalogue["M"]
+
+            #Stacked CMB lensing
+
+            self.stacked_data_labels = ["p_so_sim_stacked"]
+
+            self.catalogue_patch["p_so_sim_stacked"] = np.zeros(len(self.catalogue["p_so_sim"])) #if one wants to use p with just one layer
+            self.stacked_data = {"p_so_sim_stacked":{}}
+
+            self.stacked_data["p_so_sim_stacked"]["data_vec"] = np.mean(self.catalogue["p_so_sim"])
+            self.stacked_data["p_so_sim_stacked"]["inv_cov"] = float(len(self.catalogue["p_so_sim"]))
+            self.stacked_data["p_so_sim_stacked"]["cluster_index"] = np.arange(len(self.catalogue["z"]))
+            self.stacked_data["p_so_sim_stacked"]["observable"] = "p_so_sim"
+
+
+        elif self.catalogue_name[0:12] == "SO_sim_mass_":
+
+            catalogue = np.load(root_path + "data/catalogues_sim/catalogue_so_simulated_mass_" + str(self.catalogue_name[12:]) + ".npy",allow_pickle=True)[0]
+
+            self.catalogue = {}
+            self.catalogue["ln_M"] = catalogue["ln_M"]
+            self.catalogue["z"] = catalogue["z"]
+            self.catalogue["z_std"] = np.zeros(len(self.catalogue["z"]))
+            #self.catalogue["p_so_sim"] = catalogue["p_so_sim"]
+
+            self.catalogue_patch = {}
+            self.catalogue_patch["ln_M"] = catalogue["ln_M"]
+        #    self.catalogue_patch["p_so_sim_simple"] = catalogue["p_so_sim_patch"]
 
 
         elif self.catalogue_name == "q_mlens_simulated":
@@ -554,12 +580,51 @@ class cluster_catalogue:
 
                 self.catalogue['WLdata'] = np.asarray(spt_catalog['WLdata'][indices_catalog])
 
-
-        self.n_clusters = len(self.catalogue[self.obs_select])
-
         if self.precompute_cnc_quantities == True:
 
             self.get_precompute_cnc_quantities()
+
+        #Impose minima and maxima of selection threshold and redshift
+
+        # indices = np.where((self.catalogue[self.obs_select] > self.cnc_params["obs_select_min"])
+        # & (self.catalogue[self.obs_select] < self.cnc_params["obs_select_max"])
+        # & (self.catalogue["z"] > self.cnc_params["z_min"])
+        # & (self.catalogue["z"] < self.cnc_params["z_max"]))[0]
+        #
+        # for observable in self.catalogue.keys():
+        #
+        #     self.catalogue[observable] = self.catalogue[observable][indices]
+        #
+        # for observable in self.catalogue_patch.keys():
+        #
+        #     self.catalogue_patch[observable] = self.catalogue_patch[observable][indices]
+
+        self.n_clusters = len(self.catalogue[self.obs_select])
+
+
+    def bin_number_counts(self):
+
+            #Compute binned number counts
+
+            if self.cnc_params["binned_lik_type"] == "obs_select":
+
+                self.number_counts = np.histogram(self.catalogue[self.obs_select],bins=self.bins_obs_select_edges)[0]
+
+            elif self.cnc_params["binned_lik_type"] == "z":
+
+                self.number_counts = np.histogram(self.catalogue["z"],bins=self.bins_z_edges)[0]
+
+            elif self.cnc_params["binned_lik_type"] == "z_and_obs_select":
+
+                self.number_counts = np.zeros((len(self.bins_z_edges)-1,len(self.bins_obs_select_edges)-1))
+
+                for i in range(0,len(self.bins_z_edges)-1):
+
+                    for j in range(0,len(self.bins_obs_select_edges)-1):
+
+                        indices = np.where((self.catalogue[self.obs_select] > self.bins_obs_select_edges[j]) & (self.catalogue[self.obs_select] < self.bins_obs_select_edges[j+1])
+                        & (self.catalogue["z"] > self.bins_z_edges[i]) & (self.catalogue["z"] < self.bins_z_edges[i+1]))[0]
+                        self.number_counts[i,j] = len(indices)
 
 
     def get_precompute_cnc_quantities(self):
@@ -573,27 +638,11 @@ class cluster_catalogue:
 
         self.n_tot = len(self.catalogue["z"])
 
-        if self.cnc_params["binned_lik_type"] == "obs_select":
+        #Bin number counts
 
-            self.number_counts_obs_select = np.zeros(len(self.bins_obs_select_edges)-1)
+        self.bin_number_counts()
 
-            for j in range(0,len(self.bins_obs_select_edges)-1):
-
-                indices = np.where((self.catalogue[self.obs_select] > self.bins_obs_select_edges[j]) & (self.catalogue[self.obs_select] < self.bins_obs_select_edges[j+1])
-                )[0]
-                self.number_counts_obs_select[j] = len(indices)
-
-        else:
-
-            self.number_counts = np.zeros((len(self.bins_z_edges)-1,len(self.bins_obs_select_edges)-1))
-
-            for i in range(0,len(self.bins_z_edges)-1):
-
-                for j in range(0,len(self.bins_obs_select_edges)-1):
-
-                    indices = np.where((self.catalogue[self.obs_select] > self.bins_obs_select_edges[j]) & (self.catalogue[self.obs_select] < self.bins_obs_select_edges[j+1])
-                    & (self.catalogue["z"] > self.bins_z_edges[i]) & (self.catalogue["z"] < self.bins_z_edges[i+1]))[0]
-                    self.number_counts[i,j] = len(indices)
+        #Precompute other quantities
 
         self.obs_select_max = np.max(self.catalogue[self.obs_select])
 
