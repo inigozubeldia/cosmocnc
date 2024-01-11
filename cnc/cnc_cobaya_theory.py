@@ -19,6 +19,7 @@ class cnc(classy):
     n_points : Optional[str] = 2048*2 #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
     n_obs_select : Optional[str] =  2048*2
     n_z : Optional[str] =  50
+    downsample_hmf_bc: Optional[str] = 1
 
     n_points_data_lik : Optional[str] =  128 #number of points for the computation of the cluster data part of the likelihood
     sigma_mass_prior : Optional[str] =  5.
@@ -39,6 +40,7 @@ class cnc(classy):
     catalogue_params = {"downsample":True}
     data_lik_type: Optional[str] = "backward_convolutional"
     abundance_integral_type: Optional[str] = "fft" #fft or direct
+    delta_m_with_ref: Optional[str] = False
 
     #Range of abundance observables
 
@@ -118,6 +120,7 @@ class cnc(classy):
         self.cnc.cnc_params["n_points"] = int(self.n_points) # 2**13, #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
         self.cnc.cnc_params["n_obs_select"] = int(self.n_obs_select) # 2**13,
         self.cnc.cnc_params["n_z"] = int(self.n_z) # 100,
+        self.cnc.cnc_params["downsample_hmf_bc"] = int(self.downsample_hmf_bc)
 
         self.cnc.cnc_params["n_points_data_lik"] = int(self.n_points_data_lik) # 128, #number of points for the computation of the cluster data part of the likelihood
         self.cnc.cnc_params["sigma_mass_prior"] = self.sigma_mass_prior # 5.,
@@ -136,6 +139,7 @@ class cnc(classy):
         self.cnc.cnc_params["catalogue_params"] = self.catalogue_params # 6.,
         self.cnc.cnc_params["data_lik_type"] = self.data_lik_type
         self.cnc.cnc_params["abundance_integral_type"] = self.abundance_integral_type
+        self.cnc.cnc_params["delta_m_with_ref"] = self.delta_m_with_ref
 
         #Range of abundance observables
 

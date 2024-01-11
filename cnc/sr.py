@@ -12,7 +12,7 @@ from .utils import *
 
 class scaling_relations:
 
-    def __init__(self,observable="q_mmf3",cnc_params = None,catalogue=None):
+    def __init__(self,observable="q_mmf3",cnc_params=None,catalogue=None):
 
         self.observable = observable
         self.cnc_params = cnc_params
@@ -803,7 +803,7 @@ class scaling_relations:
                 D_A = other_params["D_A"]
                 A_szifi = self.params["A_szifi"]
 
-                prefactor_logy0 = np.log(10.**(A_szifi)*E_z**2*(self.params["bias_sz"]/3.*h70)**self.params["alpha_szifi"]/np.sqrt(h70))
+                prefactor_logy0 = np.log(10.**(A_szifi)*E_z**2*(self.params["bias_sz"]/3.*h70)**f/np.sqrt(h70))
                 log_y0 = prefactor_logy0 + x0*self.params["alpha_szifi"]
 
                 prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)

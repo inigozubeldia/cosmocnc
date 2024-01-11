@@ -18,10 +18,10 @@ cnc_params_default = {
     #Precision parameters
 
     "n_points": 4096, ##number of points in which the mass function at each redshift (and all the convolutions) is evaluated
-    "n_obs_select": 4096,
     "n_z": 50,
     "n_points_data_lik": 128, #number of points for the computation of the cluster data part of the likelihood
     "sigma_mass_prior": 5.,
+    "downsample_hmf_bc": 1,
 
 
     #Observables and catalogue
@@ -44,6 +44,7 @@ cnc_params_default = {
     "catalogue_params":{"downsample":True},
     "apply_obs_cutoff":False,
     "get_masses":False,
+    "delta_m_with_ref":False,
 
     #Range of abundance observables
 
@@ -101,6 +102,60 @@ cnc_params_default = {
 
     }
 
+scal_rel_params_ref = {
+#Planck
+"alpha":1.79,
+"beta":0.66,
+"log10_Y_star":-0.19,
+"sigma_lnq":0.173,
+"bias_sz":0.8, #a.k.a. 1-b
+"sigma_lnmlens":0.2,
+"sigma_mlens":0.5,
+"bias_lens":1.,
+"dof":0.,
+"bias_cmblens":0.92,
+"sigma_lnp":0.22,
+"corr_lnq_lnp":0.,
+"a_lens":1.,
+"f_false_detection":0.0, #N_F / (N_F + N_T) fraction of false detections to total detections
+"f_true_validated":1.,#fraction of true clusters which have been validated
+"q_cutoff":0.,
+
+#SZiFi Planck
+
+"alpha_szifi":1.12, #1.1233 ?
+"A_szifi": -4.3054, #Arnaud values, respectively
+"sigma_lnq_szifi": 0.173,
+
+#SPT
+# spt style lkl:
+"A_sz": 5.1,
+"B_sz": 1.75,
+"C_sz": 0.5,
+
+"A_x": 6.5,
+"B_x": 0.69,
+"C_x": -0.25,
+
+"sigma_lnYx":0.255, # 'Dx' in Bocquet's code
+"dlnMg_dlnr" : 0.,
+
+'WLbias' : 0.,
+'WLscatter': 0.,
+
+'HSTbias': 0.,
+'HSTscatterLSS':0.,
+
+'MegacamBias': 0.,
+'MegacamScatterLSS': 0.,
+
+'corr_xi_Yx': 0.1, # 'rhoSZX' in Bocquet's code
+'corr_xi_WL': 0.1, # 'rhoSZWL' in Bocquet's code
+'corr_Yx_WL': 0.1,  # 'rhoWLX' in Bocquet's code
+
+'SZmPivot': 3e14
+}
+
 scaling_relation_params_default = {
 
 #Planck
@@ -124,7 +179,7 @@ scaling_relation_params_default = {
 
 #SZiFi Planck
 
-"alpha_szifi":1.12333,
+"alpha_szifi":1.1233, #1.1233 ? True value in synthetic catalogues is 1.1233, for some reason
 "A_szifi": -4.3054, #Arnaud values, respectively
 "sigma_lnq_szifi": 0.173,
 

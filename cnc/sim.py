@@ -139,19 +139,6 @@ class catalogue_generator:
 
                     scal_rel = self.scaling_relations[observable]
 
-                    """
-                    scal_rel.precompute_scaling_relation(params=self.number_counts.scal_rel_params,
-                                            other_params=other_params,
-                                            patch_index=observable_patches[observable])
-
-
-                    x1[j,:] = scal_rel.eval_scaling_relation(x0[j,:],
-                                                     layer=i,
-                                                    other_params=other_params,
-                                                     patch_index=observable_patches[observable])
-
-                    """
-
                     x1[j,:] = scal_rel.eval_scaling_relation_no_precompute(x0[j,:],
                     layer=i,patch_index=observable_patches[observable],
                     params=self.number_counts.scal_rel_params,
@@ -160,8 +147,6 @@ class catalogue_generator:
                 covariance = covariance_matrix(self.scatter,self.params_cnc["observables"][0],
                 observable_patches=observable_patches,layer=np.arange(n_layers))
                 cov = covariance.cov[i]
-
-                print("cov",np.sqrt(cov))
 
                 noise = np.transpose(np.random.multivariate_normal(np.zeros(n_observables),cov,size=n_clusters))
                 x1 = x1 + noise

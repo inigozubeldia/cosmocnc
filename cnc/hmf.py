@@ -28,6 +28,8 @@ class halo_mass_function:
         self.hmf_calc = hmf_calc
         self.extra_params = extra_params
 
+        self.sigma_r_dict = {}
+
         self.const = constants()
 
         if self.hmf_type == "Tinker08":
@@ -56,26 +58,53 @@ class halo_mass_function:
                                                          sigma_8=cosmology.cosmo_params["sigma_8"],
                                                          n=cosmology.cosmo_params["n_s"])
 
-    def eval_hmf(self,redshift,log=False,volume_element=False):
+    def eval_hmf(self,redshift,log=False,volume_element=False,save_sigma_r=False,load_sigma_r=False,
+    M_min=None,M_max=None,n_points=None):
+
+        if M_min is None:
+
+            M_min = self.M_min
+
+        if M_max is None:
+
+            M_max = self.M_max
+
+        if n_points is None:
+
+            n_points = self.n_points
 
         if log == False:
 
-            M_vec = np.linspace(self.M_min,self.M_max,self.n_points)
+            M_vec = np.linspace(M_min,M_max,n_points)
 
         elif log == True:
 
-            M_vec = np.exp(np.linspace(np.log(self.M_min),np.log(self.M_max),self.n_points))
+            M_vec = np.exp(np.linspace(np.log(M_min),np.log(M_max),n_points))
 
         if self.hmf_calc == "cnc":
 
             if self.hmf_type == "Tinker08":
-                
-                k,ps = self.cosmology.power_spectrum.get_linear_power_spectrum(redshift)
 
                 rho_m = self.rho_c_0*self.cosmology.cosmo_params["Om0"]
 
-                sigma_r = sigma_R((k,ps),cosmology=self.cosmology)
-                sigma_r.get_derivative(type_deriv=self.type_deriv)
+                if load_sigma_r is False:
+
+                    k,ps = self.cosmology.power_spectrum.get_linear_power_spectrum(redshift)
+                    sigma_r = sigma_R((k,ps),cosmology=self.cosmology)
+                    sigma_r.get_derivative(type_deriv=self.type_deriv)
+
+                elif load_sigma_r is True:
+
+                    z_indices_key = np.array([float(index) for index in list(self.sigma_r_dict.keys())])
+                    z_index = str(z_indices_key[np.argmin(np.abs(z_indices_key-redshift))])
+                    sigma_r = self.sigma_r_dict[z_index]
+
+                if save_sigma_r is True:
+
+                    self.sigma_r_dict[str(redshift)] = sigma_r
+
+                t0 = time.time()
+
                 (sigma,dsigmadR) = sigma_r.get_sigma_M(M_vec,rho_m,get_deriv=True)
 
                 self.sigma = sigma
@@ -130,7 +159,7 @@ class halo_mass_function:
 
                 MT_emulator = self.extra_params["emulator"]
 
-                M_vec = np.linspace(self.M_min,self.M_max,self.n_points)
+                M_vec = np.linspace(M_min,M_max,n_points)
 
                 cosmology_emulator = {
                 "h": self.h,

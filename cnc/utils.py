@@ -2,6 +2,7 @@ import numpy as np
 import multiprocess as mp
 import scipy.signal as signal
 import scipy.stats as stats
+import scipy.ndimage as ndimage
 import functools
 import math
 import time
@@ -10,11 +11,14 @@ import pylab as pl
 #import numba
 #from .fast_interp import *
 
-def convolve_1d(x,dn_dx,sigma_scatter,type="fft"):
+def convolve_1d(x,dn_dx,sigma=None,type="fft",kernel=None):
 
-    if sigma_scatter > 0.:
+    if sigma > 0.:
 
-        kernel = gaussian_1d(x-np.mean(x)+(x[1]-x[0])*0.5,sigma_scatter)
+        if kernel is None:
+
+            kernel = gaussian_1d(x-np.mean(x)+(x[1]-x[0])*0.5,sigma)
+
         dn_dx = signal.convolve(dn_dx,kernel,mode="same",method=type)/np.sum(kernel)
 
     return dn_dx
@@ -306,3 +310,23 @@ def interpolate_deep(x_interp,x,f):
         ret[i] = np.interp(x_interp[i],x,f[i,:])
 
     return ret
+
+def sample_from_uniform(x_min,x_max,n=1):
+
+    sample = np.random.uniform(low=x_min,high=x_max,size=n)
+
+    if len(sample) == 1:
+
+        sample = sample[0]
+
+    return sample
+
+def sample_from_gaussian(mu,sigma,n=1):
+
+    sample = np.random.normal(loc=mu, scale=sigma,size=n)
+
+    if len(sample) == 1:
+
+        sample = sample[0]
+
+    return sample
