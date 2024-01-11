@@ -135,7 +135,7 @@ class cluster_number_counts:
         #Define redshift and observable ranges
 
         self.redshift_vec = np.linspace(self.cnc_params["z_min"],self.cnc_params["z_max"],self.cnc_params["n_z"])
-        self.obs_select_vec = np.linspace(self.cnc_params["obs_select_min"],self.cnc_params["obs_select_max"],self.cnc_params["n_points_out"])
+        self.obs_select_vec = np.linspace(self.cnc_params["obs_select_min"],self.cnc_params["obs_select_max"],self.cnc_params["n_points"])
 
         #Evaluate some useful quantities (to be potentially passed to scaling relations)
 
@@ -236,8 +236,8 @@ class cluster_number_counts:
             indices_split_patches = [np.arange(self.n_patches) for i in range(0,n_cores)]
             indices_split_redshift = np.array_split(np.arange(len(self.redshift_vec)),n_cores)
 
-        self.abundance_tensor = np.zeros((self.n_patches,self.cnc_params["n_z"],self.cnc_params["n_points_out"]))
-        self.n_obs_matrix = np.zeros((self.n_patches,self.cnc_params["n_points_out"]))
+        self.abundance_tensor = np.zeros((self.n_patches,self.cnc_params["n_z"],self.cnc_params["n_points"]))
+        self.n_obs_matrix = np.zeros((self.n_patches,self.cnc_params["n_points"]))
         self.n_tot_vec = np.zeros(self.n_patches)
 
         def f_mp(rank,out_q):
@@ -246,7 +246,7 @@ class cluster_number_counts:
 
             for i in range(0,len(indices_split_patches[rank])):
 
-                abundance_matrix = np.zeros((self.cnc_params["n_z"],self.cnc_params["n_points_out"]))
+                abundance_matrix = np.zeros((self.cnc_params["n_z"],self.cnc_params["n_points"]))
                 patch_index = int(indices_split_patches[rank][i])
 
                 for j in range(0,len(indices_split_redshift[rank])):
