@@ -123,7 +123,7 @@ scal_rel_params_ref = {
 
 #SZiFi Planck
 
-"alpha_szifi":1.12, #1.1233 ?
+"alpha_szifi":1.1233,#1233, #1.1233 ?
 "A_szifi": -4.3054, #Arnaud values, respectively
 "sigma_lnq_szifi": 0.173,
 

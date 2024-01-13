@@ -642,8 +642,12 @@ class cluster_number_counts:
 
                         sigma_factor = self.cnc_params["sigma_mass_prior"]
 
-                        lnM = np.linspace(lnM_centre-sigma_factor*DlnM,lnM_centre+sigma_factor*DlnM,self.cnc_params["n_points_data_lik"])
-                        halo_mass_function_z = np.interp(lnM,lnM0,halo_mass_function_z)
+                        lnM_min = np.max([lnM_centre-sigma_factor*DlnM,lnM0[0]])
+                        lnM_max = np.min([lnM_centre+sigma_factor*DlnM,lnM0[-1]])
+
+                        lnM = np.linspace(lnM_min,lnM_max,self.cnc_params["n_points_data_lik"])
+
+                        halo_mass_function_z = np.interp(lnM,lnM0,halo_mass_function_z,left=0,right=0)
 
                         t3 = time.time()
 
@@ -1500,8 +1504,6 @@ class cluster_number_counts:
             self.n_binned_obs = np.zeros(len(self.cnc_params["bins_edges_obs_select"])-1)
             self.bins_centres = (self.cnc_params["bins_edges_obs_select"][1:] + self.cnc_params["bins_edges_obs_select"][0:-1])*0.5
             n_bins_obs_select = int(len(self.obs_select_vec)/(len(self.bins_centres)-1))
-
-            print("n int",n_bins_obs_select)
 
             for i in range(0,len(self.cnc_params["bins_edges_obs_select"])-1):
 

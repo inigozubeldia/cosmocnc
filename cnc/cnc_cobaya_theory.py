@@ -17,7 +17,7 @@ class cnc(classy):
     #Precision parameters
 
     n_points : Optional[str] = 2048*2 #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
-    n_obs_select : Optional[str] =  2048*2
+    n_obs_select : Optional[str] =  2048*2 #Deprecated
     n_z : Optional[str] =  50
     downsample_hmf_bc: Optional[str] = 1
 
@@ -118,7 +118,7 @@ class cnc(classy):
         #Precision parameters
 
         self.cnc.cnc_params["n_points"] = int(self.n_points) # 2**13, #number of points in which the mass function at each redshift (and all the convolutions) is evaluated
-        self.cnc.cnc_params["n_obs_select"] = int(self.n_obs_select) # 2**13,
+        self.cnc.cnc_params["n_obs_select"] = int(self.n_obs_select) # 2**13, #Deprecated
         self.cnc.cnc_params["n_z"] = int(self.n_z) # 100,
         self.cnc.cnc_params["downsample_hmf_bc"] = int(self.downsample_hmf_bc)
 

@@ -165,6 +165,13 @@ class scaling_relations:
 
             self.skyfracs = [0.4] #from SO goals and forecasts paper
 
+            #False detection pdf
+
+            q_vec = np.linspace(5.,10.,self.cnc_params["n_points"])
+            pdf_fd = np.exp(-(q_vec-3.)**2/1.5**2)
+            pdf_fd = pdf_fd/integrate.simps(pdf_fd,q_vec)
+            self.pdf_false_detection = [q_vec,pdf_fd]
+
         # SPT case:
         if observable == 'xi':
 
@@ -803,7 +810,7 @@ class scaling_relations:
                 D_A = other_params["D_A"]
                 A_szifi = self.params["A_szifi"]
 
-                prefactor_logy0 = np.log(10.**(A_szifi)*E_z**2*(self.params["bias_sz"]/3.*h70)**f/np.sqrt(h70))
+                prefactor_logy0 = np.log(10.**(A_szifi)*E_z**2*(self.params["bias_sz"]/3.*h70)**self.params["alpha_szifi"]/np.sqrt(h70))
                 log_y0 = prefactor_logy0 + x0*self.params["alpha_szifi"]
 
                 prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
