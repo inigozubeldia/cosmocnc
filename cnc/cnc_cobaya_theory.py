@@ -82,8 +82,8 @@ class cnc(classy):
     #Only if binned likelihood is computed
 
     binned_lik_type:Optional[str] =  "z_and_obs_select" #can be "obs_select", "z", or "z_and_obs_select"
-    bins_edges_z: Optional[str] =  np.linspace(0.01,1.8,20)
-    bins_edges_obs_select: Optional[str] =  np.exp(np.linspace(np.log(5.),np.log(60),12))
+    bins_edges_z: Optional[str] =  np.linspace(0.01,3.,20)
+    bins_edges_obs_select: Optional[str] =  np.exp(np.linspace(np.log(5.),np.log(200),20))
 
     #Priors
 
