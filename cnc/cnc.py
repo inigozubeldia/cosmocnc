@@ -1465,6 +1465,9 @@ class cluster_number_counts:
 
         log_lik = 0.
 
+        self.cnc_params["bins_edges_z"] = np.array(self.cnc_params["bins_edges_z"])
+        self.cnc_params["bins_edges_obs_select"] = np.array(self.cnc_params["bins_edges_obs_select"])
+
         if self.cnc_params["binned_lik_type"] == "z_and_obs_select":
 
             if self.abundance_matrix is None:
