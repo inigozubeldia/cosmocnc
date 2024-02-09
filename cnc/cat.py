@@ -76,7 +76,7 @@ class cluster_catalogue:
 
             self.catalogue[observable] = data_mmf3["SNR"][indices_mmf3]
             self.catalogue["z"] = data_union["REDSHIFT"][indices_union]
-            self.catalogue_patch[observable] = np.zeros(len(self.catalogue[observable])).astype(np.int)
+            self.catalogue_patch[observable] = np.zeros(len(self.catalogue[observable])).astype(np.int64)
 
             indices_no_z = np.where(self.catalogue["z"] < 0.)[0]
 
@@ -111,7 +111,7 @@ class cluster_catalogue:
             #Fake lensing data
 
             self.catalogue["m_lens"] = data_union["MSZ"][indices_union]
-            self.catalogue_patch["m_lens"] = np.zeros(len(self.catalogue[observable])).astype(np.int)
+            self.catalogue_patch["m_lens"] = np.zeros(len(self.catalogue[observable])).astype(np.int64)
             self.catalogue["m_lens"][indices_no_z] = None
 
             #CMB lensing data from Zubeldia & Challinor 2019
@@ -309,6 +309,33 @@ class cluster_catalogue:
             self.stacked_data["p_so_sim_stacked"]["cluster_index"] = np.arange(len(self.catalogue["z"]))
             self.stacked_data["p_so_sim_stacked"]["observable"] = "p_so_sim"
 
+        elif self.catalogue_name[0:14] == "SO_sim_goal3yr":
+
+            catalogue = np.load(root_path + "data/catalogues_sim/catalogue_so_simulated_" + str(self.catalogue_name[7:]) + "_goal3yr.npy",allow_pickle=True)[0]
+
+            self.catalogue = {}
+            self.catalogue["q_so_sim"] = catalogue["q_so_sim"]
+            self.catalogue["z"] = catalogue["z"]
+            self.catalogue["z_std"] = np.zeros(len(self.catalogue["z"]))
+            self.catalogue["p_so_sim"] = catalogue["p_so_sim"]
+
+            self.catalogue_patch = {}
+            self.catalogue_patch["q_so_sim"] = catalogue["q_so_sim_patch"]
+            self.catalogue_patch["p_so_sim"] = catalogue["p_so_sim_patch"]
+
+            self.M = catalogue["M"]
+
+            #Stacked CMB lensing
+
+            self.stacked_data_labels = ["p_so_sim_stacked"]
+
+            self.catalogue_patch["p_so_sim_stacked"] = np.zeros(len(self.catalogue["p_so_sim"])) #if one wants to use p with just one layer
+            self.stacked_data = {"p_so_sim_stacked":{}}
+
+            self.stacked_data["p_so_sim_stacked"]["data_vec"] = np.mean(self.catalogue["p_so_sim"])
+            self.stacked_data["p_so_sim_stacked"]["inv_cov"] = float(len(self.catalogue["p_so_sim"]))
+            self.stacked_data["p_so_sim_stacked"]["cluster_index"] = np.arange(len(self.catalogue["z"]))
+            self.stacked_data["p_so_sim_stacked"]["observable"] = "p_so_sim"
 
         elif self.catalogue_name[0:7] == "SO_sim_":
 
@@ -563,7 +590,7 @@ class cluster_catalogue:
             self.catalogue["z_std"] = np.asarray(spt_catalog['redshift_err'][indices_catalog])
             self.catalogue["xi"] = np.asarray(spt_catalog['xi'][indices_catalog])
 
-            self.catalogue_patch['xi'] = np.zeros(len(self.catalogue['xi'])).astype(np.int)
+            self.catalogue_patch['xi'] = np.zeros(len(self.catalogue['xi'])).astype(np.int64)
             for id,field in enumerate(spt_catalog['field'][indices_catalog]):
                 self.catalogue_patch['xi'][id] = SPTfieldNames.index(field)
 
@@ -576,7 +603,7 @@ class cluster_catalogue:
 
                 indices_no_Yx = np.where(self.catalogue["Yx"] <= 0.)[0]
                 self.catalogue["Yx"][indices_no_Yx] = None
-                self.catalogue_patch["Yx"] = np.arange(len(self.catalogue["Yx"])).astype(np.int)# index of all clusters.
+                self.catalogue_patch["Yx"] = np.arange(len(self.catalogue["Yx"])).astype(np.int64)# index of all clusters.
 
 
             if 'WLMegacam' or 'WLHST' in self.observables[0]:
@@ -618,7 +645,7 @@ class cluster_catalogue:
 
                 self.catalogue['WLMegacam'] = np.asarray(list(map(lambda x: np.nan if x is None else x, spt_catalog['WLMegacam'][indices_catalog])))
                 self.catalogue['WLMegacam_std'] = np.asarray(list(map(lambda x: np.nan if x is None else x, spt_catalog['WLMegacam_std'][indices_catalog])))
-                self.catalogue_patch['WLMegacam'] = np.arange(len(self.catalogue['WLMegacam'])).astype(np.int)# index of all clusters.
+                self.catalogue_patch['WLMegacam'] = np.arange(len(self.catalogue['WLMegacam'])).astype(np.int64)# index of all clusters.
 
 
             if 'WLHST' in self.observables[0]:
@@ -652,7 +679,7 @@ class cluster_catalogue:
 
                 self.catalogue['WLHST'] = np.asarray(list(map(lambda x: np.nan if x is None else x, spt_catalog['WLHST'][indices_catalog])))
                 self.catalogue['WLHST_std'] = np.asarray(list(map(lambda x: np.nan if x is None else x, spt_catalog['WLHST_std'][indices_catalog])))
-                self.catalogue_patch['WLHST'] = np.arange(len(self.catalogue['WLHST'])).astype(np.int)# index of all clusters.
+                self.catalogue_patch['WLHST'] = np.arange(len(self.catalogue['WLHST'])).astype(np.int64)# index of all clusters.
                 self.catalogue['SPT_ID'] = np.asarray(list(map(lambda x: np.nan if x is None else x, spt_catalog['SPT_ID'][indices_catalog])))
 
             if 'WLMegacam' or 'WLHST' in self.observables[0]:

@@ -23,7 +23,7 @@ class scaling_relations:
 
         observable = self.observable
 
-        if observable == "p_zc19_stacked" or observable == "p_so_sim_stacked":
+        if observable == "p_zc19_stacked" or observable == "p_so_sim_stacked" or observable == "p_so_goal3yr_stacked":
 
             n_layers = 1
 
@@ -45,7 +45,7 @@ class scaling_relations:
         if observable == "q_mmf3" or observable == "q_mmf3_mean":
 
             f = open(root_path + "data/thetas_planck_arcmin.txt","r")
-            self.theta_500_vec = np.array(f.readlines()).astype(np.float)
+            self.theta_500_vec = np.array(f.readlines()).astype(np.float64)
             f.close()
 
             if self.cnc_params["catalogue_params"]["downsample"] == True and observable == "q_mmf3":
@@ -56,11 +56,11 @@ class scaling_relations:
             else:
 
                 f = open(root_path + "data/noise_planck.txt","r")
-                sigma_matrix_flat = np.array(f.readlines()).astype(np.float)
+                sigma_matrix_flat = np.array(f.readlines()).astype(np.float64)
                 f.close()
 
                 f = open(root_path + "data/skyfracs_planck.txt","r")
-                self.skyfracs = np.array(f.readlines()).astype(np.float)
+                self.skyfracs = np.array(f.readlines()).astype(np.float64)
                 f.close()
 
                 self.sigma_matrix = sigma_matrix_flat.reshape((80,417))
@@ -103,6 +103,18 @@ class scaling_relations:
             self.sigma_lens_poly = np.polyfit(x,y,deg=3)
 
             sigma_sz_vec_eval = np.exp(np.polyval(self.sigma_lens_poly,x))
+
+        if observable == "p_so_goal3yr_sim":
+
+            [theta_500_vec,sigma_lens_vec] = np.load(root_path + "data/so_sim_lensing_mf_noise_goal3yr.npy")
+            theta_500_vec = theta_500_vec*180.*60./np.pi #in arcmin
+
+            x = np.log(theta_500_vec)
+            y = np.log(sigma_lens_vec)
+            self.sigma_lens_poly = np.polyfit(x,y,deg=3)
+
+            sigma_sz_vec_eval = np.exp(np.polyval(self.sigma_lens_poly,x))
+
 
         if observable == "q_szifi":
 
@@ -172,6 +184,27 @@ class scaling_relations:
             pdf_fd = pdf_fd/integrate.simps(pdf_fd,q_vec)
             self.pdf_false_detection = [q_vec,pdf_fd]
 
+        if observable == "q_so_goal3yr_sim":
+
+            theta_500_vec,sigma_sz_vec = np.load("/home/iz221/cnc/data/so_sim_sz_mf_noise_goal3yr.npy")
+
+            self.theta_500_vec = theta_500_vec*180.*60./np.pi
+
+            x = np.log(self.theta_500_vec)
+            y = np.log(sigma_sz_vec)
+            self.sigma_sz_poly = np.polyfit(x,y,deg=3)
+            self.sigma_sz_polyder = np.polyder(self.sigma_sz_poly)
+
+            self.skyfracs = [0.4] #from SO goals and forecasts paper
+
+            #False detection pdf
+
+            q_vec = np.linspace(5.,10.,self.cnc_params["n_points"])
+            pdf_fd = np.exp(-(q_vec-3.)**2/1.5**2)
+            pdf_fd = pdf_fd/integrate.simps(pdf_fd,q_vec)
+            self.pdf_false_detection = [q_vec,pdf_fd]
+
+
         # SPT case:
         if observable == 'xi':
 
@@ -226,7 +259,7 @@ class scaling_relations:
             self.prefactor_Y_500 = (self.params["bias_sz"]/6.)**self.params["alpha"]*(H0/70.)**(-2.+self.params["alpha"])*10.**self.params["log10_Y_star"]*E_z**self.params["beta"]*0.00472724*(D_A/500.)**(-2.)
             self.prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
 
-        if observable == "p_zc19" or observable== "p_zc19_stacked" or observable == "p_so_sim" or observable == "p_so_sim_stacked":
+        if observable == "p_zc19" or observable== "p_zc19_stacked" or observable == "p_so_sim" or observable == "p_so_sim_stacked" or observable == "p_so_goal3yr_sim" or observable == "p_so_goal3yr_sim_stacked":
 
             H0 = other_params["H0"]
             E_z = other_params["E_z"]
@@ -259,7 +292,7 @@ class scaling_relations:
             self.prefactor_y0 = 10.**(A_szifi)*E_z**2*(self.params["bias_sz"]/3.*h70)**self.params["alpha_szifi"]/np.sqrt(h70)
             self.prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
 
-        elif observable == "q_so_sim":
+        elif observable == "q_so_sim" or observable == "q_so_goal3yr_sim":
 
             E_z = other_params["E_z"]
             h70 = other_params["H0"]/70.
@@ -394,7 +427,7 @@ class scaling_relations:
 
                 x1 = np.exp(x0)
 
-        if observable == "p_so_sim":
+        if observable == "p_so_sim" or observable == "p_so_goal3yr_sim":
 
             if layer == 0:
 
@@ -417,7 +450,7 @@ class scaling_relations:
                 sigma = np.interp(self.theta_500_lensing,self.sigma_theta_lens_vec[patch_index,0,:],self.sigma_theta_lens_vec[patch_index,1,:])
                 x1 = (M_500*0.1*self.params["bias_cmblens"])**(1./3.)*self.prefactor_lens/sigma*self.params["a_lens"] #with change from 1e14 to 1e15 units
 
-        if observable == "p_so_sim_stacked":
+        if observable == "p_so_sim_stacked" or observable == "p_so_goal3yr_sim_stacked":
 
             if layer == 0:
 
@@ -444,7 +477,7 @@ class scaling_relations:
 
                 x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
 
-        if observable == "q_so_sim":
+        if observable == "q_so_sim" or observable == "q_so_goal3yr_sim":
 
             if layer == 0:
 
@@ -686,7 +719,7 @@ class scaling_relations:
                     exp = np.exp(2.*x0)
                     dx1_dx0 = exp/np.sqrt(exp+dof)
 
-            if observable == "q_so_sim":
+            if observable == "q_so_sim" or observable == "q_so_goal3yr_sim":
 
                 if layer == 0:
 
@@ -800,7 +833,7 @@ class scaling_relations:
 
                 x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
 
-        if observable == "q_so_sim":
+        if observable == "q_so_sim" or observable == "q_so_goal3yr_sim":
 
             if layer == 0:
 
@@ -859,7 +892,7 @@ class scaling_relations:
 
                 x1 = np.exp(x0)
 
-        if observable == "p_so_sim" or observable == "p_so_sim_stacked":
+        if observable == "p_so_sim" or observable == "p_so_sim_stacked" or observable == "p_so_goal3yr_sim" or observable == "p_so_goal3yr_sim_stacked":
 
             if layer == 0:
 
@@ -941,7 +974,7 @@ class scaling_relations:
 
     def get_cutoff(self,layer=0):
 
-        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi" or self.observable == "xi" or self.observable == "q_so_sim":
+        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi" or self.observable == "xi" or self.observable == "q_so_sim" or self.observable == "q_so_goal3yr_sim":
 
             if layer == 0:
 
@@ -1085,9 +1118,18 @@ class scatter:
 
                 cov = self.params["sigma_lnp"]**2
 
+            elif observable1 == "p_so_goal3yr_sim" and observable2 == "p_so_goal3yr_sim":
+
+                cov = self.params["sigma_lnp"]**2
+
             elif observable1 == "p_so_sim" and observable2 == "q_so_sim":
 
                 cov =  self.params["corr_lnq_lnp"]*self.params["sigma_lnq_szifi"]*self.params["sigma_lnp"]
+
+            elif observable1 == "p_so_goal3yr_sim" and observable2 == "q_so_goal3yr_sim":
+
+                cov =  self.params["corr_lnq_lnp"]*self.params["sigma_lnq_szifi"]*self.params["sigma_lnp"]
+
 
             elif (observable1 == "q_mmf3" and observable2 == "p_zc19") or (observable1 == "p_zc19" and observable2 == "q_mmf3"):
 
@@ -1102,6 +1144,10 @@ class scatter:
                 cov = self.params["sigma_lnq_szifi"]**2
 
             elif (observable1 == "q_so_sim" and observable2 == "q_so_sim"):
+
+                cov = self.params["sigma_lnq_szifi"]**2
+
+            elif (observable1 == "q_so_goal3yr_sim" and observable2 == "q_so_goal3yr_sim"):
 
                 cov = self.params["sigma_lnq_szifi"]**2
 
@@ -1166,11 +1212,20 @@ class scatter:
 
                 cov = 1.
 
+            elif observable1 == "p_so_goal3yr_sim" and observable2 == "p_so_goal3yr_sim":
+
+                cov = 1.
+
+
             elif (observable1 == "q_szifi" and observable2 == "q_szifi"):
 
                 cov = 1.
 
             elif (observable1 == "q_so_sim" and observable2 == "q_so_sim"):
+
+                cov = 1.
+
+            elif (observable1 == "q_so_goal3yr_sim" and observable2 == "q_so_goal3yr_sim"):
 
                 cov = 1.
 

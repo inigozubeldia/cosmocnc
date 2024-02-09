@@ -655,7 +655,7 @@ class cluster_number_counts:
 
                         #Backpropagate the scatter
 
-                        #DELETE ^^^^^
+                        #can probably be avoided to compute twice
 
                         for observable_set in observables_select:
 
@@ -664,7 +664,7 @@ class cluster_number_counts:
                                 self.scaling_relations[observable].precompute_scaling_relation(params=self.scal_rel_params,
                                 other_params=other_params,patch_index=observable_patches[observable])
 
-                        #DELETE UP TO HERE ^^^^^^^^^^^
+                        #up to here
 
                         if self.cnc_params["data_lik_type"] == "backward_convolutional":
 
@@ -791,8 +791,11 @@ class cluster_number_counts:
                                         tt5 = time.time()
                                         self.t_55 = self.t_55  + tt5 - tt4b
 
-                                    #    cpdf = apodise(cpdf)
+                                        #cpdf_before_conv = cpdf
+
                                         cpdf = convolve_nd(cpdf,kernel)
+
+                                        #cpdf_after_conv = cpdf
 
                                         tt6 = time.time()
                                         self.t_66 = self.t_66 + tt6 - tt5
@@ -806,8 +809,6 @@ class cluster_number_counts:
                                             x_mesh_interp = np.transpose(x_mesh_interp.reshape(*x_mesh.shape[:-2],-1))
 
                                             cpdf = interpolate.RegularGridInterpolator(x_p,cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp)
-                                            #cpdf = interpolate_nd(x_mesh_interp,x_p,cpdf,method="linear")
-
                                             cpdf = np.transpose(cpdf.reshape(shape[1:]))
 
                                         else:
@@ -821,6 +822,8 @@ class cluster_number_counts:
                                         if lay == layers[0]:
 
                                             if n_obs > 1:
+
+                                                cpdf_mass = cpdf
 
                                                 cpdf = extract_diagonal(cpdf)
 
@@ -836,6 +839,18 @@ class cluster_number_counts:
                             patch_select = int(observable_patches[self.cnc_params["obs_select"]])
 
                             cpdf_product_with_hmf = cpdf_product*halo_mass_function_z*4.*np.pi*self.scal_rel_selection.skyfracs[patch_select]
+
+                            # print("cluster index",cluster_index)
+                            # if 0.5 < cluster_index < 1.5:
+                            #
+                            #     np.save("/home/iz221/cnc/results/data_mass_calibration_so_2d.npy",(cpdf_before_conv,cpdf_after_conv,cpdf_mass))
+                            #     np.save("/home/iz221/cnc/results/data_mass_calibration_so_1d.npy",(cpdf_product,cpdf_product_with_hmf,lnM))
+                            #     np.save("/home/iz221/cnc/results/data_mass_calibration_so_x.npy",x_p)
+                            #     np.save("/home/iz221/cnc/results/data_mass_calibration_so_datapoint.npy",(x_obs))
+                            #     np.save("/home/iz221/cnc/results/data_mass_calibration_so_z.npy",(redshift_eval))
+                            #
+                            # #    np.savez("/home/iz221/cnc/results/data_mass_calibration_so.npy",(cpdf_before_conv,cpdf_after_conv,cpdf_product,cpdf_mass,cpdf_product_with_hmf,lnM0,lnM,x_p,x_obs,redshift_eval))
+                            #     quit()
 
                             return_dict["cpdf_" + str(cluster_index) + "_" + str(redshift_error_id)] = cpdf_product_with_hmf
                             return_dict["lnm_vec_" + str(cluster_index) + "_" + str(redshift_error_id)] = lnM
@@ -866,7 +881,8 @@ class cluster_number_counts:
                             x_obs = np.array(x_obs)
                             n_obs = len(x_obs)
 
-                            hmf_cluster = np.interp(lnM,lnM0,halo_mass_function_z)*4.*np.pi*self.scal_rel_selection.skyfracs[patch_select]
+                            #hmf_cluster = np.interp(lnM,lnM0,halo_mass_function_z)
+                            hmf_cluster = halo_mass_function_z*4.*np.pi*self.scal_rel_selection.skyfracs[patch_select]
                             integrand_m = np.zeros(len(hmf_cluster))
 
                             if len(layers) > 1:
@@ -1335,7 +1351,7 @@ class cluster_number_counts:
         n_interp = np.interp(obs_select_vec_interp,self.obs_select_vec,n_obs)
         n_theory = integrate.simps(n_interp,obs_select_vec_interp)
 
-        log_lik = - n_theory
+        log_lik = -n_theory
 
         return log_lik
 
@@ -1487,14 +1503,15 @@ class cluster_number_counts:
 
                 for j in range(0,len(self.cnc_params["bins_edges_obs_select"])-1):
 
+                    n_observed = self.catalogue.number_counts[i,j]
+
                     redshift_vec_interp = np.linspace(self.cnc_params["bins_edges_z"][i],self.cnc_params["bins_edges_z"][i+1],n_bins_redshift)
                     obs_select_vec_interp = np.linspace(self.cnc_params["bins_edges_obs_select"][j],self.cnc_params["bins_edges_obs_select"][j+1],n_bins_obs_select)
                     X,Y = np.meshgrid(redshift_vec_interp,obs_select_vec_interp)
 
-                    abundance_matrix_interp = interpolate.RegularGridInterpolator((self.redshift_vec,self.obs_select_vec),self.abundance_matrix)((X,Y))
+                    abundance_matrix_interp = interpolate.RegularGridInterpolator((self.redshift_vec,self.obs_select_vec),self.abundance_matrix,bounds_error=True,fill_value=0)((X,Y))
 
                     n_theory = integrate.simps(integrate.simps(abundance_matrix_interp,redshift_vec_interp),obs_select_vec_interp)
-                    n_observed = self.catalogue.number_counts[i,j]
 
                     self.n_binned[i,j] = n_theory
                     self.n_binned_obs[i,j] = n_observed
