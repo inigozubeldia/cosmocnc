@@ -32,7 +32,7 @@ class cnc_likelihood(Likelihood):
 
     def _get_theory(self, **params_values):
 
-        theory = self.theory.get_sz_unbinned_cluster_counts()
+        theory = self.provider.get_sz_unbinned_cluster_counts()
 
         return theory
 
