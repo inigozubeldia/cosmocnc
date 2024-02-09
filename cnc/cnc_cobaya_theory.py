@@ -24,6 +24,9 @@ class cnc(classy):
     n_points_data_lik : Optional[str] =  128 #number of points for the computation of the cluster data part of the likelihood
     sigma_mass_prior : Optional[str] =  5.
 
+
+    cosmo_model : Optional[str] = "lcdm"
+
     #Observables and catalogue
 
     likelihood_type : Optional[str] =  "unbinned" #"unbinned", "binned", or "extreme_value"
@@ -125,6 +128,8 @@ class cnc(classy):
         self.cnc.cnc_params["n_points_data_lik"] = int(self.n_points_data_lik) # 128, #number of points for the computation of the cluster data part of the likelihood
         self.cnc.cnc_params["sigma_mass_prior"] = self.sigma_mass_prior # 5.,
 
+        self.cnc.cnc_params["cosmo_model"] = self.cosmo_model
+
         #Observables and catalogue
 
         self.cnc.cnc_params["likelihood_type"] = self.likelihood_type # "unbinned", #"unbinned", "binned", or "extreme_value"
@@ -195,6 +200,7 @@ class cnc(classy):
         # exit(0)
 
         self.cnc.initialise()
+
         self.derived_extra = []
         self.log.info("Initialized")
 
@@ -293,6 +299,7 @@ class cnc(classy):
         assign_parameter_value(cosmo_params,params_values,"h")
         assign_parameter_value(cosmo_params,params_values,"sigma_8")
         assign_parameter_value(cosmo_params,params_values,"n_s")
+        assign_parameter_value(cosmo_params,params_values,"m_nu")
 
         scal_rel_params = self.cnc.scal_rel_params
 
@@ -362,6 +369,11 @@ class cnc(classy):
 
                 cosmology = self.cnc.cosmology
                 derived[p] = cosmology.get_theta_mc()
+
+            if p == 'Omega_nu':
+
+                cosmology = self.cnc.cosmology
+                derived[p] = cosmology.get_Omega_nu()
 
         if want_derived:
 

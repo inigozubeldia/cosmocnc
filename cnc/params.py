@@ -66,6 +66,8 @@ cnc_params_default = {
     "cosmo_amplitude_parameter": "sigma_8", #"sigma_8" or "A_s"
     "scalrel_type_deriv": "analytical", #"analytical" or "numerical"
 
+    "cosmo_model": "lcdm", # lcdm, mnu, neff, wcdm, ede
+
     #Redshift errors parameters
 
     "z_errors": False,
@@ -225,6 +227,7 @@ cosmo_params_default = {
 
 "k_cutoff": 1e8,
 "ps_cutoff": 1,
+
 }
 
 
