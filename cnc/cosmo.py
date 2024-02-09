@@ -35,15 +35,18 @@ class cosmology_model:
             else:
                 print('Check your HMF')
                 exit(0)
+            print(">>> computing class_sz ini")
             self.classy_sz_ndim_redshifts =  self.cnc_params['classy_sz_ndim_redshifts']
             self.classy_sz_ndim_masses =  self.cnc_params['classy_sz_ndim_redshifts']
             self.classy_sz_concentration_parameter =  self.cnc_params['classy_sz_concentration_parameter']
 
-            self.classy.set({
-                           'H0': self.cosmo_params["h"]*100.,
+
+            classy_params = {
+                          'H0': self.cosmo_params["h"]*100.,
                            'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
                            'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2,
-                           'ln10^{10}A_s':np.log(self.cosmo_params["A_s"]*1e10),
+                        #    'ln10^{10}A_s':np.log(self.cosmo_params["A_s"]*1e10),
+                        #    'sigma8': self.cosmo_params["sigma_8"],
                            'tau_reio':  self.cosmo_params["tau_reio"],
                            'n_s': self.cosmo_params["n_s"],
 
@@ -87,10 +90,20 @@ class cosmology_model:
                           'n_z_dndlnM' : self.classy_sz_ndim_redshifts,
                           'n_m_dndlnM' : self.classy_sz_ndim_masses,
                           'concentration parameter': self.classy_sz_concentration_parameter
-                          })
+            }
+
+            if self.amplitude_parameter == "sigma_8":
+
+                classy_params['sigma8'] = self.cosmo_params["sigma8"]
+
+            elif self.amplitude_parameter == "A_s":
+
+                classy_params['ln10^{10}A_s'] = np.log(self.cosmo_params["A_s"]*1e10)
+
+            self.classy.set(classy_params)
 
             self.classy.compute_class_szfast()
-            # print('classy_sz computed')
+            print('classy_sz computed',self.classy.sigma8())
             # exit(0)
 
             self.T_CMB_0 = self.classy.T_cmb()
@@ -157,11 +170,14 @@ class cosmology_model:
 
         if cosmology_tool == "classy_sz":
 
+            print(">>>>> computing classy_sz cosmo.py update_cosmology")
+
             classy_params = {
                            'H0': self.cosmo_params["h"]*100.,
                            'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
                            'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2,
-                           'ln10^{10}A_s':np.log(self.cosmo_params["A_s"]*1e10),
+                        #    'ln10^{10}A_s':np.log(self.cosmo_params["A_s"]*1e10),
+                        #    'sigma8': self.cosmo_params["sigma_8"],
                            'tau_reio':  self.cosmo_params["tau_reio"],
                            'n_s': self.cosmo_params["n_s"],
 
@@ -198,8 +214,8 @@ class cosmology_model:
                         'HMF_prescription_NCDM': 1,
 
                         'no_spline_in_tinker': 1,
-                          'M_min' : 1e9,
-                          'M_max' : 1e17,
+                          'M_min' : 1e13,
+                          'M_max' : 1e16,
                           'z_min' : 0.,
                           'z_max' : 4.,
                           'ndim_redshifts' :self.classy_sz_ndim_redshifts,
@@ -211,15 +227,20 @@ class cosmology_model:
 
             if self.amplitude_parameter == "sigma_8":
 
-                classy_params['sigma8'] = self.cosmo_params["sigma_8"]
+                classy_params['sigma8'] = self.cosmo_params["sigma8"]
 
             elif self.amplitude_parameter == "A_s":
 
                 classy_params['ln10^{10}A_s'] = np.log(self.cosmo_params["A_s"]*1e10)
+            # if 'sigma8' in classy_params.keys():
+                # del classy_params['A_s']
+                # del classy_params['ln10^{10}A_s']
             print("classy_params",classy_params)
             self.classy.set(classy_params)
             self.classy.compute_class_szfast()
-            print("classy computed")
+            # self.classy.compute()
+            print("classy computed in updated cosmology")
+            print('sigma8:', self.classy.sigma8())
             # exit(0)
             self.T_CMB_0 = self.classy.T_cmb()
             self.N_eff = self.classy.get_current_derived_parameters(['Neff'])['Neff']

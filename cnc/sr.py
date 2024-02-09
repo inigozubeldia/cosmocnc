@@ -557,14 +557,16 @@ class scaling_relations:
 
                 #x1 = g_2d[rInclude[-1]:,:]
                 x1 = g_2d[rInclude,:]
-                if (self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'] == 'SPT-CLJ2355-5055'):
-                    print(self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'])
-                    print('MC SPT-CLJ2355-5055')
-                    print('Dl',Dl)
-                    np.savetxt('/Users/boris/Desktop/SPT-CLJ2355-5055_cnc.txt',
-                        np.c_[mArr,m200c,c200c,gamma_2d[0],kappa_2d[0],g_2d[0]])
-                    # print('rPhysRef',rPhysRef)
-                    print('file saved',self.rInclude)
+                # if (self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'] == 'SPT-CLJ2355-5055'): -- spt debug
+                #     print(self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'])
+                #     print('MC SPT-CLJ2355-5055')
+                #     print('Dl',Dl)
+                #     print(">>>>>>>>>>>>>>>>>>>>>>>> h:",h)
+                #     np.savetxt('/Users/boris/Desktop/SPT-CLJ2355-5055_cnc.txt',
+                #         np.c_[mArr,m200c,c200c,gamma_2d[5],kappa_2d[5],g_2d[5]])
+                #     # print('rPhysRef',rPhysRef)
+                #     print('file saved',self.rInclude)
+                #     print('Sigma_c = %.8e'%Sigma_c)
                     # exit(0)
                 # exit(0)
                 #x1[rInclude[-1]:,:] = 0.
@@ -643,7 +645,7 @@ class scaling_relations:
 
                 # Only consider 500<r/kpc/1500 in reference cosmology
                 cosmoRef = self.spt_cosmoRef
-
+                ### HST cosmoRef 
                 DlRef = np.exp(np.interp(np.log(1.+zcluster),
                                          self.spt_ln1pzs,
                                          self.spt_lndas_hmpc))
@@ -655,10 +657,10 @@ class scaling_relations:
                 x1 = g_2d[rInclude,:]
                 #x1 = g_2d
                 #x1[rInclude[-1]:,:] = 0.
-                if (self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'] == 'SPT-CLJ2355-5055'):
-                    print('HST SPT-CLJ2355-5055')
-                    print('DlRef',DlRef)
-                    exit(0)
+                # if (self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'] == 'SPT-CLJ2355-5055'): #---- debug spt
+                #     print('HST SPT-CLJ2355-5055')
+                #     print('DlRef',DlRef)
+                #     exit(0)
 
 
         self.x1 = x1
@@ -746,6 +748,32 @@ class scaling_relations:
 
                     dx1_dx0 = np.exp(x0)
 
+
+            if observable == "xi" :
+
+                if layer == 0:
+
+                    # #x0 is ln M_500, returns d ln q_mean / d ln M_500
+                    # sigma_vec = self.sigma_matrix[:,patch_index]
+                    # log_sigma_vec_derivative = np.interp(np.log(self.theta_500),np.log(self.theta_500_vec),np.gradient(np.log(sigma_vec),np.log(self.theta_500_vec)))
+                    # dx1_dx0 = self.params["B_sz"]
+                    # print(">>>>> in sr.py: dx1_dx0",dx1_dx0)
+                    # print(">>>>> in sr.py analytical:  dx1_dx0",self.params["B_sz"])
+                    
+
+                    dx1_dx0 = self.params["B_sz"]
+                    # exit(0)
+                    # continue
+
+                if layer == 1:
+
+                    #x0 is log q_true, x1 is q_true, returns q_true (including optimisation correction)
+                    #dx1_dx0 = np.exp(x0)
+
+                    dof = self.params["dof"]
+                    exp = np.exp(2.*x0)
+                    dx1_dx0 = exp/np.sqrt(exp+dof)
+
         elif scalrel_type_deriv == "numerical": #must always be computed strictly after executing self.eval_scaling_relation()
 
             dx1_dx0 = np.gradient(self.x1,x0)
@@ -789,7 +817,7 @@ class scaling_relations:
 
     def get_cutoff(self,layer=0):
 
-        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi" or self.observable == "q_act":
+        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi" or self.observable == "q_act" or self.observable == "xi":
 
             if layer == 0:
 
@@ -961,7 +989,7 @@ class scatter:
 
             elif (observable1 == "xi" and observable2 == "WLMegacam") or (observable2 == "xi" and observable1 == "WLMegacam"):
 
-                cov = self.params["corr_xi_Yx"]*self.params["sigma_lnq"]*self.params["sigma_lnWLMegacam"]
+                cov = self.params["corr_xi_WL"]*self.params["sigma_lnq"]*self.params["sigma_lnWLMegacam"]
 
             elif (observable1 == "Yx" and observable2 == "WLMegacam") or (observable2 == "Yx" and observable1 == "WLMegacam"):
 
@@ -974,7 +1002,7 @@ class scatter:
 
             elif (observable1 == "xi" and observable2 == "WLHST") or (observable2 == "xi" and observable1 == "WLHST"):
 
-                cov = self.params["corr_xi_Yx"]*self.params["sigma_lnq"]*self.params["sigma_lnWLHST"]
+                cov = self.params["corr_xi_WL"]*self.params["sigma_lnq"]*self.params["sigma_lnWLHST"]
 
             elif (observable1 == "Yx" and observable2 == "WLHST") or (observable2 == "Yx" and observable1 == "WLHST"):
 

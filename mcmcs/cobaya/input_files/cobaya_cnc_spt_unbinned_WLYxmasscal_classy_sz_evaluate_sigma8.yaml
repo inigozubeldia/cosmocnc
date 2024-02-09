@@ -24,12 +24,20 @@ theory:
     obs_select : 'xi'
     observables : [["xi","Yx","WLMegacam","WLHST"]]
 
+    classy_sz_ndim_redshifts: 50
+    classy_sz_ndim_masses: 100
+
+    apply_obs_cutoff: True
+    # q_cutoff: 2
+    cosmo_amplitude_parameter: "sigma_8" #"sigma_8" or "A_s"
+
 
 
     z_min : .25
     z_max : 2.
 
     sigma_mass_prior : 8
+
     n_points_data_lik : 128
     M_min: 1e13
     M_max: 5e15
@@ -76,16 +84,17 @@ params:
   tau_reio:
     value: 0.06
 
-  sigma_8:
+  sigma8:
+    latex: \sigma_8
     prior:
+      max: 2.0
       min: 0.1
-      max: 2.
     ref:
       dist: norm
-      loc: 0.81
+      loc: 0.80
       scale: 0.01
     proposal: 0.01
-    latex: \sigma_8
+
 
   n_s:
     prior:
@@ -333,6 +342,7 @@ params:
       scale: 0.01
     proposal: 0.01
     latex: \sigma_{\mathrm{hst}}
+  q_cutoff: 2
 
 prior:
   n_s_prior: 'lambda n_s: stats.norm.logpdf(n_s, loc=0.96, scale=0.0042)'
@@ -353,7 +363,7 @@ sampler:
   evaluate:
     override:
        H0 : 67.
-       sigma_8 : 0.8122313347357
+       sigma8:  0.799987
        n_s : 0.97
        Om0 : 0.3
        Ob0 : 0.049008687903764746
@@ -407,3 +417,4 @@ sampler:
   #   max_tries : 100000
   #   learn_proposal_Rminus1_max_early: 100.
 timing: True
+debug: False

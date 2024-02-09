@@ -346,8 +346,17 @@ class cluster_number_counts:
                                                               scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
 
                             dn_dx1 = dn_dx0/dx1_dx0
+                            
+                            
                             x1_interp = np.linspace(np.min(x1),np.max(x1),self.cnc_params["n_points"])
-                            dn_dx1 = np.interp(x1_interp,x1,dn_dx1)
+                            if k == 0:
+                                dn_dx1 = np.exp(np.interp(x1_interp,x1,np.log(dn_dx1)))
+                            elif k == 1:
+                                dn_dx1 = np.exp(np.interp(np.log(x1_interp),np.log(x1),np.log(dn_dx1)))
+                            dn_dx1[np.isnan(dn_dx1)] = 0.
+
+
+                            # dn_dx1 = np.interp(x1_interp,x1,dn_dx1)
 
                             sigma_scatter = np.sqrt(self.scatter.get_cov(observable1=self.cnc_params["obs_select"],
                                                                          observable2=self.cnc_params["obs_select"],
@@ -766,7 +775,8 @@ class cluster_number_counts:
                                                     x1[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],layer=lay+1,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)-x_obs_j
 
                                                 else:
-
+                                                    if (self.catalogue.catalogue['WLdata'][cluster_index]['SPT_ID'] == 'SPT-CLJ2355-5055'):
+                                                        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> start eval scale rel------", np.shape(x_p[j,:]))
                                                     xx = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],layer=lay+1,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)
                                                     std = self.catalogue.catalogue[observable_set[j] + "_std"][cluster_index]
 
@@ -774,19 +784,30 @@ class cluster_number_counts:
 
                                                     dxwl = xx - x_obs_j[rInclude,None]
                                                     dxwl_std = std[rInclude,None]
-                                                    if (self.catalogue.catalogue['WLdata'][cluster_index]['SPT_ID'] == 'SPT-CLJ2355-5055'):
+                                                    if (self.catalogue.catalogue['WLdata'][cluster_index]['SPT_ID'] == 'SPT-CLJ2355-5055---'): # remove '---' if you want that 
                                                         print('x1',np.sqrt(np.sum((dxwl/dxwl_std)**2.,axis=0)))
                                                         x1p = np.sqrt(np.sum((dxwl/dxwl_std)**2.,axis=0))
+
+                                                        print(">>> np.shape(xx)",np.shape(xx))
+                                                        np.save('/Users/boris/Desktop/SPT-CLJ2355-5055_pOfMass_cnc_g2d.npy',
+                                                                xx)
+
+                                                        # exit(0)
+
                                                         likelihood = norm.pdf(xx,x_obs_j[rInclude,None],dxwl_std)
                                                         print(x_obs_j[rInclude,None],dxwl_std)
-                                                        exit(0)
+                                                        # exit(0)
                                                         print('likelihood:',np.shape(likelihood),likelihood)
                                                         pOfMass = np.prod(likelihood, axis=0)
                                                         print('pOfMass',pOfMass)
-                                                        masses_hunits = np.exp(lnM)*1e14*self.cosmo_params['h']
+                                                        masses_hunits = np.exp(x_p[j,:])*1e14*self.cosmo_params['h']
                                                         print('Masses',np.shape(masses_hunits),masses_hunits)
                                                         np.savetxt('/Users/boris/Desktop/SPT-CLJ2355-5055_pOfMass_cnc.txt',np.c_[masses_hunits,pOfMass])
-                                                        exit(0)
+                                                        np.savetxt('/Users/boris/Desktop/SPT-CLJ2355-5055_pOfMass_cnc_data.txt',
+                                                                   np.c_[x_obs_j[rInclude,None],
+                                                                         std[rInclude,None]])
+                                                        print(">>> file saved in cnc.py, h:",self.cosmo_params['h'])
+                                                        # exit(0)
 
                                                     x1[j,:] = np.sqrt(np.sum((dxwl/dxwl_std)**2.,axis=0))
 
@@ -1257,7 +1278,10 @@ class cluster_number_counts:
             self.n_obs_fd = np.sum(self.n_obs_matrix_fd,axis=0)
             self.n_tot_fd = np.sum(self.n_tot_vec_fd,axis=0)
 
-        print("N tot",self.n_tot)
+        print("Ntot =",self.n_tot)
+        for indx_field in range(len(self.n_tot_vec)):
+                print("Ntotalfields %d=%.4f"%(indx_field,self.n_tot_vec[indx_field]))
+
 
     def get_log_lik_extreme_value(self):
 

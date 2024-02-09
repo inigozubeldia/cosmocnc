@@ -295,7 +295,8 @@ class cnc(classy):
         assign_parameter_value(cosmo_params,params_values,"Om0")
         assign_parameter_value(cosmo_params,params_values,"Ob0")
         assign_parameter_value(cosmo_params,params_values,"h")
-        assign_parameter_value(cosmo_params,params_values,"sigma_8")
+        assign_parameter_value(cosmo_params,params_values,"sigma8")
+        assign_parameter_value(cosmo_params,params_values,"A_s")
         assign_parameter_value(cosmo_params,params_values,"n_s")
 
         scal_rel_params = self.cnc.scal_rel_params
@@ -317,6 +318,8 @@ class cnc(classy):
 
 
         # SPT-style parameters:
+
+        assign_parameter_value(scal_rel_params,params_values,"q_cutoff")
 
         assign_parameter_value(scal_rel_params,params_values,"A_sz")
         assign_parameter_value(scal_rel_params,params_values,"B_sz")
@@ -352,6 +355,7 @@ class cnc(classy):
         # print(self.collectors.items())
         # d, d_extra = self._cnc_get_derived_all(derived_requested=want_derived)
         # print('d',d)
+        # print()
         derived = {}
         for p in self.output_params:
             if p == 'theta_mc':
@@ -359,6 +363,7 @@ class cnc(classy):
                 derived[p] = cosmology.get_theta_mc()
         # print('derived:',derived)
         # print('self.output_params', self.output_params)
+        # exit(0)
         if want_derived:
             state["derived"] = {p: derived.get(p) for p in self.output_params}
 
@@ -370,6 +375,9 @@ class cnc(classy):
 
                 cosmology = self.cnc.cosmology
                 derived[p] = cosmology.get_theta_mc()
+
+            if p == 'sigma8':
+                derived[p] = self.cnc.cosmology.sigma8
 
         if want_derived:
 

@@ -9,7 +9,8 @@ def convolve_1d(x,dn_dx,sigma_scatter,type="fft"):
 
     if sigma_scatter > 0.:
 
-        kernel = gaussian_1d(x-np.mean(x),sigma_scatter)
+        # kernel = gaussian_1d(x-np.mean(x),sigma_scatter)
+        kernel = gaussian_1d(x-np.mean(x)+(x[1]-x[0])*0.5,sigma_scatter)
         dn_dx = signal.convolve(dn_dx,kernel,mode="same",method=type)/np.sum(kernel)
 
     return dn_dx
