@@ -13,7 +13,7 @@ likelihood:
 theory:
   cnc.cnc_cobaya_theory.cnc:
     # cosmology_tool: "classy_sz"
-    number_cores : 1
+    number_cores_abundance : 1
     number_cores_hmf : 1
     observables: [["q_mmf3_mean"]]
     z_errors : True
