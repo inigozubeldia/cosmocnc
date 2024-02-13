@@ -311,17 +311,17 @@ class cluster_catalogue:
 
         elif self.catalogue_name[0:14] == "SO_sim_goal3yr":
 
-            catalogue = np.load(root_path + "data/catalogues_sim/catalogue_so_simulated_" + str(self.catalogue_name[7:]) + "_goal3yr.npy",allow_pickle=True)[0]
+            catalogue = np.load("/home/iz221/cnc/data/catalogues_sim/catalogue_so_simulated_" + str(self.catalogue_name[15:]) + "_goal3yr.npy",allow_pickle=True)[0]
 
             self.catalogue = {}
-            self.catalogue["q_so_sim"] = catalogue["q_so_sim"]
+            self.catalogue["q_so_goal3yr_sim"] = catalogue["q_so_goal3yr_sim"]
             self.catalogue["z"] = catalogue["z"]
             self.catalogue["z_std"] = np.zeros(len(self.catalogue["z"]))
-            self.catalogue["p_so_sim"] = catalogue["p_so_sim"]
+            self.catalogue["p_so_goal3yr_sim"] = catalogue["p_so_goal3yr_sim"]
 
             self.catalogue_patch = {}
-            self.catalogue_patch["q_so_sim"] = catalogue["q_so_sim_patch"]
-            self.catalogue_patch["p_so_sim"] = catalogue["p_so_sim_patch"]
+            self.catalogue_patch["q_so_goal3yr_sim"] = catalogue["q_so_goal3yr_sim_patch"]
+            self.catalogue_patch["p_so_goal3yr_sim"] = catalogue["p_so_goal3yr_sim_patch"]
 
             self.M = catalogue["M"]
 
@@ -329,13 +329,13 @@ class cluster_catalogue:
 
             self.stacked_data_labels = ["p_so_sim_stacked"]
 
-            self.catalogue_patch["p_so_sim_stacked"] = np.zeros(len(self.catalogue["p_so_sim"])) #if one wants to use p with just one layer
-            self.stacked_data = {"p_so_sim_stacked":{}}
+            self.catalogue_patch["p_so_goal3yr_sim_stacked"] = np.zeros(len(self.catalogue["p_so_goal3yr_sim"])) #if one wants to use p with just one layer
+            self.stacked_data = {"p_so_goal3yr_sim_stacked":{}}
 
-            self.stacked_data["p_so_sim_stacked"]["data_vec"] = np.mean(self.catalogue["p_so_sim"])
-            self.stacked_data["p_so_sim_stacked"]["inv_cov"] = float(len(self.catalogue["p_so_sim"]))
-            self.stacked_data["p_so_sim_stacked"]["cluster_index"] = np.arange(len(self.catalogue["z"]))
-            self.stacked_data["p_so_sim_stacked"]["observable"] = "p_so_sim"
+            self.stacked_data["p_so_goal3yr_sim_stacked"]["data_vec"] = np.mean(self.catalogue["p_so_goal3yr_sim"])
+            self.stacked_data["p_so_goal3yr_sim_stacked"]["inv_cov"] = float(len(self.catalogue["p_so_goal3yr_sim"]))
+            self.stacked_data["p_so_goal3yr_sim_stacked"]["cluster_index"] = np.arange(len(self.catalogue["z"]))
+            self.stacked_data["p_so_goal3yr_sim_stacked"]["observable"] = "p_so_goal3yr_sim"
 
         elif self.catalogue_name[0:7] == "SO_sim_":
 

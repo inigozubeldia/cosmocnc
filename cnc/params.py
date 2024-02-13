@@ -64,6 +64,7 @@ cnc_params_default = {
     "hmf_type_deriv": "numerical", #"analytical" or "numerical"
     "power_spectrum_type": "cosmopower",
     "cosmo_amplitude_parameter": "sigma_8", #"sigma_8" or "A_s"
+    "cosmo_param_density": "critical", #"physical" or "critical"
     "scalrel_type_deriv": "analytical", #"analytical" or "numerical"
 
     "cosmo_model": "lcdm", # lcdm, mnu, neff, wcdm, ede
@@ -219,11 +220,14 @@ cosmo_params_default = {
 "Om0":0.315,
 "Ob0":0.04897,
 "h":0.674,
-"A_s":1.9687e-9, #if amplitude_parameter == "sigma_8", this is overriden by the value given to "sigma_8" in this dictionary
+"A_s":2.08467e-09, #if amplitude_parameter == "sigma_8", this is overriden by the value given to "sigma_8" in this dictionary
 "n_s":0.96,
 "m_nu":0.06, #m_nu is sum of the three neutrino masses
 "sigma_8":0.811, #if amplitude_paramter == "A_s", this is overriden; the amplitude is taken by the value given to "A_s" in this dictionary
 "tau_reio": 0.0544,
+"w": -1.,
+"Onu0": 0.00141808,
+"N_eff": 3.046,
 
 "k_cutoff": 1e8,
 "ps_cutoff": 1,

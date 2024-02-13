@@ -293,13 +293,19 @@ class cnc(classy):
         params_values = params_values_dict.copy()
 
         cosmo_params = self.cnc.cosmo_params
-        assign_parameter_value(cosmo_params,params_values,"tau_reio")
         assign_parameter_value(cosmo_params,params_values,"Om0")
         assign_parameter_value(cosmo_params,params_values,"Ob0")
         assign_parameter_value(cosmo_params,params_values,"h")
         assign_parameter_value(cosmo_params,params_values,"sigma_8")
+        assign_parameter_value(cosmo_params,params_values,"A_s")
         assign_parameter_value(cosmo_params,params_values,"n_s")
         assign_parameter_value(cosmo_params,params_values,"m_nu")
+        assign_parameter_value(cosmo_params,params_values,"Onu0")
+        assign_parameter_value(cosmo_params,params_values,"w")
+        assign_parameter_value(cosmo_params,params_values,"tau_reio")
+        assign_parameter_value(cosmo_params,params_values,"Ob0h2")
+        assign_parameter_value(cosmo_params,params_values,"Oc0h2")
+        assign_parameter_value(cosmo_params,params_values,"Onu0h2")
 
         scal_rel_params = self.cnc.scal_rel_params
 

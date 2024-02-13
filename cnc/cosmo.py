@@ -12,16 +12,18 @@ import time
 
 class cosmology_model:
 
-    def __init__(self,cosmo_params=None,cosmology_tool = "astropy", power_spectrum_type="cosmopower",amplitude_parameter="sigma_8",cnc_params = None):
+    def __init__(self,cosmo_params=None,cosmology_tool="astropy",power_spectrum_type="cosmopower",
+    amplitude_parameter="sigma_8",cnc_params = None):
 
         self.cnc_params = cnc_params
-        
+
         if cosmo_params is None:
 
             cosmo_params = cosmo_params_default
 
         self.cosmo_params = cosmo_params
         self.amplitude_parameter = amplitude_parameter
+
 
         if cosmology_tool == "classy_sz":
 
@@ -33,21 +35,32 @@ class cosmology_model:
 
                 self.classy.set({"sigma8": self.cosmo_params["sigma_8"]})
 
-            elif self.amplitude_parameter == "sigma_8":
+            elif self.amplitude_parameter == "A_s":
 
                 self.classy.set({"ln10^{10}A_s": np.log(self.cosmo_params["A_s"]*1e10)})
+
+            if self.cnc_params["cosmo_param_density"] == "critical":
+
+                self.classy.set({'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
+                           'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2})
+
+            elif self.cnc_params["cosmo_param_density"] == "physical":
+
+                self.classy.set({'omega_b': self.cosmo_params["Ob0h2"],
+                           'omega_cdm': self.cosmo_params["Oc0h2"]})
 
 
             self.cosmo_model_dict = {'lcdm' : 0,
                                      'mnu'  : 1,
                                      'neff' : 2,
                                      'wcdm' : 3,
-                                     'ede'  : 4}
+                                     'ede'  : 4,
+                                     }
 
             self.classy.set({
-                           'H0': 44., #self.cosmo_params["h"]*100.,
-                           'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
-                           'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2,
+                           'H0': self.cosmo_params["h"]*100.,
+                           #'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
+                           #'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2,
                            'tau_reio':  self.cosmo_params["tau_reio"],
                            'n_s': self.cosmo_params["n_s"],
 
@@ -70,7 +83,12 @@ class cosmology_model:
                           # 'thermodynamics_verbose':3
                           'cosmo_model': self.cosmo_model_dict[self.cnc_params['cosmo_model']]
                           })
-            
+
+            if  self.cnc_params['cosmo_model'] == "wcdm":
+                self.classy.set({
+                    'Omega_Lambda' : 0.,
+                    'w0_fld' : self.cosmo_params["w"],
+                })
 
             self.classy.compute_class_szfast()
 
@@ -79,6 +97,13 @@ class cosmology_model:
             self.z_CMB = self.classy.get_current_derived_parameters(['z_rec'])['z_rec']
             self.D_CMB = self.classy.get_current_derived_parameters(['da_rec'])['da_rec']
             self.sigma8 = self.classy.get_current_derived_parameters(['sigma8'])['sigma8']
+            self.As = np.exp(self.classy.get_current_derived_parameters(["ln10^{10}A_s"])["ln10^{10}A_s"])/1e10
+            self.cosmo_params["A_s"] = self.As
+            self.cosmo_params["sigma_8"] = self.sigma8
+
+            self.Omega_nu = self.classy.Omega_nu
+            self.cosmo_params["Onu0"] = self.Omega_nu
+
             self.power_spectrum = classy_sz(self.classy)
             self.background_cosmology = classy_sz(self.classy)
             self.background_cosmology.H0.value = self.classy.h()*100.
@@ -91,13 +116,12 @@ class cosmology_model:
             self.power_spectrum_type = power_spectrum_type
 
             self.T_CMB_0 = 2.7255
-            self.N_eff = 3.046
 
             self.background_cosmology = self.cosmology_tool.FlatLambdaCDM(self.cosmo_params["h"]*100.,
                                                                           self.cosmo_params["Om0"],
                                                                           Ob0=self.cosmo_params["Ob0"],
                                                                           Tcmb0=self.T_CMB_0,
-                                                                          Neff=self.N_eff,
+                                                                          Neff=self.cosmo_params["N_eff"],
                                                                           m_nu=self.cosmo_params["m_nu"]/3.)
 
             self.z_CMB = self.get_z_cmb()
@@ -128,6 +152,7 @@ class cosmology_model:
                 elif self.amplitude_parameter == "A_s":
 
                     self.sigma_8 = self.power_spectrum.get_sigma_8()
+                    self.cosmo_params["sigma_8"] = self.sigma_8
 
     def update_cosmology(self,cosmo_params_new,cosmology_tool = "astropy"):
 
@@ -137,8 +162,8 @@ class cosmology_model:
 
             classy_params = {
                            'H0': self.cosmo_params["h"]*100.,
-                           'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
-                           'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2,
+                          # 'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
+                          # 'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2,
                            'tau_reio':  self.cosmo_params["tau_reio"],
                            'n_s': self.cosmo_params["n_s"],
 
@@ -170,6 +195,14 @@ class cosmology_model:
                           'cosmo_model': self.cosmo_model_dict[self.cnc_params['cosmo_model']]
                           }
 
+            if  self.cnc_params['cosmo_model'] == "wcdm":
+
+                classy_params.update({
+                    'Omega_Lambda' : 0.,
+                    'w0_fld' : self.cosmo_params["w"],
+                })
+
+
             if self.amplitude_parameter == "sigma_8":
 
                 classy_params['sigma8'] = self.cosmo_params["sigma_8"]
@@ -177,6 +210,16 @@ class cosmology_model:
             elif self.amplitude_parameter == "A_s":
 
                 classy_params['ln10^{10}A_s'] = np.log(self.cosmo_params["A_s"]*1e10)
+
+            if self.cnc_params["cosmo_param_density"] == "critical":
+
+                classy_params['omega_b'] = self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2
+                classy_params['omega_cdm'] = (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2
+
+            elif self.cnc_params["cosmo_param_density"] == "physical":
+
+                classy_params['omega_b'] = self.cosmo_params["Ob0h2"]
+                classy_params['omega_cdm'] = self.cosmo_params["Oc0h2"]
 
             self.classy.set(classy_params)
 
@@ -187,9 +230,12 @@ class cosmology_model:
             self.z_CMB = self.classy.get_current_derived_parameters(['z_rec'])['z_rec']
             self.D_CMB = self.classy.get_current_derived_parameters(['da_rec'])['da_rec']
             self.sigma8 = self.classy.get_current_derived_parameters(['sigma8'])['sigma8']
+            self.As = np.exp(self.classy.get_current_derived_parameters(["ln10^{10}A_s"])["ln10^{10}A_s"])/1e10
+            self.cosmo_params["A_s"] = self.As
+            self.cosmo_params["sigma_8"] = self.sigma8
 
-            self.Omega_nu= self.classy.Omega_nu
-
+            self.Omega_nu = self.classy.Omega_nu
+            self.cosmo_params["Onu0"] = self.Omega_nu
 
             self.power_spectrum = classy_sz(self.classy)
             self.background_cosmology = classy_sz(self.classy)
@@ -203,7 +249,7 @@ class cosmology_model:
                                                                           self.cosmo_params["Om0"],
                                                                           Ob0=self.cosmo_params["Ob0"],
                                                                           Tcmb0=self.T_CMB_0,
-                                                                          Neff=self.N_eff,
+                                                                          Neff=self.cosmo_params["N_eff"],
                                                                           m_nu=self.cosmo_params["m_nu"]/3.)
 
             self.z_CMB = self.get_z_cmb()
@@ -229,6 +275,7 @@ class cosmology_model:
                 elif self.amplitude_parameter == "A_s":
 
                     self.sigma_8 = self.power_spectrum.get_sigma_8()
+                    self.cosmo_params["sigma_8"] = self.sigma_8
 
         theta_mc = self.get_theta_mc()
 
@@ -260,7 +307,7 @@ class cosmology_model:
         z_cmb = 1048.*(1.+0.00124*(Ob0h2)**(-0.738))*(1.+g1*Om0h2**g2)
 
         return z_cmb
-    
+
     def get_Omega_nu(self):
         return self.Omega_nu
 
