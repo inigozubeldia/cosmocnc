@@ -18,7 +18,7 @@ theory:
     observables: [["q_mmf3_mean"]]
     z_errors : True
 
-    cosmo_model : "mnu"
+    cosmo_model : "wcdm"
     # n_points : 2000000
     # add all params you want here.
     # default values are in cnc_cobaya_theory
@@ -88,17 +88,6 @@ params:
       scale: 0.005
     proposal: 0.005
     latex: \Omega_\mathrm{b}
-
-  m_nu:
-    prior:
-      min: 0.
-      max: 1.
-    ref:
-      dist: norm
-      loc: 0.06
-      scale: 0.01
-    proposal: 0.01
-    latex: m_\mathrm{\nu}
 
   alpha:
     prior:
@@ -182,9 +171,20 @@ params:
     latex: '\theta_{mc}'
     derived: true
 
-  Omega_nu: 
-    latex: '\Omega_{\nu}'
-    derived: true
+  w0_fld:
+    latex: 'w'
+    prior:
+      min: -2.
+      max: -0.33
+    ref:
+      dist: norm
+      loc: -1.
+      scale: 0.01
+    proposal: 0.01
+
+  # Omega_nu: 
+  #   latex: '\Omega_{\nu}'
+  #   derived: true
 
 prior:
   bias_cmblens_prior: 'lambda bias_cmblens: stats.norm.logpdf(bias_cmblens, loc=0.93, scale=0.05)'
@@ -208,7 +208,7 @@ sampler:
        n_s : 0.955518
        Om0 : 0.318898
        Ob0 : 0.0471481
-       m_nu : 0.06
+       w0_fld : -1.8
        alpha : 1.77346
        log10_Y_star : -0.21915
        bias_sz : 0.678024
