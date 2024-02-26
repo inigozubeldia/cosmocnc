@@ -44,7 +44,10 @@ class cnc(classy):
     data_lik_type: Optional[str] = "backward_convolutional"
     abundance_integral_type: Optional[str] = "fft" #fft or direct
     delta_m_with_ref: Optional[str] = False
+    Hubble_parameter: Optional[str] = "h"
+    sigma_scatter_min: Optional[str] = 1e-5
 
+    cosmo_param_density: Optional[str] = "critical"
     #Range of abundance observables
 
     obs_select_min : Optional[str] =  6.
@@ -129,6 +132,7 @@ class cnc(classy):
         self.cnc.cnc_params["sigma_mass_prior"] = self.sigma_mass_prior # 5.,
 
         self.cnc.cnc_params["cosmo_model"] = self.cosmo_model
+        self.cnc.cnc_params["cosmo_param_density"] = self.cosmo_param_density
 
         #Observables and catalogue
 
@@ -165,6 +169,7 @@ class cnc(classy):
         self.cnc.cnc_params["power_spectrum_type"] = self.power_spectrum_type # "cosmopower",
         self.cnc.cnc_params["cosmo_amplitude_parameter"] = self.cosmo_amplitude_parameter # "sigma_8", #"sigma_8" or "A_s"
         self.cnc.cnc_params["scalrel_type_deriv"] = self.scalrel_type_deriv # "analytical", #"analytical" or "numerical"
+        self.cnc.cnc_params["sigma_scatter_min"] = self.sigma_scatter_min
 
         #Redshift errors parameters
 
@@ -182,6 +187,7 @@ class cnc(classy):
         self.cnc.cnc_params["stacked_likelihood"] = self.stacked_likelihood
         self.cnc.cnc_params["stacked_data"] = self.stacked_data
         self.cnc.cnc_params["compute_stacked_cov"] = self.compute_stacked_cov
+        self.cnc.cnc_params["Hubble_parameter"] = self.Hubble_parameter
 
         self.cnc.cnc_params["likelihood_cal_alt"] = self.likelihood_cal_alt
         self.cnc.cnc_params["observables_cal_alt"] = self.observables_cal_alt
@@ -301,7 +307,7 @@ class cnc(classy):
         assign_parameter_value(cosmo_params,params_values,"n_s")
         assign_parameter_value(cosmo_params,params_values,"m_nu")
         assign_parameter_value(cosmo_params,params_values,"Onu0")
-        assign_parameter_value(cosmo_params,params_values,"w")
+        assign_parameter_value(cosmo_params,params_values,"w0")
         assign_parameter_value(cosmo_params,params_values,"tau_reio")
         assign_parameter_value(cosmo_params,params_values,"Ob0h2")
         assign_parameter_value(cosmo_params,params_values,"Oc0h2")
@@ -376,14 +382,39 @@ class cnc(classy):
                 cosmology = self.cnc.cosmology
                 derived[p] = cosmology.get_theta_mc()
 
-            if p == 'Omega_nu':
+            if p == 'Onu0':
 
-                cosmology = self.cnc.cosmology
-                derived[p] = cosmology.get_Omega_nu()
+                derived[p] = self.cnc.cosmo_params["Onu0"]
+
+            if p == "sigma_8":
+
+                derived[p] = self.cnc.cosmo_params["sigma_8"]
+
+            if p == "A_s":
+
+                derived[p] = self.cnc.cosmo_params["A_s"]
+
+            if p == "Om0":
+
+                derived[p] = self.cnc.cosmo_params["Om0"]
+
+            if p == "Ob0":
+
+                derived[p] = self.cnc.cosmo_params["Ob0"]
+
+            if p == "Om0h2":
+
+                derived[p] = self.cnc.cosmo_params["Om0h2"]
+
+            if p == "Ob0h2":
+
+                derived[p] = self.cnc.cosmo_params["Ob0h2"]
 
         if want_derived:
 
             state["derived"] = {p: derived.get(p) for p in self.output_params}
+
+        print("Derived parameters",derived)
 
         for product, collector in self.collectors.items():
 

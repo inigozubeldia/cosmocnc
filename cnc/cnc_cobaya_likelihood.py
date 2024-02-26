@@ -164,20 +164,12 @@ class desi_prior_nulcdm(Likelihood):
 
     def initialize(self):
 
-        cov_matrix = np.array([[ 1.36965486e+01,  -9.85531387e+03,
-        -4.48447208e+02,
-         2.36560713e+01],
-       [-9.85531387e+03,    7.22527072e+06,
-         2.66595377e+05,
-        -1.81989442e+04],
-       [-4.48447208e+02,   2.66595377e+05,
-         3.81721292e+04,
-        -2.81461717e+02],
-       [ 2.36560713e+01,   -1.81989442e+04,
-        -2.81461717e+02,
-         5.12081728e+01]])
+        fisher = np.array([[1.369654863353185803e+01, -9.855313873854645863e+03, -4.484472083574374892e+02, 2.365607125643557751e+01],
+        [-9.855313873854645863e+03, 7.225270719267868437e+06, 2.665953771213945001e+05, -1.819894418709868478e+04],
+        [-4.484472083574374892e+02, 2.665953771213945001e+05, 3.817212923439533915e+04, -2.814617165869603355e+02],
+        [2.365607125643557751e+01, -1.819894418709868478e+04 ,-2.814617165869603355e+02 ,5.120817278151554319e+01]])
 
-        self.minus_half_invcov = - 0.5*np.linalg.inv(cov_matrix)
+        self.minus_half_invcov = - 0.5*fisher
 
         H0_true = 67.4
         h = H0_true/100.
@@ -206,46 +198,58 @@ class desi_prior_nulcdm(Likelihood):
         return log_lik
 
 
+class desi_prior_wcdm(Likelihood):
+
+    def initialize(self):
+
+        fisher = np.array([[1.369654863353185803e+01,  -9.855313873854645863e+03, -4.484472083574374892e+02, 3.103177771032207488e+02],
+        [-9.855313873854645863e+03, 7.225270719267868437e+06, 2.665953771213945001e+05,-2.312677425005600380e+05],
+        [-4.484472083574374892e+02, 2.665953771213945001e+05, 3.817212923439533915e+04,-6.818149725908029723e+03],
+        [3.103177771032207488e+02, -2.312677425005600380e+05, -6.818149725908029723e+03,7.563758947320854531e+03]])
+
+        self.minus_half_invcov = - 0.5*fisher
+
+        H0_true = 67.4
+        h = H0_true/100.
+        w0_true = -1.
+        Ob0h2_true = 0.022245895
+        Oc0h2_true = 0.315*h**2-Ob0h2_true
+
+        self.param_vec_true = np.array([H0_true,Ob0h2_true,Oc0h2_true,w0_true])
+
+    def get_requirements(self):
+
+        return {"H0": None,"Ob0h2":None,"Oc0h2":None,"w0":None}
+
+    def logp(self, **params_values):
+
+        H0 = self.provider.get_param("H0")
+        Ob0h2 = self.provider.get_param("Ob0h2")
+        Oc0h2 = self.provider.get_param("Oc0h2")
+        w0 = self.provider.get_param("w0")
+
+        param_vec = np.array([H0,Ob0h2,Oc0h2,w0])
+        res = param_vec - self.param_vec_true
+
+        log_lik = np.transpose(res).dot(self.minus_half_invcov.dot(res))
+
+        return log_lik
+
 class desi_prior_lcdm(Likelihood):
 
     def initialize(self):
 
-        fisher = np.array([[ 1.36965486e+01,  0.00000000e+00, -9.85531387e+03,
-                -4.48447208e+02,  0.00000000e+00,  0.00000000e+00,
-                 2.36560713e+01],
-               [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-                 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-                 0.00000000e+00],
-               [-9.85531387e+03,  0.00000000e+00,  7.22527072e+06,
-                 2.66595377e+05,  0.00000000e+00,  0.00000000e+00,
-                -1.81989442e+04],
-               [-4.48447208e+02,  0.00000000e+00,  2.66595377e+05,
-                 3.81721292e+04,  0.00000000e+00,  0.00000000e+00,
-                -2.81461717e+02],
-               [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-                 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-                 0.00000000e+00],
-               [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-                 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-                 0.00000000e+00],
-               [ 2.36560713e+01,  0.00000000e+00, -1.81989442e+04,
-                -2.81461717e+02,  0.00000000e+00,  0.00000000e+00,
-                 5.12081728e+01]])
+        fisher = np.array([[1.369654863353185803e+01, -9.855313873854645863e+03, -4.484472083574374892e+02, 2.365607125643557751e+01],
+        [-9.855313873854645863e+03, 7.225270719267868437e+06, 2.665953771213945001e+05, -1.819894418709868478e+04],
+        [-4.484472083574374892e+02, 2.665953771213945001e+05, 3.817212923439533915e+04, -2.814617165869603355e+02],
+        [2.365607125643557751e+01, -1.819894418709868478e+04 ,-2.814617165869603355e+02 ,5.120817278151554319e+01]])
 
-        indices = [0,2,3]
+        indices = [0,1,2]
 
         fisher = fisher[indices,:]
         fisher = fisher[:,indices]
 
-
         self.minus_half_invcov = - 0.5*fisher
-
-        self.cov = np.linalg.inv(fisher)
-
-        print('Fisher',fisher)
-        print('Covariance',self.cov)
-
-        self.norm = 0.5*np.log(2.*np.linalg.det(fisher))
 
         H0_true = 67.4
         h = H0_true/100.
@@ -267,12 +271,6 @@ class desi_prior_lcdm(Likelihood):
         param_vec = np.array([H0,Ob0h2,Oc0h2])
         res = param_vec - self.param_vec_true
 
-        #log_lik = np.transpose(res).dot(self.minus_half_invcov.dot(res)) #+ self.norm
-
-        log_lik = stats.multivariate_normal.logpdf(res,mean=np.zeros(len(res)),cov=self.cov)
-
-        #print("log_lik",log_lik)
-
-        #print("log lik prior",log_lik)
+        log_lik = np.transpose(res).dot(self.minus_half_invcov.dot(res))
 
         return log_lik

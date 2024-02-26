@@ -67,13 +67,6 @@ class cluster_number_counts:
                 self.scaling_relations[observable] = scaling_relations(observable=observable,cnc_params=self.cnc_params,catalogue=self.catalogue)
                 self.scaling_relations[observable].initialise_scaling_relation()
 
-        if self.cnc_params["likelihood_cal_alt"] == True:
-
-            for observable in self.cnc_params["observables_cal_alt"]:
-
-                self.scaling_relations[observable] = scaling_relations(observable=observable,cnc_params=self.cnc_params,catalogue=self.catalogue)
-                self.scaling_relations[observable].initialise_scaling_relation()
-
         if self.cnc_params["stacked_likelihood"] == True:
 
             self.stacked_data_labels = self.cnc_params["stacked_data"]
@@ -301,7 +294,8 @@ class cluster_number_counts:
                                 indices = np.where(x1_interp < cutoff)
                                 dn_dx1[indices] = 0.
 
-                            dn_dx1 = convolve_1d(x1_interp,dn_dx1,sigma=sigma_scatter,type=self.cnc_params["abundance_integral_type"])
+                            dn_dx1 = convolve_1d(x1_interp,dn_dx1,sigma=sigma_scatter,
+                            type=self.cnc_params["abundance_integral_type"],sigma_min=self.cnc_params["sigma_scatter_min"])
 
                             x0 = x1_interp
                             dn_dx0 = dn_dx1
@@ -1173,131 +1167,6 @@ class cluster_number_counts:
             self.cluster_lnM[cluster_index] = self.cpdf_dict["lnM_mean_" + str(cluster_index)]
             self.cluster_lnM_std[cluster_index] = self.cpdf_dict["lnM_std_" + str(cluster_index)]
 
-
-    def get_log_lik_calibration_alt(self):
-
-        n_cores = self.cnc_params["number_cores_stacked"]
-        cluster_indices = []
-        cluster_observable = []
-
-        self.n_clusters_cal = {}
-        self.cluster_indices_cal = {}
-
-        for observable in self.cnc_params["observables_cal_alt"]:
-
-            cal_cluster_indices = np.argwhere(~np.isnan(self.catalogue.catalogue[observable]))[:,0]
-            self.cluster_indices_cal[observable] = cal_cluster_indices
-
-            for i in range(0,len(cal_cluster_indices)):
-
-                cluster_indices.append(int(cal_cluster_indices[i]))
-                cluster_observable.append(observable)
-
-        n_cores = self.cnc_params["number_cores_stacked"]
-        indices_split = np.array_split(np.arange(len(cluster_indices)),n_cores)
-
-        def f_mp(rank,out_q):
-
-            return_dict = {}
-
-            for i in range(0,len(indices_split[rank])):
-
-                cluster_index = int(cluster_indices[indices_split[rank][i]])
-                observable = cluster_observable[indices_split[rank][i]]
-                x_obs = self.catalogue.catalogue[observable][cluster_index]
-
-                cluster_patch = int(self.catalogue.catalogue_patch[observable][cluster_index])
-                n_layer = self.scaling_relations[observable].get_n_layers()
-
-                z_vec = self.cpdf_dict["z_vec_" + str(cluster_index)]
-
-                if len(z_vec) == 1:
-
-                    redshift_error_id = 0
-                    redshift_eval = z_vec[0]
-
-                    cpdf = self.cpdf_dict["cpdf_" + str(cluster_index) + "_" + str(redshift_error_id)]
-                    lnM_vec = self.cpdf_dict["lnm_vec_" + str(cluster_index) + "_" + str(redshift_error_id)]
-                    cpdf = cpdf/integrate.simps(cpdf,lnM_vec)
-
-                    D_A = np.interp(redshift_eval,self.redshift_vec,self.D_A)
-                    E_z = np.interp(redshift_eval,self.redshift_vec,self.E_z)
-                    D_l_CMB = np.interp(redshift_eval,self.redshift_vec,self.D_l_CMB)
-                    rho_c = np.interp(redshift_eval,self.redshift_vec,self.rho_c)
-
-                    other_params = {"D_A": D_A,
-                    "E_z": E_z,
-                    "H0": self.cosmology.background_cosmology.H0.value,
-                    "D_l_CMB":D_l_CMB,
-                    "rho_c":rho_c,
-                    "D_CMB":self.cosmology.D_CMB,
-                    "E_z0p6" : self.E_z0p6,
-                    "zc":redshift_eval,
-                    "cosmology":self.cosmology}
-
-                    self.scaling_relations[observable].precompute_scaling_relation(params=self.scal_rel_params,
-                    other_params=other_params,patch_index=cluster_patch)
-
-                    x0 = lnM_vec
-                    dn_dx0 = cpdf
-
-                    for layer in range(0,n_layer-1):
-
-                        x1 = self.scaling_relations[observable].eval_scaling_relation(x0,layer=layer,patch_index=cluster_patch,other_params=other_params)
-
-                        dx1_dx0 = self.scaling_relations[observable].eval_derivative_scaling_relation(x0,
-                                                          layer=layer,patch_index=cluster_patch,
-                                                          scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
-
-                        dn_dx1 = dn_dx0/dx1_dx0
-                        x1_interp = np.linspace(np.min(x1),np.max(x1),self.cnc_params["n_points"])
-                        dn_dx1 = np.interp(x1_interp,x1,dn_dx1)
-
-                        sigma_scatter = np.sqrt(self.scatter.get_cov(observable1=observable,
-                                                                     observable2=observable,
-                                                                     layer=layer,patch1=cluster_patch,patch2=cluster_patch))
-
-                        dn_dx1 = convolve_1d(x1_interp,dn_dx1,sigma=sigma_scatter)
-
-                        x0 = x1_interp
-                        dn_dx0 = dn_dx1
-
-                    cpdf = dn_dx1
-
-                    x1 = self.scaling_relations[observable].eval_scaling_relation(x0,layer=n_layer-1,patch_index=cluster_patch,other_params=other_params)
-
-                    sigma_scatter = np.sqrt(self.scatter.get_cov(observable1=observable,
-                                                                 observable2=observable,
-                                                                 layer=n_layer-1,patch1=cluster_patch,patch2=cluster_patch))
-
-                    pdf_last = gaussian_1d(x1-x_obs,sigma_scatter)
-
-                    log_lik_cluster = np.log(integrate.simps(pdf_last*cpdf,x0))
-
-                return_dict[observable + "_" + str(cluster_index)] = log_lik_cluster
-
-            if n_cores > 1:
-
-                out_q.put(return_dict)
-
-            else:
-
-                return return_dict
-
-        return_dict = launch_multiprocessing(f_mp,n_cores)
-
-        log_lik = 0.
-
-        for observable in self.cnc_params["observables_cal_alt"]:
-
-            cluster_indices = self.cluster_indices_cal[observable]
-
-            for i in cluster_indices:
-
-                log_lik = log_lik + return_dict[observable + "_" + str(int(i))]
-
-        return log_lik
-
     #Computes the integrated cluster number counts as a function of redshift, selection
     #observable, and the total number counts
 
@@ -1461,10 +1330,6 @@ class cluster_number_counts:
 
             log_lik = log_lik + self.get_log_lik_stacked()
 
-        if self.cnc_params["likelihood_cal_alt"] == True:
-
-            log_lik = log_lik + self.get_log_lik_calibration_alt()
-
         return log_lik
 
     def get_abundance_matrix(self):
@@ -1625,3 +1490,126 @@ class cluster_number_counts:
         self.update_params(self.cosmo_params,self.scal_rel_params)
 
         return log_lik_derivative
+
+    def get_log_lik_second_derivative(self,params,param_vecs,param_types):
+
+        param0 = params[0]
+        param1 = params[1]
+
+        param0_vec = param_vecs[param0]
+        param1_vec = param_vecs[param1]
+
+        param0_type = param_types[param0]
+        param1_type = param_types[param1]
+
+        if param0_type == "cosmo":
+
+            param0_0 = self.cosmo_params[param0]
+
+        elif param0_type == "scal_rel":
+
+            param0_0 = self.scal_rel_params[param0]
+
+        if param1_type == "cosmo":
+
+            param1_0 = self.cosmo_params[param1]
+
+        elif param1_type == "scal_rel":
+
+            param1_0 = self.scal_rel_params[param1]
+
+        if param0 == param1:
+
+            log_lik_vec = np.zeros(len(param0_vec))
+
+            for i in range(0,len(param0_vec)):
+
+                if param0_type == "cosmo":
+
+                    self.cosmo_params[param0] = param0_vec[i]
+
+                elif param0_type == "scal_rel":
+
+                    self.scal_rel_params[param0] = param0_vec[i]
+
+                self.update_params(self.cosmo_params,self.scal_rel_params)
+
+                log_lik_vec[i] = self.get_log_lik()
+
+            pl.plot(param0_vec,log_lik_vec)
+            pl.savefig("/home/iz221/cnc/figures/log_lik.pdf")
+            pl.show()
+
+            log_lik_derivative_vec = np.gradient(log_lik_vec,param0_vec)
+
+            pl.plot(param0_vec,log_lik_vec)
+            pl.savefig("/home/iz221/cnc/figures/log_lik_der1.pdf")
+            pl.show()
+
+            log_lik_second_derivative_vec = np.gradient(log_lik_derivative_vec,param0_vec)
+
+            pl.plot(param0_vec,log_lik_vec)
+            pl.savefig("/home/iz221/cnc/figures/log_lik_der2.pdf")
+            pl.show()
+
+            index_extract_0 = (len(param0_vec)-1)//2
+            log_lik_second_derivative = log_lik_second_derivative_vec[index_extract_0]
+
+        else:
+
+            log_lik_matrix = np.zeros((len(param0_vec),len(param1_vec)))
+
+            for i in range(0,len(param0_vec)):
+
+                for j in range(0,len(param1_vec)):
+
+                    if param0_type == "cosmo":
+
+                        self.cosmo_params[param0] = param0_vec[i]
+
+                    elif param0_type == "scal_rel":
+
+                        self.scal_rel_params[param0] = param0_vec[i]
+
+                    if param1_type == "cosmo":
+
+                        self.cosmo_params[param1] = param1_vec[j]
+
+                    elif param1_type == "scal_rel":
+
+                        self.scal_rel_params[param1] = param1_vec[j]
+
+                    self.update_params(self.cosmo_params,self.scal_rel_params)
+
+                    log_lik_matrix[i,j] = self.get_log_lik()
+
+            der_x = np.gradient(log_lik_matrix,param0_vec,axis=0)
+            der_y = np.gradient(log_lik_matrix,param1_vec,axis=1)
+
+            index_extract_0 = (len(param0_vec)-1)//2
+            index_extract_1 = (len(param1_vec)-1)//2
+
+            #der_xx = np.gradient(der_x,param0_vec,axis=0)[index_extract_0,index_extract_1]
+            der_xy = np.gradient(der_x,param1_vec,axis=1)[index_extract_0,index_extract_1]
+            der_yx = np.gradient(der_y,param0_vec,axis=0)[index_extract_0,index_extract_1]
+            #der_yy = np.gradient(der_y,param1_vec,axis=1)[index_extract_0,index_extract_1]
+
+            log_lik_second_derivative = 0.5*(der_xy+der_yx)
+
+        if param0_type == "cosmo":
+
+            self.cosmo_params[param0] = param0_0
+
+        elif param0_type == "scal_rel":
+
+            self.scal_rel_params[param0] = param0_0
+
+        if param1_type == "cosmo":
+
+            self.cosmo_params[param1] = param1_0
+
+        elif param1_type == "scal_rel":
+
+            self.scal_rel_params[param1] = param1_0
+
+        return log_lik_second_derivative

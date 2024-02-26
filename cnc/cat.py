@@ -12,7 +12,7 @@ import pickle
 
 class cluster_catalogue:
 
-    def __init__(self,catalogue_name="Planck_MMF3_cosmo",
+    def __init__(self,catalogue_name=None,
                  precompute_cnc_quantities=True,
                  bins_obs_select_edges=np.linspace(0.01,1.01,11),
                  bins_z_edges=np.exp(np.linspace(np.log(6.),np.log(100),6)),

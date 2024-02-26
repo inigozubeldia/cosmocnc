@@ -11,9 +11,9 @@ import pylab as pl
 #import numba
 #from .fast_interp import *
 
-def convolve_1d(x,dn_dx,sigma=None,type="fft",kernel=None):
+def convolve_1d(x,dn_dx,sigma=None,type="fft",kernel=None,sigma_min=0):
 
-    if sigma > 0.:
+    if sigma > sigma_min:
 
         if kernel is None:
 
