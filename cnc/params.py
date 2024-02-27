@@ -214,7 +214,14 @@ scaling_relation_params_default = {
 'corr_xi_WL': 0.1, # 'rhoSZWL' in Bocquet's code
 'corr_Yx_WL': 0.1,  # 'rhoWLX' in Bocquet's code
 
-'SZmPivot': 3e14
+'SZmPivot': 3e14,
+
+#ACT
+
+"A0": np.log10(1.9e-5),
+"B0": 0.08,
+"C0": 0.,
+"sigma_lnq_act": 0.2,
 }
 
 cosmo_params_default = {

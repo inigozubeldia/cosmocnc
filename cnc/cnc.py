@@ -256,7 +256,10 @@ class cluster_number_counts:
                         other_params = {"D_A": self.D_A[redshift_index],
                                         "E_z": self.E_z[redshift_index],
                                         "H0": self.cosmology.background_cosmology.H0.value,
-                                        "E_z0p6" : self.E_z0p6}
+                                        "E_z0p6" : self.E_z0p6,
+                                        "zc":self.redshift_vec[redshift_index],
+                                        "cosmology":self.cosmology,
+                                        }
 
                         dn_dx0 = self.hmf_matrix[redshift_index,:]
                         x0 = self.ln_M
@@ -1370,6 +1373,7 @@ class cluster_number_counts:
                 for j in range(0,len(self.cnc_params["bins_edges_obs_select"])-1):
 
                     n_observed = self.catalogue.number_counts[i,j]
+
 
                     redshift_vec_interp = np.linspace(self.cnc_params["bins_edges_z"][i],self.cnc_params["bins_edges_z"][i+1],n_bins_redshift)
                     obs_select_vec_interp = np.linspace(self.cnc_params["bins_edges_obs_select"][j],self.cnc_params["bins_edges_obs_select"][j+1],n_bins_obs_select)

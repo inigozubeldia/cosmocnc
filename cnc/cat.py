@@ -686,24 +686,52 @@ class cluster_catalogue:
 
                 self.catalogue['WLdata'] = np.asarray(spt_catalog['WLdata'][indices_catalog])
 
+        elif self.catalogue_name[0:11] == "act_dr5_sim":
+
+            #SZ data from ACT
+
+            threshold = 5.
+
+            act_cat = np.loadtxt(root_path + "data/act_dr5/SZ_cat_nemosimkit_130923.txt").transpose()
+            data_act = {}
+            data_act["SNR"] = act_cat[2]
+            data_act["z"] = act_cat[0]
+
+            indices_act = []
+
+            for i in range(0,len(data_act["SNR"])):
+
+                if (data_act["SNR"][i] > threshold):
+
+                    indices_act.append(i)
+
+            observable = self.obs_select
+
+            self.catalogue[observable] = data_act["SNR"][indices_act]
+            self.catalogue["z"] = data_act["z"][indices_act]
+            self.catalogue_patch[observable] = np.zeros(len(self.catalogue[observable])).astype(np.int64)
+
+            indices_no_z = np.where(self.catalogue["z"] < 0.)[0]
+
+            self.catalogue["z"][indices_no_z] = None
+            self.catalogue["z_std"] = np.zeros(len(self.catalogue["z"]))
+
+            indices_z = np.argwhere(~np.isnan(self.catalogue["z"]))[:,0]
+
+            if self.obs_select == "q_act":
+
+                patch_index_vec = np.load(root_path + "data/act_dr5/SZ_cat_nemosimkit_cluster_patch_indices.npy")
+                patch_index_vec = patch_index_vec[indices_act]
+                self.catalogue_patch[observable][indices_z] = patch_index_vec[indices_z]
+
+
+
+        #End of catalogue names
+
         if self.precompute_cnc_quantities == True:
 
             self.get_precompute_cnc_quantities()
 
-        #Impose minima and maxima of selection threshold and redshift
-
-        # indices = np.where((self.catalogue[self.obs_select] > self.cnc_params["obs_select_min"])
-        # & (self.catalogue[self.obs_select] < self.cnc_params["obs_select_max"])
-        # & (self.catalogue["z"] > self.cnc_params["z_min"])
-        # & (self.catalogue["z"] < self.cnc_params["z_max"]))[0]
-        #
-        # for observable in self.catalogue.keys():
-        #
-        #     self.catalogue[observable] = self.catalogue[observable][indices]
-        #
-        # for observable in self.catalogue_patch.keys():
-        #
-        #     self.catalogue_patch[observable] = self.catalogue_patch[observable][indices]
 
         self.n_clusters = len(self.catalogue[self.obs_select])
 

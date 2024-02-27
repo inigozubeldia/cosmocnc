@@ -223,6 +223,21 @@ class scaling_relations:
             # the spt field correction is what multiplies the zeta[z,M] relation
             self.SPTfieldCorrection = np.asarray(SPTfieldCorrection)
 
+        if observable == "q_act_dr5_sim":
+
+            sim_id = self.cnc_params["catalogue_params"]["sim_id"] + 1
+
+            f = open(root_path + "data/selection_files_act_feb2624/nemo_sim_thetas_260224_30bins_ir" + str(sim_id) + ".txt","r")
+            self.theta_500_vec = np.array(f.readlines()).astype(np.float64)
+            f.close()
+            f = open(root_path + "data/selection_files_act_feb2624/nemo_sim_ylims_260224_30bins_ir" + str(sim_id) + ".txt","r")
+            sigma_matrix_flat = np.array(f.readlines()).astype(np.float64)
+            f.close()
+            f = open(root_path + "data/selection_files_act_feb2624/nemo_sim_skyfracs_260224_30bins_ir" + str(sim_id) + ".txt","r")
+            self.skyfracs = np.array(f.readlines()).astype(np.float64)
+            f.close()
+            self.sigma_matrix = sigma_matrix_flat.reshape((len(self.theta_500_vec),len(self.skyfracs)))
+
 
     def preprecompute_scaling_relation(self,params=None,other_params=None):
 
@@ -361,8 +376,16 @@ class scaling_relations:
                             'wa':0,
                             # "Ob0":
                             }
-            self.spt_ln1pzs,self.spt_lndas_hmpc = np.loadtxt(root_path +  'data/spt/spt_cosmoref1_ln1pz_lndahmpc.txt',
-                                                             unpack=True)
+            self.spt_ln1pzs,self.spt_lndas_hmpc = np.loadtxt(root_path +  'data/spt/spt_cosmoref1_ln1pz_lndahmpc.txt',unpack=True)
+
+        if self.observable == "q_act_dr5_sim":
+
+            H0 = other_params["H0"]
+            E_z = other_params["E_z"]
+            D_A = other_params["D_A"]
+
+            self.prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
+
 
     def eval_scaling_relation(self,x0,layer=0,patch_index=0,other_params=None):
 
@@ -672,6 +695,64 @@ class scaling_relations:
                 #x1 = g_2d
                 #x1[rInclude[-1]:,:] = 0.
 
+        if observable == "q_act_dr5_sim":
+
+            if layer == 0:
+
+                h = other_params["H0"]/100.
+                zc = other_params["zc"]
+                #x0 is ln M
+
+                if self.cnc_params["mass_definition"] == "500c":
+                    self.M_500 = np.exp(x0)
+                    self.M_200 = other_params['cosmology'].get_m500c_to_m200c_at_z_and_M(zc,self.M_500*h*1e14)/h/1e14
+
+                    if np.isnan(self.M_200).any():
+
+                        print('nan in mass conv')
+                        exit(0)
+
+                elif self.cnc_params["mass_definition"] == "200c":
+
+                    self.M_200 = np.exp(x0)
+                    self.M_500 = other_params['cosmology'].get_m200c_to_m500c_at_z_and_M(zc,self.M_200*h*1e14)/h/1e14
+
+                    if np.isnan(self.M_500).any():
+
+                        print('nan in mass conv')
+                        exit(0)
+
+                self.M_500 = np.exp(x0)
+                self.M_200 = self.M_500
+
+                self.theta_500 = self.prefactor_M_500_to_theta*self.M_500**(1./3.)
+
+                Ez = other_params["E_z"]
+
+                A0 = self.params["A0"]
+                B0 = self.params["B0"]
+                C0 = self.params["C0"]
+                bias = self.params["bias_sz"]
+                Mpivot = self.params['SZmPivot']/1e14
+
+                mb = self.M_200*bias
+                y0 = 10.**A0*(Ez**2.)*(mb/Mpivot)**(1.+B0) #tau shape correction is not implemented
+
+                y0[y0 <= 0] = 1e-9
+
+                sigma_vec = self.sigma_matrix[:,patch_index]
+                sigma = np.interp(self.theta_500,self.theta_500_vec,sigma_vec,left=0.,right=0.)
+                x1 = np.log(y0/sigma)
+
+            if layer == 1:
+
+                x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
+
+                if np.isnan(x1).any():
+
+                    print('nan in x1',x0)
+                    exit(0)
+
         self.x1 = x1
 
         return x1
@@ -756,17 +837,23 @@ class scaling_relations:
 
                     dx1_dx0 = np.exp(x0)
 
+            if observable == "q_act_dr5_sim":
+
+                if layer == 0:
+
+                    sigma_vec = self.sigma_matrix[:,patch_index]
+                    log_sigma_vec_derivative = np.interp(np.log(self.theta_500),np.log(self.theta_500_vec),np.gradient(np.log(sigma_vec),np.log(self.theta_500_vec)))
+                    dx1_dx0 = (1.+self.params["B0"]) - log_sigma_vec_derivative/3.
+
+                if layer == 1:
+
+                    dof = self.params["dof"]
+                    exp = np.exp(2.*x0)
+                    dx1_dx0 = exp/np.sqrt(exp+dof)
 
         elif scalrel_type_deriv == "numerical": #must always be computed strictly after executing self.eval_scaling_relation()
 
             dx1_dx0 = np.gradient(self.x1,x0)
-
-            ###3 check this and remove the case TBD
-
-    #        if observable == "xi" and layer == 1:
-    #            dof = self.params["dof"]
-    #            exp = np.exp(2.*x0)
-    #            dx1_dx0 = exp/np.sqrt(exp+dof)
 
         return dx1_dx0
 
@@ -974,7 +1061,7 @@ class scaling_relations:
 
     def get_cutoff(self,layer=0):
 
-        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi" or self.observable == "xi" or self.observable == "q_so_sim" or self.observable == "q_so_goal3yr_sim":
+        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi" or self.observable == "xi" or self.observable == "q_so_sim" or self.observable == "q_so_goal3yr_sim" or self.observable == "q_act_dr5_sim":
 
             if layer == 0:
 
@@ -1184,6 +1271,10 @@ class scatter:
 
                 cov = self.params["corr_Yx_WL"]*self.params["sigma_lnYx"]*self.params["sigma_lnWLHST"]
 
+            elif observable1 == "q_act_dr5_sim" and observable2 == "q_act_dr5_sim":
+
+                cov = self.params["sigma_lnq_act"]**2
+
             else:
 
                 cov = 0.
@@ -1244,6 +1335,10 @@ class scatter:
             elif observable1 == "Yx" and observable2 == "Yx":
 
                 cov = self.catalogue.catalogue["Yx_std"][patch1]**2 ### patch1 is the cluster index
+
+            elif observable1 == "q_act_dr5_sim" and observable2 == "q_act_dr5_sim":
+
+                cov = 1.
 
             else:
 

@@ -70,12 +70,12 @@ class cosmology_model:
                            'tau_reio':  self.cosmo_params["tau_reio"],
                            'n_s': self.cosmo_params["n_s"],
 
-                           'N_ncdm' : 1,
-                           'N_ur' : 2.0328,
+                           'N_ncdm' : 1,  # this should not be hardcode  (TBD 26feb24)
+                           'N_ur' : 2.0328,  # this should not be hardcode  (TBD 26feb24)
                            'm_ncdm' : self.cosmo_params["m_nu"],
                            'T_ncdm' : 0.71611,
 
-                          'output': 'mPk',
+                          'output': 'mPk,m500c_to_m200c,m200c_to_m500c',  # this should not be hardcode  (TBD 26feb24)
                           'skip_background_and_thermo': 0,
                           'skip_chi': 1,
                           'skip_hubble': 1,
@@ -84,6 +84,14 @@ class cosmology_model:
                           'skip_pkl': 0,
                           'skip_sigma8_and_der': 0,
                           'skip_sigma8_at_z': 1,
+
+                          'M_min' : self.cnc_params["M_min"]*0.1,
+                          'M_max' : self.cnc_params["M_max"]*2.,
+                          'z_min' : self.cnc_params["z_min"]*0.1,
+                          'z_max' : self.cnc_params["z_max"]*2.,
+                          'ndim_redshifts' :50,
+                          'ndim_masses' :50,
+                          'concentration parameter':'D08', # this should not be hardcode  (TBD 26feb24)
                           # 'class_sz_verbose': 1,
                           # 'background_verbose':3,
                           # 'thermodynamics_verbose':3
@@ -114,6 +122,11 @@ class cosmology_model:
             self.power_spectrum = classy_sz(self.classy)
             self.background_cosmology = classy_sz(self.classy)
             self.background_cosmology.H0.value = self.classy.h()*100.
+
+            self.get_m500c_to_m200c_at_z_and_M = np.vectorize(self.classy.get_m500c_to_m200c_at_z_and_M)
+            self.get_m200c_to_m500c_at_z_and_M = np.vectorize(self.classy.get_m200c_to_m500c_at_z_and_M)
+            self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
+            self.get_dndlnM_at_z_and_M = np.vectorize(self.classy.get_dndlnM_at_z_and_M)
 
         if cosmology_tool == "astropy":
 
@@ -174,12 +187,11 @@ class cosmology_model:
                            'tau_reio':  self.cosmo_params["tau_reio"],
                            'n_s': self.cosmo_params["n_s"],
 
-                           'N_ncdm' : 1,
-                           'N_ur' : 2.0328,
+                           'N_ncdm' : 1,  # this should not be hardcode  (TBD 26feb24)
+                           'N_ur' : 2.0328,  # this should not be hardcode  (TBD 26feb24)
                            'm_ncdm' : self.cosmo_params["m_nu"],
                            'T_ncdm' : 0.71611,
 
-                          'output': 'mPk',
                           'skip_background_and_thermo': 0,
                           'skip_chi': 1,
                           'skip_hubble': 1,
@@ -190,14 +202,14 @@ class cosmology_model:
                           'skip_sigma8_at_z': 1,
 
                           # for mass conversion routines:
-                          'output': 'mPk,m500c_to_m200c',
-                          'M_min' : 1e9,
-                          'M_max' : 1e16,
-                          'z_min' : 0.,
-                          'z_max' : 2.,
+                          'output': 'mPk,m500c_to_m200c,m200c_to_m500c', # this should not be hardcode  (TBD 26feb24)
+                          'M_min' : self.cnc_params["M_min"]*0.1,
+                          'M_max' : self.cnc_params["M_max"]*2.,
+                          'z_min' : self.cnc_params["z_min"]*0.1,
+                          'z_max' : self.cnc_params["z_max"]*2.,
                           'ndim_redshifts' :50,
                           'ndim_masses' :50,
-                          'concentration parameter':'D08',
+                          'concentration parameter':'D08', # this should not be hardcode  (TBD 26feb24)
 
                           'cosmo_model': self.cosmo_model_dict[self.cnc_params['cosmo_model']]
                           }
