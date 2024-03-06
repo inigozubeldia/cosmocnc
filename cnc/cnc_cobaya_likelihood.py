@@ -46,6 +46,65 @@ class cnc_likelihood(Likelihood):
         return loglkl
 
 
+class so_cmb_prior_wcdm(Likelihood): #warning: h as input instead of H0
+
+    def initialize(self):
+
+        fisher = np.array([[ 9.00114848e+02,  3.44938030e+04, -1.01268886e+06, 3.29630918e+05,
+          -8.21634769e+12, -1.99241898e+04, -5.18764284e+03],
+         [ 3.44938030e+04,  8.69979088e+06, -6.33192100e+07,  1.58665297e+07,
+          -2.01779166e+15, -3.59432063e+06, -1.98798554e+05],
+         [-1.01268886e+06, -6.33192100e+07,  1.88009030e+09, -3.46188758e+08,
+           1.49005171e+16,  4.40025363e+07,  5.83644203e+06],
+         [ 3.29630918e+05,  1.58665297e+07, -3.46188758e+08, 1.31768098e+08,
+          -3.59709579e+15, -7.04475964e+06, -1.89976587e+06],
+         [-8.21634769e+12, -2.01779166e+15,  1.49005171e+16, -3.59709579e+15,
+           4.73428704e+23,  8.41055456e+14,  4.73533765e+13],
+         [-1.99241898e+04, -3.59432063e+06,  4.40025363e+07, -7.04475964e+06,
+           8.41055456e+14,  2.08085978e+06,  1.14829325e+05],
+         [-5.18764284e+03, -1.98798554e+05,  5.83644203e+06, -1.89976587e+06,
+           4.73533765e+13,  1.14829325e+05,  2.98980050e+04]])
+
+        self.minus_half_invcov = - 0.5*fisher
+        H0_true = 67.4
+        h = H0_true/100.
+        tau_reio_true = 0.06
+        Onu0h2_true = 0.00064412
+        w0_true = -1.
+        Ob0h2_true = 0.022245895
+        Oc0h2_true = 0.315*h**2-Ob0h2_true
+        A_s_true = 2.08467e-09
+        n_s_true = 0.96
+
+        self.param_vec_true = np.array([H0_true,tau_reio_true,Ob0h2_true,Oc0h2_true,A_s_true,n_s_true,w0_true])
+
+    def get_requirements(self):
+
+        return {"H0": None,"tau_reio":None,"w0":None,"Ob0h2":None,"Oc0h2":None,"A_s":None,"n_s":None}
+
+    def logp(self, **params_values):
+
+        H0 = self.provider.get_param("H0")
+        tau_reio = self.provider.get_param("tau_reio")
+        w0 = self.provider.get_param("w0")
+        Ob0h2 = self.provider.get_param("Ob0h2")
+        Oc0h2 = self.provider.get_param("Oc0h2")
+        A_s = self.provider.get_param("A_s")
+        n_s = self.provider.get_param("n_s")
+
+        param_vec = np.array([H0,tau_reio,Ob0h2,Oc0h2,A_s,n_s,w0])
+        res = param_vec - self.param_vec_true
+
+        print("dot",self.minus_half_invcov.dot(res))
+
+        log_lik = np.transpose(res).dot(self.minus_half_invcov.dot(res))
+
+        print("log lik",log_lik)
+
+        return log_lik
+
+
+
 class so_cmb_prior_nulcdm(Likelihood):
 
     def initialize(self):

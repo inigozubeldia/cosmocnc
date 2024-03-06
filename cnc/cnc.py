@@ -670,7 +670,6 @@ class cluster_number_counts:
 
                             for observable_set in observables_select:
 
-
                                 tt = time.time()
 
                                 x_obs = []
@@ -769,8 +768,20 @@ class cluster_number_counts:
                                             x_mesh = get_mesh(x1)
                                             cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
 
+                                        else:
+
+                                            if n_obs > 1:
+
+                                                print("here")
+                                                x_mesh_interp_layer = np.transpose(get_mesh(x_list_linear[lay]).reshape(*x_mesh.shape[:-2],-1))
+                                                cpdf = interpolate.RegularGridInterpolator(x_list[lay],cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp_layer)
+
+                                            else:
+
+                                                cpdf = np.interp(x_list_linear[lay][0,:],x_list[lay][0,:],cpdf)
+
                                         tt4 = time.time()
-                                        self.t_33 = self.t_33  + tt4 - tt3
+                                        self.t_33 = self.t_33 + tt4 - tt3
 
                                         x_p_m = np.zeros((n_obs,len(lnM)))
 
@@ -822,12 +833,7 @@ class cluster_number_counts:
                                             if n_obs > 1:
 
                                                 cpdf_mass = cpdf
-
                                                 cpdf = extract_diagonal(cpdf)
-
-                                        else:
-
-                                            cpdf = np.interp(x_list_linear[lay-1],x_list[lay-1],cpdf)
 
                                         tt8 = time.time()
                                         self.t_88 = self.t_88 + tt8 - tt7
