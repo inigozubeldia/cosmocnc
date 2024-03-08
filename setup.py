@@ -4,11 +4,11 @@ from setuptools import setup
 
 
 setup(
-    name="cnc",
+    name="cosmocnc",
     version="0.1",
     description="Python package for fast cnc",
     zip_safe=False,
-    packages=["cnc"],
+    packages=["cosmocnc"],
     author = 'Inigo Zubeldia',
     author_email = 'inigo.zubeldia@ast.cam.ac.uk',
     url = 'https://github.com/inigozubeldia/cnc',
