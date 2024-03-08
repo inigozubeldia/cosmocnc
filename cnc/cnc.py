@@ -820,11 +820,22 @@ class cluster_number_counts:
                                                         # exit(0)
 
                                                     x1[j,:] = np.sqrt(np.sum((dxwl/dxwl_std)**2.,axis=0))
-                                                    print("WL case: ",j, np.shape(x1[j,:]),x1[j,:])
+                                                    # print("WL case: ",j, np.shape(x1[j,:]),x1[j,:])
                                                     # exit(0)
 
                                             x_mesh = get_mesh(x1)
                                             cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
+                                        else:
+                                            if n_obs > 1:
+
+                                                # print("here")
+                                                x_mesh_interp_layer = np.transpose(get_mesh(x_list_linear[lay]).reshape(*x_mesh.shape[:-2],-1))
+                                                # x_mesh_interp_layer = get_mesh(x_list_linear[lay])
+                                                cpdf = interpolate.RegularGridInterpolator(x_list[lay],cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp_layer)
+                                                cpdf = np.transpose(cpdf.reshape(x_mesh.shape[1:]))
+                                            else:
+
+                                                cpdf = np.interp(x_list_linear[lay][0,:],x_list[lay][0,:],cpdf)
 
                                         x_p_m = np.zeros((n_obs,len(lnM)))
 
@@ -836,6 +847,8 @@ class cluster_number_counts:
                                         kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
 
                                         cpdf = apodise(cpdf)
+
+                                        print("cpdf, kernel:",np.shape(cpdf),np.shape(kernel))
                                         cpdf = convolve_nd(cpdf,kernel)
 
                                         cpdf[np.where(cpdf < 0.)] = 0.
@@ -855,14 +868,14 @@ class cluster_number_counts:
 
                                             cpdf = np.interp(lnM0,lnM,cpdf,left=0,right=0)
 
-                                        else:
-                                            print("interpolating cpdf",np.shape(cpdf))
-                                            print("x_list_linear",np.shape(x_list_linear[lay-1]),x_list_linear[lay-1])
-                                            print("x_list",np.shape(x_list[lay-1]),x_list[lay-1])
-                                            print("trying interpolation")
-                                            cpdf = np.interp(x_list_linear[lay-1],x_list[lay-1],cpdf)
-                                            print("interpolation done.")
-                                            exit(0)
+                                        # else:
+                                        #     print("interpolating cpdf",np.shape(cpdf))
+                                        #     print("x_list_linear",np.shape(x_list_linear[lay-1]),x_list_linear[lay-1])
+                                        #     print("x_list",np.shape(x_list[lay-1]),x_list[lay-1])
+                                        #     print("trying interpolation")
+                                        #     cpdf = np.interp(x_list_linear[lay-1],x_list[lay-1],cpdf)
+                                        #     print("interpolation done.")
+                                        #     exit(0)
 
                                 cpdf_product = cpdf_product*cpdf
 
