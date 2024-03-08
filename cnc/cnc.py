@@ -772,7 +772,6 @@ class cluster_number_counts:
 
                                             if n_obs > 1:
 
-                                                print("here")
                                                 x_mesh_interp_layer = np.transpose(get_mesh(x_list_linear[lay]).reshape(*x_mesh.shape[:-2],-1))
                                                 cpdf = interpolate.RegularGridInterpolator(x_list[lay],cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp_layer)
 
@@ -800,11 +799,7 @@ class cluster_number_counts:
                                         tt5 = time.time()
                                         self.t_55 = self.t_55  + tt5 - tt4b
 
-                                        #cpdf_before_conv = cpdf
-
                                         cpdf = convolve_nd(cpdf,kernel)
-
-                                        #cpdf_after_conv = cpdf
 
                                         tt6 = time.time()
                                         self.t_66 = self.t_66 + tt6 - tt5
@@ -843,18 +838,6 @@ class cluster_number_counts:
                             patch_select = int(observable_patches[self.cnc_params["obs_select"]])
 
                             cpdf_product_with_hmf = cpdf_product*halo_mass_function_z*4.*np.pi*self.scal_rel_selection.skyfracs[patch_select]
-
-                            # print("cluster index",cluster_index)
-                            # if 0.5 < cluster_index < 1.5:
-                            #
-                            #     np.save("/home/iz221/cnc/results/data_mass_calibration_so_2d.npy",(cpdf_before_conv,cpdf_after_conv,cpdf_mass))
-                            #     np.save("/home/iz221/cnc/results/data_mass_calibration_so_1d.npy",(cpdf_product,cpdf_product_with_hmf,lnM))
-                            #     np.save("/home/iz221/cnc/results/data_mass_calibration_so_x.npy",x_p)
-                            #     np.save("/home/iz221/cnc/results/data_mass_calibration_so_datapoint.npy",(x_obs))
-                            #     np.save("/home/iz221/cnc/results/data_mass_calibration_so_z.npy",(redshift_eval))
-                            #
-                            # #    np.savez("/home/iz221/cnc/results/data_mass_calibration_so.npy",(cpdf_before_conv,cpdf_after_conv,cpdf_product,cpdf_mass,cpdf_product_with_hmf,lnM0,lnM,x_p,x_obs,redshift_eval))
-                            #     quit()
 
                             return_dict["cpdf_" + str(cluster_index) + "_" + str(redshift_error_id)] = cpdf_product_with_hmf
                             return_dict["lnm_vec_" + str(cluster_index) + "_" + str(redshift_error_id)] = lnM
@@ -1546,22 +1529,8 @@ class cluster_number_counts:
 
                 log_lik_vec[i] = self.get_log_lik()
 
-            pl.plot(param0_vec,log_lik_vec)
-            pl.savefig("/home/iz221/cnc/figures/log_lik.pdf")
-            pl.show()
-
             log_lik_derivative_vec = np.gradient(log_lik_vec,param0_vec)
-
-            pl.plot(param0_vec,log_lik_vec)
-            pl.savefig("/home/iz221/cnc/figures/log_lik_der1.pdf")
-            pl.show()
-
             log_lik_second_derivative_vec = np.gradient(log_lik_derivative_vec,param0_vec)
-
-            pl.plot(param0_vec,log_lik_vec)
-            pl.savefig("/home/iz221/cnc/figures/log_lik_der2.pdf")
-            pl.show()
-
             index_extract_0 = (len(param0_vec)-1)//2
             log_lik_second_derivative = log_lik_second_derivative_vec[index_extract_0]
 
