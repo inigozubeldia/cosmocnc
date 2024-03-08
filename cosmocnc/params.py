@@ -6,6 +6,8 @@ from .hmf import *
 
 cnc_params_default = {
 
+    "path_to_cosmopower_organization": "/your/path/to/cosmopower-organization/",
+
     #Number of cores
 
     "number_cores_hmf": 1,

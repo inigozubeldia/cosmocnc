@@ -14,13 +14,12 @@ import os
 
 class cosmopower:
 
-    def __init__(self,cosmo_model="lcdm"):
+    def __init__(self,cosmo_model="lcdm",path=None):
 
         self.cosmo_params = None
 
-        #path_to_cosmopower_organization = path_to_cosmopower
 
-        path_to_emulators = path_to_cosmopower_organization + cosmo_model + "/"
+        path_to_emulators = path + cosmo_model + "/"
         str_cmd_subprocess = ["ls",path_to_emulators]
 
         emulator_dict = {}
@@ -52,7 +51,7 @@ class cosmopower:
 
         self.mp = cosmo_model
 
-        path_to_emulators = path_to_cosmopower_organization + self.mp +'/'
+        path_to_emulators = path + self.mp +'/'
 
         self.cp_tt_nn[self.mp] = cosmopower_NN(restore=True,
                                  restore_filename=path_to_emulators + 'TTTEEE/' + emulator_dict[self.mp]['TT'])

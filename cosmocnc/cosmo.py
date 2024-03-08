@@ -149,7 +149,7 @@ class cosmology_model:
 
             if self.power_spectrum_type == "cosmopower":
 
-                self.power_spectrum = cosmopower(cosmo_model=self.cnc_params["cosmo_model"])
+                self.power_spectrum = cosmopower(cosmo_model=self.cnc_params["cosmo_model"],path=self.cnc_params["path_to_cosmopower_organization"])
                 self.power_spectrum.set_cosmology(H0=self.cosmo_params["h"]*100.,
                                                   Ob0=self.cosmo_params["Ob0"],
                                                   Oc0=self.cosmo_params["Om0"]-self.cosmo_params["Ob0"],

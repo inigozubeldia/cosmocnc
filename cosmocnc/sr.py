@@ -166,7 +166,7 @@ class scaling_relations:
 
         if observable == "q_so_sim":
 
-            theta_500_vec,sigma_sz_vec = np.load("/home/iz221/cnc/data/so_sim_sz_mf_noise.npy")
+            theta_500_vec,sigma_sz_vec = np.load(root_path + "data/so_sim_sz_mf_noise.npy")
 
             self.theta_500_vec = theta_500_vec*180.*60./np.pi
 
