@@ -5,9 +5,9 @@ import scipy.stats as stats
 import functools
 import math
 
-def convolve_1d(x,dn_dx,sigma_scatter,type="fft"):
+def convolve_1d(x,dn_dx,sigma_scatter,type="fft",sigma_min = 1e-5):
 
-    if sigma_scatter > 0.:
+    if sigma_scatter > sigma_min:
 
         # kernel = gaussian_1d(x-np.mean(x),sigma_scatter)
         kernel = gaussian_1d(x-np.mean(x)+(x[1]-x[0])*0.5,sigma_scatter)

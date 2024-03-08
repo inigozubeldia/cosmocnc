@@ -220,8 +220,8 @@ params:
   sigma_lnYx:
     latex: \sigma_{\mathrm{X}}
     prior:
-      max: 0.3
-      min: 0.05
+      max: 0.5
+      min: 0.01
     proposal: 0.01
     ref:
       dist: norm
@@ -230,8 +230,8 @@ params:
   sigma_lnq:
     latex: \sigma_{\mathrm{SZ}}
     prior:
-      max: 0.3
-      min: 0.05
+      max: 0.5
+      min: 0.01
     proposal: 0.01
     ref:
       dist: norm
@@ -256,7 +256,7 @@ prior:
 sampler:
   evaluate:
     override:
-      A_s: 2.8e-09
+      A_s: 2.1e-09
       A_sz: 5.5
       A_x: 6.5
       B_sz: 1.75
@@ -265,7 +265,7 @@ sampler:
       C_x: -0.25
       H0: 67.0
       HSTbias: 0.012
-      HSTscatterLSS: 0.0023
+      HSTscatterLSS: -3.0
       MegacamBias: 0.01
       MegacamScatterLSS: 0.002
       Ob0: 0.049008687903764746
@@ -293,7 +293,7 @@ theory:
     cluster_catalogue: SPT2500d
     cosmo_amplitude_parameter: A_s
     cosmology_tool: classy_sz
-    dof: 0
+    dof: 3
     hmf_calc: classy_sz
     hmf_type: Tinker08
     mass_definition: 500c
@@ -309,9 +309,12 @@ theory:
     obs_select_min: 5.0
     observables:
     - - xi
+      # - Yx
+      - WLMegacam
+      - WLHST
     parallelise_type: patch
     scalrel_type_deriv: analytical
-    sigma_mass_prior: 5
+    sigma_mass_prior: 10.0
     z_error_min: 1e-5
     z_errors: true
     z_max: 2.0

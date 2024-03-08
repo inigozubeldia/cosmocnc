@@ -24,6 +24,10 @@ class scaling_relations:
 
             n_layers = 1
 
+        elif observable == "xi" or observable == "WLMegacam" or observable == "WLHST" or observable == "Yx": 
+
+            n_layers = 3
+
         else:
 
             n_layers = 2
@@ -288,7 +292,7 @@ class scaling_relations:
             zDistShearErr = self.catalogue.catalogue['WLdata'][patch_index]['zDistShearErr']
             name = self.catalogue.catalogue['SPT_ID'][patch_index]
             self.params['bWL_HST'] = self.catalogue.WLcalib['HSTsim'][name][0] + self.params['WLbias']*massModelErr + self.params['HSTbias']*zDistShearErr
-            self.params["sigma_lnWLHST"] = self.catalogue.WLcalib['HSTsim'][name][2]+self.params['WLscatter']*self.catalogue.WLcalib['HSTsim'][name][3] # 'DWL_Megacam' in Bocquet's code
+            self.params["sigma_lnWLHST"] = self.catalogue.WLcalib['HSTsim'][name][2]+self.params['WLscatter']*self.catalogue.WLcalib['HSTsim'][name][3] # 'DWL_HST' in Bocquet's code
 
 
             self.spt_cosmoRef = {'Omega_m':.3,
@@ -459,6 +463,13 @@ class scaling_relations:
                 x1 = np.sqrt(np.exp(x0)**2+self.params["dof"]) ### PDF of OBS vs TRUE -- normal distribution, with mean = x1 and std-dev = 1
 
 
+            elif layer == 2:
+
+                #x0 is log q_true
+                x1 = x0 # np.sqrt(np.exp(x0)**2+self.params["dof"]) ### PDF of OBS vs TRUE -- normal distribution, with mean = x1 and std-dev = 1
+
+
+
         if observable == 'Yx':
 
             if layer == 0:
@@ -505,6 +516,11 @@ class scaling_relations:
                 # x0 is lnYx(M)
                 x1 = np.exp(x0) ### OBS vs TRUE -- normal distribution, with mean = x1 = Yx-obs and std-dev = Yx_std
 
+
+            elif layer == 2:
+
+                x1 = x0 
+
         if observable == 'WLMegacam':
 
             if layer == 0:
@@ -516,9 +532,14 @@ class scaling_relations:
 
 
             elif layer == 1:
+
+                x1 = np.exp(x0)
+
+            elif layer == 2:
                 # x0 is lnMwl
 
-                x1 = np.exp(x0)*1e14
+                # x1 = np.exp(x0)*1e14
+                x1 = x0*1e14
                 h = other_params["H0"]/100.
                 rho_c_hunits = other_params['rho_c']/h**2
                 self.rho_c_z =  rho_c_hunits
@@ -583,8 +604,13 @@ class scaling_relations:
 
 
             elif layer == 1:
+
+                x1 = np.exp(x0)
+
+            elif layer == 2:
                 # x0 is lnMwl
-                x1 = np.exp(x0)*1e14
+                # x1 = np.exp(x0)*1e14
+                x1 = x0*1e14
                 h = other_params["H0"]/100.
                 rho_c_hunits = other_params['rho_c']/h**2
                 self.rho_c_z =  rho_c_hunits
@@ -670,6 +696,7 @@ class scaling_relations:
     def eval_derivative_scaling_relation(self,x0,layer=0,patch_index=0,scalrel_type_deriv="analytical"):
 
         observable = self.observable
+        # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>     eval_derivative_scaling_relation",observable)
 
         if scalrel_type_deriv == "analytical":
 
@@ -765,6 +792,8 @@ class scaling_relations:
                     # exit(0)
                     # continue
 
+
+
                 if layer == 1:
 
                     #x0 is log q_true, x1 is q_true, returns q_true (including optimisation correction)
@@ -773,6 +802,68 @@ class scaling_relations:
                     dof = self.params["dof"]
                     exp = np.exp(2.*x0)
                     dx1_dx0 = exp/np.sqrt(exp+dof)
+
+
+                if layer == 2:
+
+                    dx1_dx0 = 1.
+
+            if observable == "Yx" :
+
+                print("computing der of Yx")
+                exit(0)
+
+                # if layer == 0:
+
+                #     dx1_dx0 = (1/self.params['B_x'] - self.params['dlnMg_dlnr']/3)
+
+                # if layer == 1:
+
+                #     #x0 is log q_true, x1 is q_true, returns q_true (including optimisation correction)
+                #     #dx1_dx0 = np.exp(x0)
+                #     dx1_dx0 = np.exp(x0)
+
+                # if layer == 2: 
+
+                #     dx1_dx0 = 1. 
+
+
+            if observable == "WLMegacam" :
+
+                print("computing der of WLMegacam")
+                exit(0)
+
+                # if layer == 0:
+
+                #     dx1_dx0 = 1.
+
+                # if layer == 1:
+
+                #     #x0 is log q_true, x1 is q_true, returns q_true (including optimisation correction)
+                #     #dx1_dx0 = np.exp(x0)
+                #     dx1_dx0 = np.exp(x0)
+
+
+            if observable == "WLHST" :
+
+                print("computing der of WLHST")
+                exit(0)
+
+                # if layer == 0:
+
+                #     dx1_dx0 = 1.
+
+                # if layer == 1:
+
+                #     #x0 is log q_true, x1 is q_true, returns q_true (including optimisation correction)
+                #     #dx1_dx0 = np.exp(x0)
+                #     dx1_dx0 = np.exp(x0)
+
+                # if layer == 2:
+
+                #     #x0 is log q_true, x1 is q_true, returns q_true (including optimisation correction)
+                #     #dx1_dx0 = np.exp(x0)
+                #     dx1_dx0 = np.exp(x0)
 
         elif scalrel_type_deriv == "numerical": #must always be computed strictly after executing self.eval_scaling_relation()
 
@@ -826,6 +917,10 @@ class scaling_relations:
             elif layer == 1:
 
                 cutoff = self.params["q_cutoff"]
+
+            elif layer == 2: 
+
+                cutoff = -np.inf
 
         return cutoff
 
@@ -1040,12 +1135,18 @@ class scatter:
                 cov = 1.
 
             elif observable1 == "WLMegacam" and observable2 == "WLMegacam":
-
-                cov = 1.
+                # Normal uncorrelated scatter (LSS noise in the spt code)
+                # here we work in msun, so we divide by 0.7 to match values in table 1 of Bocquet et al 2019
+                # to match spt we do:
+                LSSnoise = (self.catalogue.WLcalib['Megacam_LSS'][0] + self.params['MegacamScatterLSS'] * self.catalogue.WLcalib['Megacam_LSS'][1])/1e14/0.7
+                cov = LSSnoise**2
 
             elif observable1 == "WLHST" and observable2 == "WLHST":
-
-                cov = 1.
+                # Normal uncorrelated scatter (LSS noise in the spt code)
+                # here we work in msun, so we divide by 0.7 to match values in table 1 of Bocquet et al 2019
+                # to match spt we do:
+                LSSnoise = (self.catalogue.WLcalib['HST_LSS'][0] + self.params['HSTscatterLSS'] * self.catalogue.WLcalib['HST_LSS'][1])/1e14/0.7
+                cov = LSSnoise**2
 
             elif observable1 == "xi" and observable2 == "xi":
 
@@ -1058,5 +1159,29 @@ class scatter:
             else:
 
                 cov = 0.
+
+        elif layer == 2:
+
+            if observable1 == "WLMegacam" and observable2 == "WLMegacam":
+ 
+                 cov = 1. 
+
+            elif observable1 == "WLHST" and observable2 == "WLHST":
+ 
+                 cov = 1. 
+
+            elif observable1 == "Yx" and observable2 == "Yx":
+
+                cov = 1e-8
+
+
+            elif observable1 == "xi" and observable2 == "xi":
+
+                cov = 1e-8
+
+            else:
+
+                cov = 0.
+
 
         return cov

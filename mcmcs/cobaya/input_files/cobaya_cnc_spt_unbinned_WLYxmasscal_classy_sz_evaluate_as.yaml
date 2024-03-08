@@ -28,7 +28,7 @@ theory:
     cluster_catalogue : 'SPT2500d'
     obs_select : 'xi'
     # observables : [["xi","Yx","WLMegacam","WLHST"]]
-    observables : [["xi"]] 
+    observables : [["xi","Yx","WLMegacam","WLHST"]] 
 
     classy_sz_ndim_redshifts: 800
     classy_sz_ndim_masses: 800
@@ -41,7 +41,7 @@ theory:
     z_min : .25
     z_max : 2.
 
-    sigma_mass_prior : 5
+    sigma_mass_prior : 10.
 
     # n_points_data_lik : 128
     M_min: 1e13
@@ -60,7 +60,7 @@ theory:
     parallelise_type: patch
 
     SZmPivot: 3e14
-    dof : 0
+    dof : 3
 
     scalrel_type_deriv : analytical 
     # numerical or analytical 
@@ -225,8 +225,8 @@ params:
   sigma_lnq:
     # value: 0.1729
     prior:
-      min: 0.05
-      max: 0.3
+      min: 0.01
+      max: 0.5
     ref:
       dist: norm
       loc: 0.179
@@ -237,8 +237,8 @@ params:
   sigma_lnYx:
     # value: 0.1729
     prior:
-      min: 0.05
-      max: 0.3
+      min: 0.01
+      max: 0.5
     ref:
       dist: norm
       loc: 0.179

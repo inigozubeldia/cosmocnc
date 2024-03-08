@@ -762,6 +762,10 @@ class cluster_number_counts:
                                         lay = i
                                         x_p = x_list_linear[lay]
 
+
+                                        # print(layers[-2],layers)
+                                        # exit(0)
+                                        # go one layer back  and then forward in the code below
                                         if lay == layers[-2]:
 
                                             x1 = np.zeros((n_obs,len(lnM)))
@@ -775,6 +779,7 @@ class cluster_number_counts:
                                                     x1[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],layer=lay+1,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)-x_obs_j
 
                                                 else:
+                                                    print("deal with shear profile here.")
                                                     if (self.catalogue.catalogue['WLdata'][cluster_index]['SPT_ID'] == 'SPT-CLJ2355-5055'):
                                                         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> start eval scale rel------", np.shape(x_p[j,:]))
                                                     xx = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],layer=lay+1,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)
@@ -783,6 +788,11 @@ class cluster_number_counts:
                                                     rInclude = self.scaling_relations[observable_set[j]].rInclude
 
                                                     dxwl = xx - x_obs_j[rInclude,None]
+                                                    print("dxwl:",observable_set[j],dxwl)
+                                                    print("xx:",observable_set[j],np.shape(xx),xx)
+                                                    print("x_obs_j:",observable_set[j],x_obs_j)
+                                                    # if np.isnan(np.sum(dxwl)):
+                                                    #     exit(0)
                                                     dxwl_std = std[rInclude,None]
                                                     if (self.catalogue.catalogue['WLdata'][cluster_index]['SPT_ID'] == 'SPT-CLJ2355-5055---'): # remove '---' if you want that 
                                                         print('x1',np.sqrt(np.sum((dxwl/dxwl_std)**2.,axis=0)))
@@ -810,6 +820,8 @@ class cluster_number_counts:
                                                         # exit(0)
 
                                                     x1[j,:] = np.sqrt(np.sum((dxwl/dxwl_std)**2.,axis=0))
+                                                    print("WL case: ",j, np.shape(x1[j,:]),x1[j,:])
+                                                    # exit(0)
 
                                             x_mesh = get_mesh(x1)
                                             cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
@@ -844,8 +856,13 @@ class cluster_number_counts:
                                             cpdf = np.interp(lnM0,lnM,cpdf,left=0,right=0)
 
                                         else:
-
+                                            print("interpolating cpdf",np.shape(cpdf))
+                                            print("x_list_linear",np.shape(x_list_linear[lay-1]),x_list_linear[lay-1])
+                                            print("x_list",np.shape(x_list[lay-1]),x_list[lay-1])
+                                            print("trying interpolation")
                                             cpdf = np.interp(x_list_linear[lay-1],x_list[lay-1],cpdf)
+                                            print("interpolation done.")
+                                            exit(0)
 
                                 cpdf_product = cpdf_product*cpdf
 
@@ -1190,6 +1207,9 @@ class cluster_number_counts:
                     dn_dx0 = cpdf
 
                     for layer in range(0,n_layer-1):
+
+                        # if layer = 0 : lnObs or lnMass...
+                        # if layer = 1 : Obs or Mass...
 
                         x1 = self.scaling_relations[observable].eval_scaling_relation(x0,layer=layer,patch_index=cluster_patch,other_params=other_params)
 
