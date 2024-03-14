@@ -24,7 +24,7 @@ Download the source code and do
 ```
 $ pip install -e .
 ```
-You'll then be able to import SZiFi in Python with
+You'll then be able to import cosmocnc in Python with
 ```
 import cosmocnc
 ```
