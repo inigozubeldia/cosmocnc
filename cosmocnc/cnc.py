@@ -186,6 +186,12 @@ class cluster_number_counts:
 
             self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=True)
 
+
+        elif self.cnc_params["hmf_calc"] == "classy_sz":
+
+            self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=True)
+
+
         t1 = time.time()
 
         self.t_hmf = t1-t0

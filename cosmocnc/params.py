@@ -60,7 +60,7 @@ cnc_params_default = {
     "cosmology_tool": "astropy", #"astropy" or "classy_sz"
     "M_min": 5e13,
     "M_max": 5e15,
-    "hmf_calc": "cnc", #"cnc", "hmf", or "MiraTitan"
+    "hmf_calc": "cnc", #"cnc", "hmf", or "MiraTitan", "classy_sz"
     "hmf_type": "Tinker08",
     "mass_definition": "500c",
     "hmf_type_deriv": "numerical", #"analytical" or "numerical"
@@ -73,6 +73,12 @@ cnc_params_default = {
 
     "cosmo_model": "lcdm", # lcdm, mnu, neff, wcdm, ede
 
+
+    "class_sz_ndim_redshifts" : 100,
+    "class_sz_ndim_masses" : 100,  # when using cosmopower this is automatically fixed. 
+    "class_sz_concentration_parameter" : "B13",
+    "class_sz_output": 'mPk,m500c_to_m200c,m200c_to_m500c',
+    "class_sz_hmf": "M500", 
     #Redshift errors parameters
 
     "z_errors": False,
