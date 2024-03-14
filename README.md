@@ -1,8 +1,8 @@
-## cosmocnc
+# cosmocnc
 
 cosmocnc is a Python package for evaluating the number count likelihood of galaxy cluster catalogues in a fast, flexible and accurate way. It is based on the use of Fast Fourier Transform (FFT) convolutions in order to evaluate some of the likelihood integrals. The code was introduced in [Zubeldia & Bolliet (2024)](link), where the likelihood formalism and   implementation are described in detail. If you use the code, please cite this paper.
 
-### Main features of the code
+## Main features of the code
 
 The main features of the code are the following:
 
@@ -18,7 +18,7 @@ The main features of the code are the following:
 - The code is interfaced with the Markov chain Monte Carlo (MCMC) code [Cobaya](https://cobaya.readthedocs.io/en/latest/), allowing for easy-to-run MCMC parameter estimation.
 - The code is also interfaced with [class_sz](https://github.com/CLASS-SZ/class_sz), allowing a wide range of cosmological models as well as enabling joint analyses with Cosmic Microwave Background (CMB) and Large Scale Structure (LSS) survey data.
 
-### Installation
+## Installation
 
 Download the source code and do 
 ```
@@ -30,6 +30,6 @@ import cosmocnc
 ```
 Dependencies: [astropy](https://www.astropy.org) (optional), [class_sz](https://github.com/CLASS-SZ/class_sz) (optional), [cosmopower](https://github.com/cosmopower-organization) (optional), [hmf](https://hmf.readthedocs.io) (optional), [mcfit](https://github.com/eelregit/mcfit) (optional)
 
-### Tutorials
+## Tutorials
 
 The main computational capabilities of cosmocnc are illustrated in [this](https://github.com/inigozubeldia/cosmocnc/blob/main/tutorials/cosmocnc_tutorial.ipynb) Jupyter notebook. In [this other one](https://github.com/inigozubeldia/cosmocnc/blob/main/tutorials/cosmocnc_so_benchmark_class_sz.ipynb), the code is benchmarked against class_sz.
