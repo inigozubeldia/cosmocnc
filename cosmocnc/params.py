@@ -78,7 +78,7 @@ cnc_params_default = {
     "class_sz_ndim_masses" : 100,  # when using cosmopower this is automatically fixed. 
     "class_sz_concentration_parameter" : "B13",
     "class_sz_output": 'mPk,m500c_to_m200c,m200c_to_m500c',
-    "class_sz_hmf": "M500", 
+    "class_sz_hmf": "M500", # M500 or T08M500c for Tinker et al 208 HMF defined at m500 critical. 
     #Redshift errors parameters
 
     "z_errors": False,
