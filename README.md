@@ -33,6 +33,3 @@ Dependencies: [astropy](https://www.astropy.org) (optional), [class_sz](https://
 ### Tutorials
 
 The main computational capabilities of cosmocnc are illustrated in [this](https://github.com/inigozubeldia/cosmocnc/blob/main/tutorials/cosmocnc_tutorial.ipynb) Jupyter notebook. In [this other one](https://github.com/inigozubeldia/cosmocnc/blob/main/tutorials/cosmocnc_so_benchmark_class_sz.ipynb), the code is benchmarked against class_sz.
-
-
-A set of Jupyter notebooks illustrating the main functionalities of cosmocnc can be found [here](https://github.com/inigozubeldia/cosmocnc/tree/main/tutorials).
