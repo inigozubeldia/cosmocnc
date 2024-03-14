@@ -1,6 +1,10 @@
 ## cosmocnc
 
-cosmocnc is a Python package for evaluating the number count likelihood of galaxy cluster catalogues in a fast, flexible and accurate way. It is based on the use of Fast Fourier Transform (FFT) convolutions in order to evaluate some of the likelihood integrals. The code was introduced in [Zubeldia & Bolliet (2024)](link), where the likelihood formalism and   implementation are described in detail. Its main features are the following:
+cosmocnc is a Python package for evaluating the number count likelihood of galaxy cluster catalogues in a fast, flexible and accurate way. It is based on the use of Fast Fourier Transform (FFT) convolutions in order to evaluate some of the likelihood integrals. The code was introduced in [Zubeldia & Bolliet (2024)](link), where the likelihood formalism and   implementation are described in detail. If you use the code, please cite this paper.
+
+### Main features of the code
+
+The main features of the code are the following:
 
 - It supports three types of likelihoods: an unbinned likelihood, a binned likelihood, and an extreme value likelihood.
 - It also supports the addition of stacked cluster data (e.g., stacked lensing profiles), which is modelled in a consistent way with the cluster catalogue.
