@@ -14,7 +14,8 @@ cosmocnc is a Python package for evaluating the number count likelihood of galax
 - The code is interfaced with the Markov chain Monte Carlo (MCMC) code [Cobaya](https://cobaya.readthedocs.io/en/latest/), allowing for easy-to-run MCMC parameter estimation.
 - The code is also interfaced with [class_sz](https://github.com/CLASS-SZ/class_sz), allowing a wide range of cosmological models as well as enabling joint analyses with Cosmic Microwave Background (CMB) and Large Scale Structure (LSS) survey data.
 
-##Installation
+
+###Installation
 
 Download the source code and do 
 ```
