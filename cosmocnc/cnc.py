@@ -1374,7 +1374,7 @@ class cluster_number_counts:
                     obs_select_vec_interp = np.linspace(self.cnc_params["bins_edges_obs_select"][j],self.cnc_params["bins_edges_obs_select"][j+1],n_bins_obs_select)
                     X,Y = np.meshgrid(redshift_vec_interp,obs_select_vec_interp)
 
-                    abundance_matrix_interp = interpolate.RegularGridInterpolator((self.redshift_vec,self.obs_select_vec),self.abundance_matrix,bounds_error=True,fill_value=0)((X,Y))
+                    abundance_matrix_interp = interpolate.RegularGridInterpolator((self.redshift_vec,self.obs_select_vec),self.abundance_matrix,bounds_error=False,fill_value=0)((X,Y))
 
                     n_theory = integrate.simps(integrate.simps(abundance_matrix_interp,redshift_vec_interp),obs_select_vec_interp)
 
