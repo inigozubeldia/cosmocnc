@@ -35,4 +35,4 @@ Dependencies: [astropy](https://www.astropy.org) (optional), [class_sz](https://
 
 ### Tutorials
 
-A set of Jupyter notebooks illustrating the main functionalities of cosmocnc can be found (here)[https://github.com/inigozubeldia/cosmocnc/tree/main/tutorials].
+A set of Jupyter notebooks illustrating the main functionalities of cosmocnc can be found [here](https://github.com/inigozubeldia/cosmocnc/tree/main/tutorials).
