@@ -27,5 +27,5 @@ import cosmocnc
 
 ##Dependencies
 
-Dependencies: [astropy](https://www.astropy.org) (optional), [class_sz](https://github.com/CLASS-SZ/class_sz) (optional), [hmf](https://hmf.readthedocs.io) (optional), [mcfit](https://github.com/eelregit/mcfit) (optional)
+Dependencies: [astropy](https://www.astropy.org) (optional), [class_sz](https://github.com/CLASS-SZ/class_sz) (optional), [cosmopower](https://github.com/cosmopower-organization), [hmf](https://hmf.readthedocs.io) (optional), [mcfit](https://github.com/eelregit/mcfit) (optional)
 
