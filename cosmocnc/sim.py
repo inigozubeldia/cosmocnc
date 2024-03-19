@@ -7,24 +7,19 @@ import time
 
 class catalogue_generator:
 
-    def __init__(self,n_catalogues=1,params_cnc=cnc_params_default,seed=None,
-    scal_rel_params=scaling_relation_params_default,
-    cosmo_params=cosmo_params_default,get_sky_coords=False,sky_frac=None):
+    def __init__(self,number_counts=None,n_catalogues=1,seed=None
+    ,get_sky_coords=False,sky_frac=None):
 
         self.n_catalogues = n_catalogues
-        self.params_cnc = params_cnc
         self.get_sky_coords = get_sky_coords
         self.sky_frac = sky_frac
+        self.number_counts = number_counts
+        self.params_cnc = self.number_counts.cnc_params
 
         if seed is not None:
 
             np.random.seed(seed=seed)
 
-        self.number_counts = cluster_number_counts(cnc_params=self.params_cnc)
-        self.number_counts.scal_rel_params = scal_rel_params
-        self.number_counts.cosmo_params = cosmo_params
-
-        self.number_counts.initialise()
         self.number_counts.get_hmf()
 
         self.scaling_relations = self.number_counts.scaling_relations
