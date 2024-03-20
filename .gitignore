@@ -13,3 +13,6 @@ tutorials/.ipynb_checkpoints/cosmocnc_so_benchmark_class_sz-checkpoint.ipynb
 *.egg-info*
 cosmocnc.egg-info/SOURCES.txt
 tutorials/.ipynb_checkpoints*
+*.ipynb_checkpoints*
+tutorials/test_files/test_outputs/cat1.csv
+tutorials/test_files/catalogue_test.py
