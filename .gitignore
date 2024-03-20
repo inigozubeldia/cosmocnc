@@ -10,3 +10,6 @@ mcmcs/cobaya/chains
 data/*
 data/spt/*
 tutorials/.ipynb_checkpoints/cosmocnc_so_benchmark_class_sz-checkpoint.ipynb
+*.egg-info*
+cosmocnc.egg-info/SOURCES.txt
+tutorials/.ipynb_checkpoints*

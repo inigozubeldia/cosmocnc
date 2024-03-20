@@ -1,9 +1,0 @@
-Metadata-Version: 2.1
-Name: cosmocnc
-Version: 0.1
-Summary: Python package for fast cnc
-Home-page: https://github.com/inigozubeldia/cnc
-Download-URL: https://github.com/inigozubeldia/cnc
-Author: Inigo Zubeldia
-Author-email: inigo.zubeldia@ast.cam.ac.uk
-License-File: LICENSE.txt
