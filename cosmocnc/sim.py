@@ -30,7 +30,7 @@ class catalogue_generator:
 
             self.sky_frac = np.sum(self.skyfracs)
 
-        print("Sky frac",self.sky_frac)
+        # print("Sky frac",self.sky_frac) # TBD: make this optional 
 
         self.hmf_matrix = self.number_counts.hmf_matrix*4.*np.pi*self.sky_frac
         self.ln_M = self.number_counts.ln_M
