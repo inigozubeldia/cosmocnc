@@ -691,7 +691,14 @@ class cluster_number_counts:
 
                         sigma_factor = self.cnc_params["sigma_mass_prior"]
 
-                        lnM = np.linspace(lnM_centre-sigma_factor*DlnM,lnM_centre+sigma_factor*DlnM,self.cnc_params["n_points_data_lik"])
+                        # lnM = np.linspace(lnM_centre-sigma_factor*DlnM,lnM_centre+sigma_factor*DlnM,self.cnc_params["n_points_data_lik"])
+
+                        sigma_factor = self.cnc_params["sigma_mass_prior"]
+
+                        lnM_min = np.max([lnM_centre-sigma_factor*DlnM,lnM0[0]])
+                        lnM_max = np.min([lnM_centre+sigma_factor*DlnM,lnM0[-1]])
+
+                        lnM = np.linspace(lnM_min,lnM_max,self.cnc_params["n_points_data_lik"])
 
                         t3 = time.time()
 
@@ -820,45 +827,113 @@ class cluster_number_counts:
                                                         # exit(0)
 
                                                     x1[j,:] = np.sqrt(np.sum((dxwl/dxwl_std)**2.,axis=0))
-                                                    # print("WL case: ",j, np.shape(x1[j,:]),x1[j,:])
+                                                    print("WL case nobs: ",n_obs,j, np.shape(x1[j,:]),x1[j,:])
                                                     # exit(0)
 
                                             x_mesh = get_mesh(x1)
+                                            print("x_mesh",np.shape(x_mesh),x_mesh)
+                                            print("covariance.cov[lay+1]",np.shape(covariance.cov[lay+1]),covariance.cov[lay+1])
                                             cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
+
+                                            print("got cpdf:",cpdf)
+                                            if np.any(cpdf != 0):
+                                                print("non zero elements are there just after gaussian nd: layer,cppdf",lay,cpdf)
+                                            else:
+                                                print("everything is 0!!! NOT GOOD",lay,cpdf)
+                            
+
                                         else:
                                             if n_obs > 1:
 
                                                 # print("here")
                                                 x_mesh_interp_layer = np.transpose(get_mesh(x_list_linear[lay]).reshape(*x_mesh.shape[:-2],-1))
                                                 # x_mesh_interp_layer = get_mesh(x_list_linear[lay])
+                                                if np.any(cpdf != 0):
+                                                    print("non zero elements are there before interpolation: layer,cppdf",lay,cpdf)
+                                                    # exit(0)
+                                                else:
+                                                    print("everything is 0 befor interpolation at layer:",lay)
+                                                    exit(0)
+
                                                 cpdf = interpolate.RegularGridInterpolator(x_list[lay],cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp_layer)
-                                                cpdf = np.transpose(cpdf.reshape(x_mesh.shape[1:]))
+                                                # cpdf = np.transpose(cpdf.reshape(x_mesh.shape[1:]))
                                             else:
 
                                                 cpdf = np.interp(x_list_linear[lay][0,:],x_list[lay][0,:],cpdf)
+                                                print("cpdf in nobs<=1 case",cpdf,n_obs)
 
                                         x_p_m = np.zeros((n_obs,len(lnM)))
 
                                         for j in range(0,n_obs):
 
-                                            x_p_m[j,:] = x_p[j,:] - np.mean(x_p[j,:])
+                                            x_p_m[j,:] = x_p[j,:] - np.mean(x_p[j,:])  + (x_p[j,1]-x_p[j,0])*0.5
 
                                         x_p_mesh = get_mesh(x_p_m)
                                         kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
 
-                                        cpdf = apodise(cpdf)
+                                        print("cnc.py: kernel ", kernel)
+                                        if np.any(kernel != 0):
+                                            print("There are non-zero elements in the array.")
+                                        else:
+                                            print("----------------> All elements in kernel  array are zero. this shouldnt be the case")
+                                            exit(0)
+                                        # exit(0)
 
-                                        print("cpdf, kernel:",np.shape(cpdf),np.shape(kernel))
+                                        # cpdf = apodise(cpdf)
+
+                                        print("cnc.py shape of cpdf, kernel:",np.shape(cpdf),np.shape(kernel))
+                                        if np.any(cpdf != 0):
+                                            print("non zero elements are there: layer",lay)
+                                        else:
+                                            print("everything is 0 befor convolution at layer:",lay)
+                                            exit(0)
+
                                         cpdf = convolve_nd(cpdf,kernel)
+
+                                        if np.any(cpdf != 0):
+                                            print("non zero elements are there: layer",lay)
+                                        else:
+                                            print("everything is 0 at layer:",lay)
+                                            exit(0)
 
                                         cpdf[np.where(cpdf < 0.)] = 0.
 
-                                        x_mesh_interp = get_mesh(x_list[lay])
-                                        shape = x_mesh.shape
-                                        x_mesh_interp = np.transpose(x_mesh_interp.reshape(*x_mesh.shape[:-2],-1))
+                                        if np.any(cpdf != 0):
+                                            print("non zero elements are there2: layer",lay)
+                                        else:
+                                            print("everything is 0 at layer2:",lay)
+                                            exit(0)
+                                        # x_mesh_interp = get_mesh(x_list[lay])
+                                        # shape = x_mesh.shape
+                                        # x_mesh_interp = np.transpose(x_mesh_interp.reshape(*x_mesh.shape[:-2],-1))
 
-                                        cpdf = interpolate.RegularGridInterpolator(x_p,cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp)
-                                        cpdf = np.transpose(cpdf.reshape(shape[1:]))
+                                        # cpdf = interpolate.RegularGridInterpolator(x_p,cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp)
+                                        # cpdf = np.transpose(cpdf.reshape(shape[1:]))
+
+
+                                        if n_obs > 1:
+
+                                            x_mesh_interp = get_mesh(x_list[lay])
+                                            shape = x_mesh.shape
+                                            x_mesh_interp = np.transpose(x_mesh_interp.reshape(*x_mesh.shape[:-2],-1))
+
+                                            cpdf = interpolate.RegularGridInterpolator(x_p,cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp)
+                                            cpdf = np.transpose(cpdf.reshape(shape[1:]))
+
+                                        else:
+
+                                            cpdf = np.interp(x_list[lay][0,:],x_p[0,:],cpdf)
+
+
+
+
+
+                                        print('cnc.py: cpdf:',cpdf)
+                                        if np.any(cpdf != 0):
+                                            print("There are non-zero elements in the array.")
+                                        else:
+                                            print("------------------->>>>>>>>>>>>>   All elements in the array are zero. this shouldnt be the case")
+                                            exit(0)
 
                                         if lay == layers[0]:
 

@@ -108,7 +108,7 @@ class cnc(classy):
         # cnc is fully independent from classy.
         self.classy_module = self.is_installed()
 
-        from cnc import cluster_number_counts
+        from cosmocnc import cluster_number_counts
 
         self.cnc = cluster_number_counts()
         self.cnc.cnc_params["cosmology_tool"] = self.cosmology_tool
@@ -398,7 +398,7 @@ class cnc(classy):
 
     def is_installed(cls, **kwargs):
 
-        return load_module('cnc')
+        return load_module('cosmocnc')
 
 def assign_parameter_value(lik_dict,cobaya_dict,parameter):
     # print("cobaya_dict:",cobaya_dict)
