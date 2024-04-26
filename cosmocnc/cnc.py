@@ -3,7 +3,7 @@ import pylab as pl
 import scipy.integrate as integrate
 import scipy.interpolate as interpolate
 import scipy.stats as stats
-from scipy.stats import norm
+from numba import jit
 from .cosmo import *
 from .hmf import *
 from .sr import *
@@ -11,6 +11,8 @@ from .cat import *
 from .params import *
 from .utils import *
 import time
+from copy import deepcopy
+
 
 
 cluster_number_counts_params_default = {
@@ -80,12 +82,7 @@ cluster_number_counts_params_default = {
 
 class cluster_number_counts:
 
-    def __init__(self,cnc_params=None):
-
-        if cnc_params is None:
-
-            cnc_params = cnc_params_default
-            # cnc_params = cluster_number_counts_params_default
+    def __init__(self,cnc_params=cnc_params_default):
 
         self.cnc_params = cnc_params
         self.cosmo_params = cosmo_params_default
@@ -112,27 +109,26 @@ class cluster_number_counts:
                                          cnc_params = self.cnc_params
                                          )
 
-        self.catalogue = cluster_catalogue(catalogue_name=self.cnc_params["cluster_catalogue"],
-                                           precompute_cnc_quantities=True,
-                                           bins_obs_select_edges=self.cnc_params["bins_edges_obs_select"],
-                                           bins_z_edges=self.cnc_params["bins_edges_z"],
-                                           observables=self.cnc_params["observables"],
-                                           obs_select=self.cnc_params["obs_select"],
-                                           cnc_params = self.cnc_params,
-                                           scal_rel_params=self.scal_rel_params)
+        if self.cnc_params["load_catalogue"] == True:
+
+            self.catalogue = cluster_catalogue(catalogue_name=self.cnc_params["cluster_catalogue"],
+                                               precompute_cnc_quantities=True,
+                                               bins_obs_select_edges=self.cnc_params["bins_edges_obs_select"],
+                                               bins_z_edges=self.cnc_params["bins_edges_z"],
+                                               observables=self.cnc_params["observables"],
+                                               obs_select=self.cnc_params["obs_select"],
+                                               cnc_params = self.cnc_params,
+                                               scal_rel_params=self.scal_rel_params)
+
+        elif self.cnc_params["load_catalogue"] == False:
+
+            self.catalogue = None
 
         self.scaling_relations = {}
 
         for observable_set in self.cnc_params["observables"]:
 
             for observable in observable_set:
-
-                self.scaling_relations[observable] = scaling_relations(observable=observable,cnc_params=self.cnc_params,catalogue=self.catalogue)
-                self.scaling_relations[observable].initialise_scaling_relation()
-
-        if self.cnc_params["likelihood_cal_alt"] == True:
-
-            for observable in self.cnc_params["observables_cal_alt"]:
 
                 self.scaling_relations[observable] = scaling_relations(observable=observable,cnc_params=self.cnc_params,catalogue=self.catalogue)
                 self.scaling_relations[observable].initialise_scaling_relation()
@@ -151,6 +147,7 @@ class cluster_number_counts:
                     self.scaling_relations[observable].initialise_scaling_relation()
 
         self.scatter = scatter(params=self.scal_rel_params,catalogue=self.catalogue)
+        self.scatter_ref = deepcopy(self.scatter)
         # self.priors = priors(prior_params={"cosmology":self.cosmology,"theta_mc_prior":self.cnc_params["theta_mc_prior"]})
 
         if self.cnc_params["hmf_calc"] == "MiraTitan":
@@ -198,9 +195,9 @@ class cluster_number_counts:
         #Define redshift and observable ranges
 
         self.redshift_vec = np.linspace(self.cnc_params["z_min"],self.cnc_params["z_max"],self.cnc_params["n_z"])
-        self.obs_select_vec = np.linspace(self.cnc_params["obs_select_min"],self.cnc_params["obs_select_max"],self.cnc_params["n_obs_select"])
+        self.obs_select_vec = np.linspace(self.cnc_params["obs_select_min"],self.cnc_params["obs_select_max"],self.cnc_params["n_points"])
 
-        #Evaluate some useful quantities (to be passed potentially to scaling relations)
+        #Evaluate some useful quantities (to be potentially passed to scaling relations)
 
         self.D_A = self.cosmology.background_cosmology.angular_diameter_distance(self.redshift_vec).value
         self.E_z = self.cosmology.background_cosmology.H(self.redshift_vec).value/(self.cosmology.cosmo_params["h"]*100.)
@@ -268,6 +265,16 @@ class cluster_number_counts:
         self.time_hmf2 = 0.
         self.time_select = 0.
         self.time_mass_range = 0.
+        self.t_00 = 0.
+        self.t_11 = 0.
+        self.t_22 = 0.
+        self.t_33 = 0.
+        self.t_44 = 0.
+        self.t_55 = 0.
+        self.t_66 = 0.
+        self.t_77 = 0.
+        self.t_88 = 0.
+        self.t_99 = 0.
 
     #Computes the cluster abundance across selection observable and redshift
 
@@ -294,10 +301,9 @@ class cluster_number_counts:
             indices_split_patches = [np.arange(self.n_patches) for i in range(0,n_cores)]
             indices_split_redshift = np.array_split(np.arange(len(self.redshift_vec)),n_cores)
 
-        self.abundance_tensor = np.zeros((self.n_patches,self.cnc_params["n_z"],self.cnc_params["n_obs_select"]))
-        self.n_obs_matrix = np.zeros((self.n_patches,self.cnc_params["n_obs_select"]))
+        self.abundance_tensor = np.zeros((self.n_patches,self.cnc_params["n_z"],self.cnc_params["n_points"]))
+        self.n_obs_matrix = np.zeros((self.n_patches,self.cnc_params["n_points"]))
         self.n_tot_vec = np.zeros(self.n_patches)
-    #    self.scal_rel_selection.preprecompute_scaling_relation(params=self.scal_rel_params,other_params={"lnM":self.ln_M})
 
         def f_mp(rank,out_q):
 
@@ -305,7 +311,7 @@ class cluster_number_counts:
 
             for i in range(0,len(indices_split_patches[rank])):
 
-                abundance_matrix = np.zeros((self.cnc_params["n_z"],self.cnc_params["n_obs_select"]))
+                abundance_matrix = np.zeros((self.cnc_params["n_z"],self.cnc_params["n_points"]))
                 patch_index = int(indices_split_patches[rank][i])
 
                 for j in range(0,len(indices_split_redshift[rank])):
@@ -323,7 +329,8 @@ class cluster_number_counts:
                                         "H0": self.cosmology.background_cosmology.H0.value,
                                         "E_z0p6" : self.E_z0p6,
                                         "zc":self.redshift_vec[redshift_index],
-                                        "cosmology":self.cosmology}
+                                        "cosmology":self.cosmology,
+                                        }
 
                         dn_dx0 = self.hmf_matrix[redshift_index,:]
                         x0 = self.ln_M
@@ -346,8 +353,6 @@ class cluster_number_counts:
                                                               scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
 
                             dn_dx1 = dn_dx0/dx1_dx0
-                            
-                            
                             x1_interp = np.linspace(np.min(x1),np.max(x1),self.cnc_params["n_points"])
                             if k == 0:
                                 dn_dx1 = np.exp(np.interp(x1_interp,x1,np.log(dn_dx1)))
@@ -369,7 +374,8 @@ class cluster_number_counts:
                                 indices = np.where(x1_interp < cutoff)
                                 dn_dx1[indices] = 0.
 
-                            dn_dx1 = convolve_1d(x1_interp,dn_dx1,sigma_scatter,type=self.cnc_params["abundance_integral_type"])
+                            dn_dx1 = convolve_1d(x1_interp,dn_dx1,sigma=sigma_scatter,
+                            type=self.cnc_params["abundance_integral_type"],sigma_min=self.cnc_params["sigma_scatter_min"])
 
                             x0 = x1_interp
                             dn_dx0 = dn_dx1
@@ -380,7 +386,6 @@ class cluster_number_counts:
 
                     return_dict[str(patch_index) + "_" + str(redshift_index)] = abundance  #number counts per patch
 
-                    abundance_matrix[redshift_index] = abundance
 
             if n_cores > 1:
 
@@ -398,8 +403,12 @@ class cluster_number_counts:
 
                 self.abundance_tensor[i,j,:] = return_dict[str(i) + "_" + str(j)]
 
+    #        self.n_obs_matrix[i,:] = integrate.simps(self.abundance_tensor[i,:,:],self.redshift_vec,axis=0)
+    #        self.n_tot_vec[i] = integrate.simps(self.n_obs_matrix[i,:],self.obs_select_vec,axis=0)
+
             self.n_obs_matrix[i,:] = integrate.simps(self.abundance_tensor[i,:,:],self.redshift_vec,axis=0)
             self.n_tot_vec[i] = integrate.simps(self.n_obs_matrix[i,:],self.obs_select_vec,axis=0)
+
 
         if self.cnc_params["compute_abundance_matrix"] == True:
 
@@ -471,7 +480,6 @@ class cluster_number_counts:
                             n_obs = n_obs + self.n_obs_matrix_fd[cluster_patch]
 
                     log_lik_data = log_lik_data + np.log(np.interp(obs_select,self.obs_select_vec,n_obs))
-
 
         #Computes log lik of data for clusters with z if there is only the selection observable
 
@@ -547,6 +555,7 @@ class cluster_number_counts:
         elif self.cnc_params["data_lik_from_abundance"] == False:
 
             indices_other_obs = np.concatenate((indices_other_obs,indices_obs_select))
+            self.indices_bc = indices_other_obs
 
         if len(indices_other_obs) > 0:
 
@@ -555,14 +564,12 @@ class cluster_number_counts:
             n_cores = self.cnc_params["number_cores_data"]
             indices_split = np.array_split(indices_other_obs,n_cores)
 
-            hmf_interp = interpolate.interp1d(self.redshift_vec,self.hmf_matrix,axis=0,kind="linear")
-            lnM0 = self.ln_M
+            hmf_interp = interpolate.interp1d(self.redshift_vec,self.hmf_matrix[:,::self.cnc_params["downsample_hmf_bc"]],axis=0,kind="linear")
+            lnM0 = self.ln_M[::self.cnc_params["downsample_hmf_bc"]]
 
             t1 = time.time()
 
         #    print("Ini",t1-t0)
-
-            self.cpdf_mass_dict = {}
 
             def f_mp(rank,out_q):
 
@@ -573,7 +580,6 @@ class cluster_number_counts:
                 for cluster_index in indices_split[rank]:
 
                     cluster_index = int(cluster_index)
-
                     redshift = self.catalogue.catalogue["z"][cluster_index]
 
                     if self.cnc_params["z_errors"] == True and self.catalogue.catalogue["z_std"][cluster_index] > self.cnc_params["z_error_min"]:
@@ -639,6 +645,26 @@ class cluster_number_counts:
 
                         #Estimation of ln M range
 
+                        if self.cnc_params["delta_m_with_ref"] == True:
+
+                            self.scaling_relations_range = self.scaling_relations
+                            self.scatter_range = self.scatter_ref
+                            self.scatter_range.params = scal_rel_params_ref
+
+                            #Fixing scaling relation
+
+                            for observable_set in observables_select:
+
+                                for observable in observable_set:
+
+                                    self.scaling_relations_range[observable].precompute_scaling_relation(scal_rel_params_ref,
+                                    other_params=other_params,patch_index=observable_patches[observable])
+
+                        else:
+
+                            self.scaling_relations_range = self.scaling_relations
+                            self.scatter_range = self.scatter
+
                         obs_mass_def = self.cnc_params["obs_select"]
 
                         lnM = np.linspace(np.log(self.cnc_params["M_min"]/1e14),np.log(self.cnc_params["M_max"]/1e14),self.cnc_params["n_points_data_lik"])
@@ -647,7 +673,7 @@ class cluster_number_counts:
 
                         for i in layers:
 
-                            x1 = self.scaling_relations[obs_mass_def].eval_scaling_relation(x0,
+                            x1 = self.scaling_relations_range[obs_mass_def].eval_scaling_relation(x0,
                             layer=i,
                             patch_index=int(observable_patches[obs_mass_def]),
                             other_params=other_params)
@@ -665,14 +691,14 @@ class cluster_number_counts:
 
                             if self.cnc_params["scalrel_type_deriv"] == "analytical":
 
-                                x1_centre = self.scaling_relations[obs_mass_def].eval_scaling_relation(x0_centre,layer=i,patch_index=int(observable_patches[obs_mass_def]),other_params=other_params)
-                                der = self.scaling_relations[obs_mass_def].eval_derivative_scaling_relation(x0_centre,layer=i,patch_index=int(observable_patches[obs_mass_def]),
+                                x1_centre = self.scaling_relations_range[obs_mass_def].eval_scaling_relation(x0_centre,layer=i,patch_index=int(observable_patches[obs_mass_def]),other_params=other_params)
+                                der = self.scaling_relations_range[obs_mass_def].eval_derivative_scaling_relation(x0_centre,layer=i,patch_index=int(observable_patches[obs_mass_def]),
                                 scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
 
                             elif self.cnc_params["scalrel_type_deriv"] == "numerical":
 
-                                x11 = self.scaling_relations[obs_mass_def].eval_scaling_relation(lnM,layer=i,patch_index=int(observable_patches[obs_mass_def]),other_params=other_params)
-                                der = self.scaling_relations[obs_mass_def].eval_derivative_scaling_relation(lnM,layer=i,patch_index=int(observable_patches[obs_mass_def]),
+                                x11 = self.scaling_relations_range[obs_mass_def].eval_scaling_relation(lnM,layer=i,patch_index=int(observable_patches[obs_mass_def]),other_params=other_params)
+                                der = self.scaling_relations_range[obs_mass_def].eval_derivative_scaling_relation(lnM,layer=i,patch_index=int(observable_patches[obs_mass_def]),
                                 scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
                                 x1_centre = x11[i_min]
                                 der = np.interp(x1_centre,x11,der)
@@ -685,13 +711,9 @@ class cluster_number_counts:
 
                         for i in np.flip(layers):
 
-                            sigma = np.sqrt(self.scatter.get_cov(observable1=obs_mass_def,observable2=obs_mass_def,
+                            sigma = np.sqrt(self.scatter_range.get_cov(observable1=obs_mass_def,observable2=obs_mass_def,
                             layer=i,patch1=observable_patches[obs_mass_def],patch2=observable_patches[obs_mass_def]))
                             DlnM = np.sqrt(DlnM**2+(1./derivative_list[i]*sigma)**2)
-
-                        sigma_factor = self.cnc_params["sigma_mass_prior"]
-
-                        # lnM = np.linspace(lnM_centre-sigma_factor*DlnM,lnM_centre+sigma_factor*DlnM,self.cnc_params["n_points_data_lik"])
 
                         sigma_factor = self.cnc_params["sigma_mass_prior"]
 
@@ -700,17 +722,32 @@ class cluster_number_counts:
 
                         lnM = np.linspace(lnM_min,lnM_max,self.cnc_params["n_points_data_lik"])
 
+                        halo_mass_function_z = np.interp(lnM,lnM0,halo_mass_function_z,left=0,right=0)
+
                         t3 = time.time()
 
                         self.time_mass_range = self.time_mass_range + t3-t2
 
                         #Backpropagate the scatter
 
+                        #can probably be avoided to compute twice
+
+                        for observable_set in observables_select:
+
+                            for observable in observable_set:
+
+                                self.scaling_relations[observable].precompute_scaling_relation(params=self.scal_rel_params,
+                                other_params=other_params,patch_index=observable_patches[observable])
+
+                        #up to here
+
                         if self.cnc_params["data_lik_type"] == "backward_convolutional":
 
                             cpdf_product = 1.
 
                             for observable_set in observables_select:
+
+                                tt = time.time()
 
                                 x_obs = []
 
@@ -725,6 +762,10 @@ class cluster_number_counts:
 
                                 n_obs = len(observable_set)
 
+                                tt1 = time.time()
+
+                                self.t_00 = self.t_00 + tt1-tt
+
                                 if len(layers) == 1:
 
                                     lay = layers[0]
@@ -736,7 +777,6 @@ class cluster_number_counts:
                                         x1[i,:] = self.scaling_relations[observable_set[i]].eval_scaling_relation(lnM,layer=lay,patch_index=int(observable_patches[observable_set[i]]),other_params=other_params)-x_obs[i]
 
                                     cpdf = stats.multivariate_normal.pdf(np.transpose(x1),cov=covariance.cov[lay])
-                                    cpdf = np.interp(lnM0,lnM,cpdf,left=0,right=0)
 
                                 elif len(layers) > 1:
 
@@ -749,6 +789,10 @@ class cluster_number_counts:
                                     for i in range(0,n_obs):
 
                                         x[i,:] = lnM
+
+
+                                    tt2 = time.time()
+                                    self.t_11 = self.t_11 + tt2 - tt1
 
                                     for i in layers[0:-1]:
 
@@ -763,6 +807,9 @@ class cluster_number_counts:
                                         x_list.append(x1)
                                         x_list_linear.append(x1_linear)
                                         x = x1
+
+                                    tt3 = time.time()
+                                    self.t_22 = self.t_22  + tt3 - tt2
 
                                     for i in np.flip(layers[0:-1]):
 
@@ -811,7 +858,7 @@ class cluster_number_counts:
 
                                                         # exit(0)
 
-                                                        likelihood = norm.pdf(xx,x_obs_j[rInclude,None],dxwl_std)
+                                                        likelihood = stats.norm.pdf(xx,x_obs_j[rInclude,None],dxwl_std)
                                                         print(x_obs_j[rInclude,None],dxwl_std)
                                                         # exit(0)
                                                         print('likelihood:',np.shape(likelihood),likelihood)
@@ -826,90 +873,52 @@ class cluster_number_counts:
                                                         print(">>> file saved in cnc.py, h:",self.cosmo_params['h'])
                                                         # exit(0)
 
-                                                    x1[j,:] = np.sqrt(np.sum((dxwl/dxwl_std)**2.,axis=0))
-                                                    print("WL case nobs: ",n_obs,j, np.shape(x1[j,:]),x1[j,:])
-                                                    # exit(0)
+                                                    x1[j,:] = np.sqrt(np.sum((dxwl/dxwl_std)**2,axis=0))
+
+                                            tt3 = time.time()
 
                                             x_mesh = get_mesh(x1)
                                             print("x_mesh",np.shape(x_mesh),x_mesh)
                                             print("covariance.cov[lay+1]",np.shape(covariance.cov[lay+1]),covariance.cov[lay+1])
                                             cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
 
-                                            print("got cpdf:",cpdf)
-                                            if np.any(cpdf != 0):
-                                                print("non zero elements are there just after gaussian nd: layer,cppdf",lay,cpdf)
-                                            else:
-                                                print("everything is 0!!! NOT GOOD",lay,cpdf)
-                            
-
                                         else:
+
                                             if n_obs > 1:
 
-                                                # print("here")
                                                 x_mesh_interp_layer = np.transpose(get_mesh(x_list_linear[lay]).reshape(*x_mesh.shape[:-2],-1))
-                                                # x_mesh_interp_layer = get_mesh(x_list_linear[lay])
-                                                if np.any(cpdf != 0):
-                                                    print("non zero elements are there before interpolation: layer,cppdf",lay,cpdf)
-                                                    # exit(0)
-                                                else:
-                                                    print("everything is 0 befor interpolation at layer:",lay)
-                                                    exit(0)
-
                                                 cpdf = interpolate.RegularGridInterpolator(x_list[lay],cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp_layer)
-                                                # cpdf = np.transpose(cpdf.reshape(x_mesh.shape[1:]))
+
                                             else:
 
                                                 cpdf = np.interp(x_list_linear[lay][0,:],x_list[lay][0,:],cpdf)
-                                                print("cpdf in nobs<=1 case",cpdf,n_obs)
+
+                                        tt4 = time.time()
+                                        self.t_33 = self.t_33 + tt4 - tt3
 
                                         x_p_m = np.zeros((n_obs,len(lnM)))
 
                                         for j in range(0,n_obs):
 
-                                            x_p_m[j,:] = x_p[j,:] - np.mean(x_p[j,:])  + (x_p[j,1]-x_p[j,0])*0.5
+                                            x_p_m[j,:] = x_p[j,:] - np.mean(x_p[j,:]) + (x_p[j,1]-x_p[j,0])*0.5
 
                                         x_p_mesh = get_mesh(x_p_m)
+
+                                        tt4b = time.time()
+
+                                        self.t_44 = self.t_44 + tt4b - tt4
+
                                         kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
 
-                                        print("cnc.py: kernel ", kernel)
-                                        if np.any(kernel != 0):
-                                            print("There are non-zero elements in the array.")
-                                        else:
-                                            print("----------------> All elements in kernel  array are zero. this shouldnt be the case")
-                                            exit(0)
-                                        # exit(0)
-
-                                        # cpdf = apodise(cpdf)
-
-                                        print("cnc.py shape of cpdf, kernel:",np.shape(cpdf),np.shape(kernel))
-                                        if np.any(cpdf != 0):
-                                            print("non zero elements are there: layer",lay)
-                                        else:
-                                            print("everything is 0 befor convolution at layer:",lay)
-                                            exit(0)
+                                        tt5 = time.time()
+                                        self.t_55 = self.t_55  + tt5 - tt4b
 
                                         cpdf = convolve_nd(cpdf,kernel)
 
-                                        if np.any(cpdf != 0):
-                                            print("non zero elements are there: layer",lay)
-                                        else:
-                                            print("everything is 0 at layer:",lay)
-                                            exit(0)
+                                        tt6 = time.time()
+                                        self.t_66 = self.t_66 + tt6 - tt5
 
                                         cpdf[np.where(cpdf < 0.)] = 0.
-
-                                        if np.any(cpdf != 0):
-                                            print("non zero elements are there2: layer",lay)
-                                        else:
-                                            print("everything is 0 at layer2:",lay)
-                                            exit(0)
-                                        # x_mesh_interp = get_mesh(x_list[lay])
-                                        # shape = x_mesh.shape
-                                        # x_mesh_interp = np.transpose(x_mesh_interp.reshape(*x_mesh.shape[:-2],-1))
-
-                                        # cpdf = interpolate.RegularGridInterpolator(x_p,cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp)
-                                        # cpdf = np.transpose(cpdf.reshape(shape[1:]))
-
 
                                         if n_obs > 1:
 
@@ -924,33 +933,19 @@ class cluster_number_counts:
 
                                             cpdf = np.interp(x_list[lay][0,:],x_p[0,:],cpdf)
 
+                                        tt7 = time.time()
 
-
-
-
-                                        print('cnc.py: cpdf:',cpdf)
-                                        if np.any(cpdf != 0):
-                                            print("There are non-zero elements in the array.")
-                                        else:
-                                            print("------------------->>>>>>>>>>>>>   All elements in the array are zero. this shouldnt be the case")
-                                            exit(0)
+                                        self.t_77 = self.t_77 + tt7 - tt6
 
                                         if lay == layers[0]:
 
                                             if n_obs > 1:
 
+                                                cpdf_mass = cpdf
                                                 cpdf = extract_diagonal(cpdf)
 
-                                            cpdf = np.interp(lnM0,lnM,cpdf,left=0,right=0)
-
-                                        # else:
-                                        #     print("interpolating cpdf",np.shape(cpdf))
-                                        #     print("x_list_linear",np.shape(x_list_linear[lay-1]),x_list_linear[lay-1])
-                                        #     print("x_list",np.shape(x_list[lay-1]),x_list[lay-1])
-                                        #     print("trying interpolation")
-                                        #     cpdf = np.interp(x_list_linear[lay-1],x_list[lay-1],cpdf)
-                                        #     print("interpolation done.")
-                                        #     exit(0)
+                                        tt8 = time.time()
+                                        self.t_88 = self.t_88 + tt8 - tt7
 
                                 cpdf_product = cpdf_product*cpdf
 
@@ -959,9 +954,13 @@ class cluster_number_counts:
                             cpdf_product_with_hmf = cpdf_product*halo_mass_function_z*4.*np.pi*self.scal_rel_selection.skyfracs[patch_select]
 
                             return_dict["cpdf_" + str(cluster_index) + "_" + str(redshift_error_id)] = cpdf_product_with_hmf
-                            return_dict["lnm_vec_" + str(cluster_index) + "_" + str(redshift_error_id)] = lnM0
+                            return_dict["lnm_vec_" + str(cluster_index) + "_" + str(redshift_error_id)] = lnM
 
-                            lik_cluster_vec[redshift_error_id] = integrate.simps(cpdf_product_with_hmf,lnM0)
+                            tt9 = time.time()
+
+                            lik_cluster_vec[redshift_error_id] = integrate.simps(cpdf_product_with_hmf,lnM)
+
+                            self.t_99 = self.t_99 + time.time() - tt9
 
                         elif self.cnc_params["data_lik_type"] == "direct_integral":
 
@@ -983,7 +982,8 @@ class cluster_number_counts:
                             x_obs = np.array(x_obs)
                             n_obs = len(x_obs)
 
-                            hmf_cluster = np.interp(lnM,lnM0,halo_mass_function_z)*4.*np.pi*self.scal_rel_selection.skyfracs[patch_select]
+                            #hmf_cluster = np.interp(lnM,lnM0,halo_mass_function_z)
+                            hmf_cluster = halo_mass_function_z*4.*np.pi*self.scal_rel_selection.skyfracs[patch_select]
                             integrand_m = np.zeros(len(hmf_cluster))
 
                             if len(layers) > 1:
@@ -1013,7 +1013,6 @@ class cluster_number_counts:
                                         if i == 1:
 
                                             x1_fromlinear[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_list_linear[0][j,:],layer=i,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)
-
 
                                     x_list.append(x1)
                                     x_list_linear.append(x1_linear)
@@ -1053,7 +1052,6 @@ class cluster_number_counts:
                             integral = integrate.simps(integrand_m,lnM)
                             lik_cluster_vec[redshift_error_id] = integral
 
-
                         t4 = time.time()
 
                         self.time_back = self.time_back + t4-t3
@@ -1069,6 +1067,17 @@ class cluster_number_counts:
                     else:
 
                         lik_cluster = lik_cluster_vec[0]
+
+                        if self.cnc_params["get_masses"] == True: #only with FFT, not with direct integral
+
+                            cpdf = return_dict["cpdf_" + str(cluster_index) + "_" + str(redshift_error_id)]
+                            lnM_vec = return_dict["lnm_vec_" + str(cluster_index) + "_" + str(redshift_error_id)]
+                            norm = integrate.simps(cpdf,lnM_vec)
+                            lnM_mean = integrate.simps(lnM_vec*cpdf,lnM_vec)/norm
+                            lnM_std = np.sqrt(integrate.simps(lnM_vec**2*cpdf,lnM_vec)/norm-lnM_mean**2)
+
+                            return_dict["lnM_mean_" + str(cluster_index)] = lnM_mean
+                            return_dict["lnM_std_" + str(cluster_index)] = lnM_std
 
                     log_lik_data_rank = log_lik_data_rank + np.log(lik_cluster)
 
@@ -1090,7 +1099,24 @@ class cluster_number_counts:
 
             self.cpdf_dict = return_dict
 
-
+            # print("")
+            # print("")
+            # print("")
+            # print("Time hmf2",self.time_hmf2)
+            # print("Time select",self.time_select)
+            # print("Time mass range",self.time_mass_range)
+            # print("Time back",self.time_back)
+            # print("T0",self.t_00)
+            # print("T1",self.t_11)
+            # print("T2",self.t_22)
+            # print("T3",self.t_33)
+            # print("T4",self.t_44)
+            # print("T5",self.t_55)
+            # print("T6",self.t_66)
+            # print("T7",self.t_77)
+            # print("T8",self.t_88)
+            # print("T9",self.t_99)
+            # print("T sum",self.t_00+self.t_11+self.t_22+self.t_33+self.t_44+self.t_55+self.t_66+self.t_77+self.t_88+self.t_99)
 
         return log_lik_data
 
@@ -1194,6 +1220,9 @@ class cluster_number_counts:
 
         log_lik = 0.
 
+        self.stacked_model = {}
+        self.stacked_variance = {}
+
         for stacked_data_label in self.stacked_data_labels:
 
             stacked_obs_vec = self.catalogue.stacked_data[stacked_data_label]["data_vec"] #mean data, not stacked
@@ -1222,137 +1251,27 @@ class cluster_number_counts:
             res = np.array(stacked_obs_vec-stacked_model_vec)
             stacked_inv_cov = np.array(stacked_inv_cov)
 
+            self.stacked_model[stacked_data_label] = stacked_model_vec
+            self.stacked_variance[stacked_data_label] = stacked_var_vec
+
             log_lik = log_lik - 0.5*np.dot(res,np.dot(stacked_inv_cov,res))
 
         return log_lik
 
-    def get_log_lik_calibration_alt(self):
+    #Retrieve cluster mean log masses, use only after the unbinned likelihood
+    #has been calculated with the backward convolutional approach. Eddington bias included.
 
-        n_cores = self.cnc_params["number_cores_stacked"]
-        cluster_indices = []
-        cluster_observable = []
+    def get_masses(self):
 
-        self.n_clusters_cal = {}
-        self.cluster_indices_cal = {}
+        self.indices_bc
+        self.cluster_lnM = np.zeros(len(self.indices_bc))
+        self.cluster_lnM_std = np.zeros(len(self.indices_bc))
 
-        for observable in self.cnc_params["observables_cal_alt"]:
+        for cluster_index in self.indices_bc:
 
-            cal_cluster_indices = np.argwhere(~np.isnan(self.catalogue.catalogue[observable]))[:,0]
-            self.cluster_indices_cal[observable] = cal_cluster_indices
-
-            for i in range(0,len(cal_cluster_indices)):
-
-                cluster_indices.append(int(cal_cluster_indices[i]))
-                cluster_observable.append(observable)
-
-        n_cores = self.cnc_params["number_cores_stacked"]
-        indices_split = np.array_split(np.arange(len(cluster_indices)),n_cores)
-
-        def f_mp(rank,out_q):
-
-            return_dict = {}
-
-            for i in range(0,len(indices_split[rank])):
-
-                cluster_index = int(cluster_indices[indices_split[rank][i]])
-                observable = cluster_observable[indices_split[rank][i]]
-                x_obs = self.catalogue.catalogue[observable][cluster_index]
-
-                cluster_patch = int(self.catalogue.catalogue_patch[observable][cluster_index])
-                n_layer = self.scaling_relations[observable].get_n_layers()
-
-                z_vec = self.cpdf_dict["z_vec_" + str(cluster_index)]
-
-                if len(z_vec) == 1:
-
-                    redshift_error_id = 0
-                    redshift_eval = z_vec[0]
-
-                    cpdf = self.cpdf_dict["cpdf_" + str(cluster_index) + "_" + str(redshift_error_id)]
-                    lnM_vec = self.cpdf_dict["lnm_vec_" + str(cluster_index) + "_" + str(redshift_error_id)]
-                    cpdf = cpdf/integrate.simps(cpdf,lnM_vec)
-
-                    D_A = np.interp(redshift_eval,self.redshift_vec,self.D_A)
-                    E_z = np.interp(redshift_eval,self.redshift_vec,self.E_z)
-                    D_l_CMB = np.interp(redshift_eval,self.redshift_vec,self.D_l_CMB)
-                    rho_c = np.interp(redshift_eval,self.redshift_vec,self.rho_c)
-
-                    other_params = {"D_A": D_A,
-                    "E_z": E_z,
-                    "H0": self.cosmology.background_cosmology.H0.value,
-                    "D_l_CMB":D_l_CMB,
-                    "rho_c":rho_c,
-                    "D_CMB":self.cosmology.D_CMB,
-                    "E_z0p6" : self.E_z0p6,
-                    "zc":redshift_eval,
-                    "cosmology":self.cosmology}
-
-
-                    self.scaling_relations[observable].precompute_scaling_relation(params=self.scal_rel_params,
-                    other_params=other_params,patch_index=cluster_patch)
-
-                    x0 = lnM_vec
-                    dn_dx0 = cpdf
-
-                    for layer in range(0,n_layer-1):
-
-                        # if layer = 0 : lnObs or lnMass...
-                        # if layer = 1 : Obs or Mass...
-
-                        x1 = self.scaling_relations[observable].eval_scaling_relation(x0,layer=layer,patch_index=cluster_patch,other_params=other_params)
-
-                        dx1_dx0 = self.scaling_relations[observable].eval_derivative_scaling_relation(x0,
-                                                          layer=layer,patch_index=cluster_patch,
-                                                          scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
-
-                        dn_dx1 = dn_dx0/dx1_dx0
-                        x1_interp = np.linspace(np.min(x1),np.max(x1),self.cnc_params["n_points"])
-                        dn_dx1 = np.interp(x1_interp,x1,dn_dx1)
-
-                        sigma_scatter = np.sqrt(self.scatter.get_cov(observable1=observable,
-                                                                     observable2=observable,
-                                                                     layer=layer,patch1=cluster_patch,patch2=cluster_patch))
-
-                        dn_dx1 = convolve_1d(x1_interp,dn_dx1,sigma_scatter)
-
-                        x0 = x1_interp
-                        dn_dx0 = dn_dx1
-
-                    cpdf = dn_dx1
-
-                    x1 = self.scaling_relations[observable].eval_scaling_relation(x0,layer=n_layer-1,patch_index=cluster_patch,other_params=other_params)
-
-                    sigma_scatter = np.sqrt(self.scatter.get_cov(observable1=observable,
-                                                                 observable2=observable,
-                                                                 layer=n_layer-1,patch1=cluster_patch,patch2=cluster_patch))
-
-                    pdf_last = gaussian_1d(x1-x_obs,sigma_scatter)
-
-                    log_lik_cluster = np.log(integrate.simps(pdf_last*cpdf,x0))
-
-                return_dict[observable + "_" + str(cluster_index)] = log_lik_cluster
-
-            if n_cores > 1:
-
-                out_q.put(return_dict)
-
-            else:
-
-                return return_dict
-
-        return_dict = launch_multiprocessing(f_mp,n_cores)
-
-        log_lik = 0.
-
-        for observable in self.cnc_params["observables_cal_alt"]:
-
-            cluster_indices = self.cluster_indices_cal[observable]
-
-            for i in cluster_indices:
-
-                log_lik = log_lik + return_dict[observable + "_" + str(int(i))]
-
-        return log_lik
+            cluster_index = int(cluster_index)
+            self.cluster_lnM[cluster_index] = self.cpdf_dict["lnM_mean_" + str(cluster_index)]
+            self.cluster_lnM_std[cluster_index] = self.cpdf_dict["lnM_std_" + str(cluster_index)]
 
     #Computes the integrated cluster number counts as a function of redshift, selection
     #observable, and the total number counts
@@ -1379,6 +1298,8 @@ class cluster_number_counts:
         self.n_obs = np.sum(self.n_obs_matrix,axis=0)
         self.n_tot = np.sum(self.n_tot_vec)
 
+        print("Total clusters",self.n_tot)
+
         if self.cnc_params["non_validated_clusters"] == True:
 
             self.get_number_counts_false_detections()
@@ -1386,19 +1307,17 @@ class cluster_number_counts:
             self.n_obs_fd = np.sum(self.n_obs_matrix_fd,axis=0)
             self.n_tot_fd = np.sum(self.n_tot_vec_fd,axis=0)
 
-        print("Ntot =",self.n_tot)
-        for indx_field in range(len(self.n_tot_vec)):
-                print("Ntotalfields %d=%.4f"%(indx_field,self.n_tot_vec[indx_field]))
-
-
-    def get_log_lik_extreme_value(self):
+    def get_log_lik_extreme_value(self,obs_max=None):
 
         if self.n_tot is None:
 
             self.get_number_counts()
 
-        obs_max = self.catalogue.obs_select_max
         n_obs = self.n_obs
+
+        if obs_max is None:
+
+            obs_max = self.catalogue.obs_select_max
 
         if self.cnc_params["non_validated_clusters"] == True:
 
@@ -1408,11 +1327,28 @@ class cluster_number_counts:
         n_interp = np.interp(obs_select_vec_interp,self.obs_select_vec,n_obs)
         n_theory = integrate.simps(n_interp,obs_select_vec_interp)
 
-        log_lik = - n_theory
+        log_lik = -n_theory
 
         return log_lik
 
+    #Evaluates some extreme value quantities. Execute after get_log_lik_extreme_value
+
+    def eval_extreme_value_quantities(self):
+
+        self.log_lik_ev_eval = np.zeros(len(self.obs_select_vec))
+
+        for i in range(0,len(self.obs_select_vec)):
+
+            self.log_lik_ev_eval[i] = self.get_log_lik_extreme_value(obs_max=self.obs_select_vec[i])
+
+        self.lik_ev_eval = np.exp(self.log_lik_ev_eval)
+
+        self.obs_select_max_pdf = np.gradient(self.lik_ev_eval,self.obs_select_vec)
+        self.obs_select_max_mean = integrate.simps(self.obs_select_max_pdf*self.obs_select_vec,self.obs_select_vec)
+        self.obs_select_max_std = np.sqrt(integrate.simps(self.obs_select_max_pdf*(self.obs_select_vec-self.obs_select_max_mean)**2,self.obs_select_vec))
+
     #Reurns log likelihood, with priors
+
 
     def get_log_lik(self):
 
@@ -1440,9 +1376,13 @@ class cluster_number_counts:
 
         # print("Time",self.t_total)
 
+        print("log_lik",log_lik)
+
         if np.isnan(log_lik) == True:
 
             log_lik = -np.inf
+
+        self.log_lik = log_lik
 
         return log_lik
 
@@ -1496,10 +1436,6 @@ class cluster_number_counts:
 
             log_lik = log_lik + self.get_log_lik_stacked()
 
-        if self.cnc_params["likelihood_cal_alt"] == True:
-
-            log_lik = log_lik + self.get_log_lik_calibration_alt()
-
         return log_lik
 
     def get_abundance_matrix(self):
@@ -1517,6 +1453,9 @@ class cluster_number_counts:
 
         log_lik = 0.
 
+        self.cnc_params["bins_edges_z"] = np.array(self.cnc_params["bins_edges_z"])
+        self.cnc_params["bins_edges_obs_select"] = np.array(self.cnc_params["bins_edges_obs_select"])
+
         if self.cnc_params["binned_lik_type"] == "z_and_obs_select":
 
             if self.abundance_matrix is None:
@@ -1529,19 +1468,23 @@ class cluster_number_counts:
             self.bins_centres_z = (self.cnc_params["bins_edges_z"][1:] + self.cnc_params["bins_edges_z"][0:-1])*0.5
             self.bins_centres_obs = (self.cnc_params["bins_edges_obs_select"][1:] + self.cnc_params["bins_edges_obs_select"][0:-1])*0.5
 
+            n_bins_redshift = int(len(self.redshift_vec)/(len(self.bins_centres_z)-1))
+            n_bins_obs_select = int(len(self.obs_select_vec)/(len(self.bins_centres_obs)-1))
+
             for i in range(0,len(self.cnc_params["bins_edges_z"])-1):
 
                 for j in range(0,len(self.cnc_params["bins_edges_obs_select"])-1):
 
-                    redshift_vec_interp = np.linspace(self.cnc_params["bins_edges_z"][i],self.cnc_params["bins_edges_z"][i+1],10)
-                    obs_select_vec_interp = np.linspace(self.cnc_params["bins_edges_obs_select"][j],self.cnc_params["bins_edges_obs_select"][j+1],100)
+                    n_observed = self.catalogue.number_counts[i,j]
 
-                    abundance_matrix_interp = interpolate.RegularGridInterpolator((self.redshift_vec,self.obs_select_vec),self.abundance_matrix)
+
+                    redshift_vec_interp = np.linspace(self.cnc_params["bins_edges_z"][i],self.cnc_params["bins_edges_z"][i+1],n_bins_redshift)
+                    obs_select_vec_interp = np.linspace(self.cnc_params["bins_edges_obs_select"][j],self.cnc_params["bins_edges_obs_select"][j+1],n_bins_obs_select)
                     X,Y = np.meshgrid(redshift_vec_interp,obs_select_vec_interp)
-                    abundance_matrix_interp = abundance_matrix_interp((X,Y))
+
+                    abundance_matrix_interp = interpolate.RegularGridInterpolator((self.redshift_vec,self.obs_select_vec),self.abundance_matrix,bounds_error=False,fill_value=0)((X,Y))
 
                     n_theory = integrate.simps(integrate.simps(abundance_matrix_interp,redshift_vec_interp),obs_select_vec_interp)
-                    n_observed = self.catalogue.number_counts[i,j]
 
                     self.n_binned[i,j] = n_theory
                     self.n_binned_obs[i,j] = n_observed
@@ -1552,6 +1495,8 @@ class cluster_number_counts:
 
             self.n_binned = np.zeros(len(self.cnc_params["bins_edges_obs_select"])-1)
             self.n_binned_obs = np.zeros(len(self.cnc_params["bins_edges_obs_select"])-1)
+            self.bins_centres = (self.cnc_params["bins_edges_obs_select"][1:] + self.cnc_params["bins_edges_obs_select"][0:-1])*0.5
+            n_bins_obs_select = int(len(self.obs_select_vec)/(len(self.bins_centres)-1))
 
             for i in range(0,len(self.cnc_params["bins_edges_obs_select"])-1):
 
@@ -1561,11 +1506,11 @@ class cluster_number_counts:
 
                     n_obs = n_obs + self.n_obs_fd
 
-                obs_select_vec_interp = np.linspace(self.cnc_params["bins_edges_obs_select"][i],self.cnc_params["bins_edges_obs_select"][i+1],100)
+                obs_select_vec_interp = np.linspace(self.cnc_params["bins_edges_obs_select"][i],self.cnc_params["bins_edges_obs_select"][i+1],n_bins_obs_select)
                 n_interp = np.interp(obs_select_vec_interp,self.obs_select_vec,n_obs)
 
                 n_theory = integrate.simps(n_interp,obs_select_vec_interp)
-                n_observed = self.catalogue.number_counts_obs_select[i]
+                n_observed = self.catalogue.number_counts[i]
                 self.n_binned_obs[i] = n_observed
                 self.n_binned[i] = n_theory
 
@@ -1579,16 +1524,19 @@ class cluster_number_counts:
 
             self.n_binned = np.zeros(len(self.cnc_params["bins_edges_z"])-1)
             self.n_binned_obs = np.zeros(len(self.cnc_params["bins_edges_z"])-1)
+            self.bins_centres = (self.cnc_params["bins_edges_z"][1:] + self.cnc_params["bins_edges_z"][0:-1])*0.5
+            n_bins_redshift = int(len(self.redshift_vec)/(len(self.bins_centres)-1))
+            print("n int",n_bins_redshift)
 
             for i in range(0,len(self.cnc_params["bins_edges_z"])-1):
 
-                redshift_vec_interp = np.linspace(self.cnc_params["bins_edges_z"][i],self.cnc_params["bins_edges_z"][i+1],10)
+                redshift_vec_interp = np.linspace(self.cnc_params["bins_edges_z"][i],self.cnc_params["bins_edges_z"][i+1],n_bins_redshift)
                 n_interp = np.interp(redshift_vec_interp,self.redshift_vec,self.n_z)
 
                 n_theory = integrate.simps(n_interp,redshift_vec_interp)
-                n_observed = np.sum(self.catalogue.number_counts[i,:])
-                self.n_z_binned_obs[i] = n_observed
-                self.n_z_binned[i] = n_theory
+                n_observed = self.catalogue.number_counts[i]
+                self.n_binned_obs[i] = n_observed
+                self.n_binned[i] = n_theory
 
                 log_lik = log_lik - n_theory + n_observed*np.log(n_theory)
 
@@ -1606,3 +1554,155 @@ class cluster_number_counts:
         self.C,self.C_mean,self.C_std = get_cash_statistic(n_binned_obs,n_binned_mean)
 
         return (self.C,self.C_mean,self.C_std)
+
+    #Calculates derivative of log likelihood with respect to parameter param on param_vec
+    #param_vec must be even in size
+
+    def get_log_lik_derivative(self,param,param_vec,param_type=None):
+
+        log_lik_vec = np.zeros(len(param_vec))
+
+        if param_type == "cosmo":
+
+            param_0 = self.cosmo_params[param]
+
+        elif param_type == "scal_rel":
+
+            param_0 = self.scal_rel_params[param]
+
+        for i in range(0,len(param_vec)):
+
+            if param_type == "cosmo":
+
+                self.cosmo_params[param] = param_vec[i]
+
+            elif param_type == "scal_rel":
+
+                self.scal_rel_params[param] = param_vec[i]
+
+            self.update_params(self.cosmo_params,self.scal_rel_params)
+            log_lik_vec[i] = self.get_log_lik()
+
+        log_lik_derivative_vec = np.gradient(log_lik_vec,param_vec)
+        log_lik_derivative = log_lik_derivative_vec[(len(param_vec)-1)//2]
+
+        if param_type == "cosmo":
+
+            self.cosmo_params[param] = param_0
+
+        elif param_type == "scal_rel":
+
+            self.scal_rel_params[param] = param_0
+
+        self.update_params(self.cosmo_params,self.scal_rel_params)
+
+        return log_lik_derivative
+
+    def get_log_lik_second_derivative(self,params,param_vecs,param_types):
+
+        param0 = params[0]
+        param1 = params[1]
+
+        param0_vec = param_vecs[param0]
+        param1_vec = param_vecs[param1]
+
+        param0_type = param_types[param0]
+        param1_type = param_types[param1]
+
+        if param0_type == "cosmo":
+
+            param0_0 = self.cosmo_params[param0]
+
+        elif param0_type == "scal_rel":
+
+            param0_0 = self.scal_rel_params[param0]
+
+        if param1_type == "cosmo":
+
+            param1_0 = self.cosmo_params[param1]
+
+        elif param1_type == "scal_rel":
+
+            param1_0 = self.scal_rel_params[param1]
+
+        if param0 == param1:
+
+            log_lik_vec = np.zeros(len(param0_vec))
+
+            for i in range(0,len(param0_vec)):
+
+                if param0_type == "cosmo":
+
+                    self.cosmo_params[param0] = param0_vec[i]
+
+                elif param0_type == "scal_rel":
+
+                    self.scal_rel_params[param0] = param0_vec[i]
+
+                self.update_params(self.cosmo_params,self.scal_rel_params)
+
+                log_lik_vec[i] = self.get_log_lik()
+
+            log_lik_derivative_vec = np.gradient(log_lik_vec,param0_vec)
+            log_lik_second_derivative_vec = np.gradient(log_lik_derivative_vec,param0_vec)
+            index_extract_0 = (len(param0_vec)-1)//2
+            log_lik_second_derivative = log_lik_second_derivative_vec[index_extract_0]
+
+        else:
+
+            log_lik_matrix = np.zeros((len(param0_vec),len(param1_vec)))
+
+            for i in range(0,len(param0_vec)):
+
+                for j in range(0,len(param1_vec)):
+
+                    if param0_type == "cosmo":
+
+                        self.cosmo_params[param0] = param0_vec[i]
+
+                    elif param0_type == "scal_rel":
+
+                        self.scal_rel_params[param0] = param0_vec[i]
+
+                    if param1_type == "cosmo":
+
+                        self.cosmo_params[param1] = param1_vec[j]
+
+                    elif param1_type == "scal_rel":
+
+                        self.scal_rel_params[param1] = param1_vec[j]
+
+                    self.update_params(self.cosmo_params,self.scal_rel_params)
+
+                    log_lik_matrix[i,j] = self.get_log_lik()
+
+            der_x = np.gradient(log_lik_matrix,param0_vec,axis=0)
+            der_y = np.gradient(log_lik_matrix,param1_vec,axis=1)
+
+            index_extract_0 = (len(param0_vec)-1)//2
+            index_extract_1 = (len(param1_vec)-1)//2
+
+            #der_xx = np.gradient(der_x,param0_vec,axis=0)[index_extract_0,index_extract_1]
+            der_xy = np.gradient(der_x,param1_vec,axis=1)[index_extract_0,index_extract_1]
+            der_yx = np.gradient(der_y,param0_vec,axis=0)[index_extract_0,index_extract_1]
+            #der_yy = np.gradient(der_y,param1_vec,axis=1)[index_extract_0,index_extract_1]
+
+            log_lik_second_derivative = 0.5*(der_xy+der_yx)
+
+        if param0_type == "cosmo":
+
+            self.cosmo_params[param0] = param0_0
+
+        elif param0_type == "scal_rel":
+
+            self.scal_rel_params[param0] = param0_0
+
+        if param1_type == "cosmo":
+
+            self.cosmo_params[param1] = param1_0
+
+        elif param1_type == "scal_rel":
+
+            self.scal_rel_params[param1] = param1_0
+
+        return log_lik_second_derivative

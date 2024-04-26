@@ -2,31 +2,59 @@ import numpy as np
 import multiprocess as mp
 import scipy.signal as signal
 import scipy.stats as stats
+import scipy.ndimage as ndimage
 import functools
 import math
+import time
+import sys
+import pylab as pl
+#import numba
+#from .fast_interp import *
 
-def convolve_1d(x,dn_dx,sigma_scatter,type="fft",sigma_min = 1e-5):
+def convolve_1d(x,dn_dx,sigma=None,type="fft",kernel=None,sigma_min=0):
 
-    if sigma_scatter > sigma_min:
+    if sigma > sigma_min:
 
-        # kernel = gaussian_1d(x-np.mean(x),sigma_scatter)
-        kernel = gaussian_1d(x-np.mean(x)+(x[1]-x[0])*0.5,sigma_scatter)
+        if kernel is None:
+
+            kernel = gaussian_1d(x-np.mean(x)+(x[1]-x[0])*0.5,sigma)
+
         dn_dx = signal.convolve(dn_dx,kernel,mode="same",method=type)/np.sum(kernel)
 
     return dn_dx
 
 def convolve_nd(distribution,kernel):
 
-    convolved = signal.convolve(distribution,kernel,mode="same",method="fft")/np.sum(kernel)
+    convolved = signal.convolve(distribution,kernel,mode="same")/np.sum(kernel)
 
     return convolved
 
 def eval_gaussian_nd(x_mesh,cov=None):
 
     shape = x_mesh.shape
-    x_mesh = x_mesh.reshape(*x_mesh.shape[:-2],-1)
-    pdf = stats.multivariate_normal.pdf(np.transpose(x_mesh),cov=cov)
-    pdf = np.transpose(pdf.reshape(shape[1:]))
+
+    if shape[0] > 1:
+
+        x_mesh = x_mesh.reshape(*x_mesh.shape[:-2],-1)
+
+        #Old code:
+
+        #pdf = stats.multivariate_normal.pdf(np.transpose(x_mesh),cov=cov)
+        #pdf = np.transpose(pdf.reshape(shape[1:]))
+
+        #New code: slightly faster
+
+        inv_cov = np.linalg.inv(cov)
+        det_cov = np.linalg.det(cov)
+        norm_factor = 1.0 / np.sqrt((2 * np.pi)**shape[0] * det_cov)
+        mahalanobis = np.sum(np.dot(inv_cov, x_mesh) * x_mesh, axis=0)
+        pdf = norm_factor * np.exp(-0.5 * mahalanobis)
+        pdf = np.transpose(pdf.reshape(shape[1:]))
+
+
+    else:
+
+        pdf = gaussian_1d(x_mesh,np.sqrt(cov))[0,:]
 
     return pdf
 
@@ -34,7 +62,11 @@ def get_mesh(x):
 
     if x.shape[0] == 1:
 
-        x_mesh = np.array(np.meshgrid(x[0,:]))
+    #    x_mesh = np.array(np.meshgrid(x[0,:]))
+
+        x_mesh = x
+
+    #    print("shape mesh",x_mesh.shape)
 
     elif x.shape[0] == 2:
 
@@ -49,6 +81,8 @@ def get_mesh(x):
 def gaussian_1d(x,sigma):
 
     return np.exp(-x**2/(2.*sigma**2))/(np.sqrt(2.*np.pi)*sigma)
+
+
 
 def apodise(x_map):
 
@@ -249,3 +283,50 @@ def tile_1d_array_different_dim(original_array,n_dim_output,n_additional_dim):
         result_array = np.repeat(result_array, l, axis=i)
 
     return result_array
+
+def interpolate_nd(r_interp,r_in,f_in,method="linear"):
+
+    if r_interp.shape[-1] == 2:
+
+        x_in = r_in[:,0]
+        y_in = r_in[:,0]
+        x_interp = r_interp[:,0]
+        y_interp = r_interp[:,1]
+
+        dx = x_in[1]-x_in[0]
+        dy = y_in[1]-y_in[0]
+
+        cpdf = interp2d([x_in[0],y_in[0]],[x_in[-1],y_in[-1]],[dx,dy],f_in,k=1,p=[False,False],e=[0,0])(x_interp,y_interp)
+
+    return cpdf
+
+#@numba.njit
+def interpolate_deep(x_interp,x,f):
+
+    ret = np.empty(len(x_interp))
+
+    for i in range(0,len(x_interp)):
+
+        ret[i] = np.interp(x_interp[i],x,f[i,:])
+
+    return ret
+
+def sample_from_uniform(x_min,x_max,n=1):
+
+    sample = np.random.uniform(low=x_min,high=x_max,size=n)
+
+    if len(sample) == 1:
+
+        sample = sample[0]
+
+    return sample
+
+def sample_from_gaussian(mu,sigma,n=1):
+
+    sample = np.random.normal(loc=mu, scale=sigma,size=n)
+
+    if len(sample) == 1:
+
+        sample = sample[0]
+
+    return sample

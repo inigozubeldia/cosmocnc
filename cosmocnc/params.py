@@ -6,10 +6,12 @@ from .hmf import *
 
 cnc_params_default = {
 
+    "path_to_cosmopower_organization": "/your/path/to/cosmopower-organization/",
+
     #Number of cores
 
     "number_cores_hmf": 1,
-    "number_cores_abundance": 8,
+    "number_cores_abundance": 1,
     "number_cores_data": 8,
     "number_cores_stacked":8,
 
@@ -18,14 +20,15 @@ cnc_params_default = {
     #Precision parameters
 
     "n_points": 4096, ##number of points in which the mass function at each redshift (and all the convolutions) is evaluated
-    "n_obs_select": 4096,
     "n_z": 50,
     "n_points_data_lik": 128, #number of points for the computation of the cluster data part of the likelihood
     "sigma_mass_prior": 5.,
+    "downsample_hmf_bc": 1,
 
 
     #Observables and catalogue
 
+    "load_catalogue": True,
     "likelihood_type": "unbinned", #"unbinned", "binned", or "extreme_value"
     #"obs_select": "q_mmf3_mean", #"q_mmf3_mean",
     "obs_select": "q_mmf3", #"q_mmf3_mean",
@@ -42,6 +45,8 @@ cnc_params_default = {
     "compute_abundance_matrix":False, #only true if the abundance matrix is needed
     "catalogue_params":{"downsample":True},
     "apply_obs_cutoff":False,
+    "get_masses":False,
+    "delta_m_with_ref":False,
 
     #Range of abundance observables
 
@@ -55,14 +60,25 @@ cnc_params_default = {
     "cosmology_tool": "astropy", #"astropy" or "classy_sz"
     "M_min": 5e13,
     "M_max": 5e15,
-    "hmf_calc": "cnc", #"cnc", "hmf", "classy_sz", or "MiraTitan"
+    "hmf_calc": "cnc", #"cnc", "hmf", or "MiraTitan", "classy_sz"
     "hmf_type": "Tinker08",
     "mass_definition": "500c",
     "hmf_type_deriv": "numerical", #"analytical" or "numerical"
     "power_spectrum_type": "cosmopower",
     "cosmo_amplitude_parameter": "sigma_8", #"sigma_8" or "A_s"
+    "Hubble_parameter": "h", # "H0" or "h"
+    "cosmo_param_density": "critical", #"physical" or "critical"
     "scalrel_type_deriv": "analytical", #"analytical" or "numerical"
+    "sigma_scatter_min": 1e-5,
 
+    "cosmo_model": "lcdm", # lcdm, mnu, neff, wcdm, ede
+
+
+    "class_sz_ndim_redshifts" : 100,
+    "class_sz_ndim_masses" : 100,  # when using cosmopower this is automatically fixed. 
+    "class_sz_concentration_parameter" : "B13",
+    "class_sz_output": 'mPk,m500c_to_m200c,m200c_to_m500c',
+    "class_sz_hmf": "M500", # M500 or T08M500c for Tinker et al 208 HMF defined at m500 critical. 
     #Redshift errors parameters
 
     "z_errors": False,
@@ -104,16 +120,13 @@ cnc_params_default = {
 
     }
 
-scaling_relation_params_default = {
-
+scal_rel_params_ref = {
 #Planck
-
-"alpha":1.78,
+"alpha":1.79,
 "beta":0.66,
 # "log10_Y_star":-0.19,
 "log10_Y_star":-0.186,
 "sigma_lnq":0.173,
-# "bias_sz":0.62, #a.k.a. 1-b
 "bias_sz":0.8, #a.k.a. 1-b
 "sigma_lnmlens":0.2,
 "sigma_mlens":0.5,
@@ -121,11 +134,11 @@ scaling_relation_params_default = {
 "dof":0.,
 "bias_cmblens":0.92,
 "sigma_lnp":0.22,
-"corr_lnq_lnp":0.77,
+"corr_lnq_lnp":0.,
 "a_lens":1.,
 "f_false_detection":0.0, #N_F / (N_F + N_T) fraction of false detections to total detections
 "f_true_validated":1.,#fraction of true clusters which have been validated
-"q_cutoff":2.,
+"q_cutoff":0.,
 
 
 
@@ -137,9 +150,9 @@ scaling_relation_params_default = {
 
 #SZiFi Planck
 
-"alpha_szifi":1.12333,
+"alpha_szifi":1.1233,#1233, #1.1233 ?
 "A_szifi": -4.3054, #Arnaud values, respectively
-"sigma_lnq_szifi":0.173,
+"sigma_lnq_szifi": 0.173,
 
 #SPT
 # spt style lkl:
@@ -170,6 +183,69 @@ scaling_relation_params_default = {
 'SZmPivot': 3e14
 }
 
+scaling_relation_params_default = {
+
+#Planck
+
+"alpha":1.79,
+"beta":0.66,
+"log10_Y_star":-0.19,
+"sigma_lnq":0.173,
+"bias_sz":0.62, #a.k.a. 1-b
+"sigma_lnmlens":0.2,
+"sigma_mlens":0.5,
+"bias_lens":1.,
+"dof":0.,
+"bias_cmblens":0.92,
+"sigma_lnp":0.22,
+"corr_lnq_lnp":0.77,
+"a_lens":1.,
+"f_false_detection":0.0, #N_F / (N_F + N_T) fraction of false detections to total detections
+"f_true_validated":1.,#fraction of true clusters which have been validated
+"q_cutoff":0.,
+
+#SZiFi Planck
+
+"alpha_szifi":1.1233, #1.1233 ? True value in synthetic catalogues is 1.1233, for some reason
+"A_szifi": -4.3054, #Arnaud values, respectively
+"sigma_lnq_szifi": 0.173,
+
+#SPT
+# spt style lkl:
+"A_sz": 5.1,
+"B_sz": 1.75,
+"C_sz": 0.5,
+
+"A_x": 6.5,
+"B_x": 0.69,
+"C_x": -0.25,
+
+"sigma_lnYx":0.255, # 'Dx' in Bocquet's code
+"dlnMg_dlnr" : 0.,
+
+'WLbias' : 0.,
+'WLscatter': 0.,
+
+'HSTbias': 0.,
+'HSTscatterLSS':0.,
+
+'MegacamBias': 0.,
+'MegacamScatterLSS': 0.,
+
+'corr_xi_Yx': 0.1, # 'rhoSZX' in Bocquet's code
+'corr_xi_WL': 0.1, # 'rhoSZWL' in Bocquet's code
+'corr_Yx_WL': 0.1,  # 'rhoWLX' in Bocquet's code
+
+'SZmPivot': 3e14,
+
+#ACT
+
+"A0": np.log10(1.9e-5),
+"B0": 0.08,
+"C0": 0.,
+"sigma_lnq_act": 0.2,
+}
+
 cosmo_params_default = {
 
 # "Om0":0.315,
@@ -183,11 +259,20 @@ cosmo_params_default = {
 
 "Om0":0.3096,
 "Ob0":0.04897,
-"h":0.6766,
-"A_s":2.2e-9,
-"sigma8": 0.8122313347357173,
+"Ob0h2":0.04897*0.674**2,
+"Oc0h2":(0.315-0.04897)*0.674**2,
+"h":0.674,
+"A_s":2.08467e-09, #if amplitude_parameter == "sigma_8", this is overriden by the value given to "sigma_8" in this dictionary
 "n_s":0.96,
-"m_nu":0.06
+"m_nu":0.06, #m_nu is sum of the three neutrino masses
+"sigma_8":0.811, #if amplitude_paramter == "A_s", this is overriden; the amplitude is taken by the value given to "A_s" in this dictionary
+"tau_reio": 0.0544,
+"w0": -1.,
+"Onu0": 0.00141808,
+"N_eff": 3.046,
+
+"k_cutoff": 1e8,
+"ps_cutoff": 1,
 
 }
 

@@ -9,16 +9,17 @@ from cosmopower import cosmopower_NN
 from cosmopower import cosmopower_PCAplusNN
 from .config import *
 import scipy.optimize as optimize
-
+import os
 #cosmo_model = "lcdm", "mnu", "neff", "wcdm"
 
 class cosmopower:
 
-    def __init__(self,cosmo_model="lcdm"):
+    def __init__(self,cosmo_model="lcdm",path=None):
 
-        #path_to_cosmopower_organization = path_to_cosmopower
+        self.cosmo_params = None
 
-        path_to_emulators = path_to_cosmopower_organization + cosmo_model + "/"
+
+        path_to_emulators = path + cosmo_model + "/"
         str_cmd_subprocess = ["ls",path_to_emulators]
 
         emulator_dict = {}
@@ -50,7 +51,7 @@ class cosmopower:
 
         self.mp = cosmo_model
 
-        path_to_emulators = path_to_cosmopower_organization + self.mp +'/'
+        path_to_emulators = path + self.mp +'/'
 
         self.cp_tt_nn[self.mp] = cosmopower_NN(restore=True,
                                  restore_filename=path_to_emulators + 'TTTEEE/' + emulator_dict[self.mp]['TT'])
@@ -131,6 +132,35 @@ class cosmopower:
 
         k_arr_re = k_arr
         pkl_re = pkl
-        # print('got pkl_re',pkl_re)
+
+        # k_cutoff = self.cosmo_params["k_cutoff"]
+        # ps_cutoff = self.cosmo_params["ps_cutoff"]
+        #
+        # if k_cutoff < 10:
+        #
+        #     x = np.linspace(np.log10(0.1),np.log10(10.))
+        #
+        #     centre = np.log10(0.5)
+        #     max = 1
+        #     min = 0.7
+        #     width = (np.log10(10.)-np.log10(0.1))
+        #
+        #     suppression = -np.tanh((x-centre)/width*4)*0.5*(max-min)+min+(max-min)*0.5
+        #
+        #     ps_cutoff = np.interp(np.log10(k_arr_re),x+np.log10(0.677),suppression)
+        #
+        #     # pl.figure()
+        #     # pl.semilogx(k_arr_re/0.677,ps_cutoff)
+        #     # pl.xlim([0.01,100])
+        #     # pl.xlabel("$k$ ($h$ Mpc)")
+        #     # pl.ylabel("Power spectrum suppression")
+        #     # pl.savefig("/home/iz221/cnc/figures/test_ps.pdf")
+        #     # pl.show()
+        #
+        #
+        # #indices = np.where(k_arr_re > k_cutoff)
+        # #pkl_re[indices] = pkl_re[indices]*ps_cutoff
+        #
+        # pkl_re = pkl_re*ps_cutoff
 
         return (k_arr_re,pkl_re)
