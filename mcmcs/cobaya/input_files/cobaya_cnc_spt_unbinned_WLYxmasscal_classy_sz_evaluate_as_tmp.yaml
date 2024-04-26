@@ -1,7 +1,7 @@
 debug: false
 likelihood:
-  cnc.cnc_cobaya_likelihood.cnc_likelihood: null
-output: /Users/boris/Work/CLASS-SZ/SO-SZ/cnc/mcmcs/cobaya/chains/cnc_unbinned_cluster_counts_spt_unbinned_WLYxmasscal_evaluate_5sept23_as
+  cosmocnc.cnc_cobaya_likelihood.cnc_likelihood: null
+output: /Users/boris/Work/CLASS-SZ/SO-SZ/cosmocnc/mcmcs/cobaya/chains/cnc_unbinned_cluster_counts_spt_unbinned_WLYxmasscal_evaluate_5sept23_as
 params:
   A_s:
     latex: A_s
@@ -280,7 +280,7 @@ sampler:
       sigma_lnYx: 0.255
       sigma_lnq: 0.173
 theory:
-  cnc.cnc_cobaya_theory.cnc:
+  cosmocnc.cnc_cobaya_theory.cnc:
     M_max: 1e16
     M_min: 1e13
     SZmPivot: 3e14

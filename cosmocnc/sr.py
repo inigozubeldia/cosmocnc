@@ -1003,9 +1003,11 @@ class scaling_relations:
 
                     #x0 is log q_true, x1 is q_true, returns q_true (including optimisation correction)
                     #dx1_dx0 = np.exp(x0)
+                    dof = self.params["dof"]
+                    exp = np.exp(2.*x0)
+                    dx1_dx0 = exp/np.sqrt(exp+dof)
 
-
-
+                    
                 if layer == 2:
 
                     dx1_dx0 = 1.
