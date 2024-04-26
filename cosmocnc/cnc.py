@@ -186,12 +186,6 @@ class cluster_number_counts:
 
             self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=True)
 
-
-        elif self.cnc_params["hmf_calc"] == "classy_sz":
-
-            self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=True)
-
-
         t1 = time.time()
 
         self.t_hmf = t1-t0
@@ -755,11 +749,14 @@ class cluster_number_counts:
 
                                                 if isinstance(x_obs_j,(float,int,np.float32)) == True:
 
-                                                    x1[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],layer=lay+1,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)-x_obs_j
+                                                    x1[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],
+                                                    layer=lay+1,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)-x_obs_j
 
                                                 else:
 
-                                                    xx = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],layer=lay+1,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)
+                                                    xx = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],
+                                                    layer=lay+1,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)
+                                                    
                                                     std = self.catalogue.catalogue[observable_set[j] + "_std"][cluster_index]
 
                                                     rInclude = self.scaling_relations[observable_set[j]].rInclude
@@ -780,6 +777,7 @@ class cluster_number_counts:
 
                                                 x_mesh_interp_layer = np.transpose(get_mesh(x_list_linear[lay]).reshape(*x_mesh.shape[:-2],-1))
                                                 cpdf = interpolate.RegularGridInterpolator(x_list[lay],cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp_layer)
+                                                cpdf = np.transpose(cpdf.reshape(x_mesh.shape[1:]))
 
                                             else:
 
@@ -1334,6 +1332,10 @@ class cluster_number_counts:
 
         self.abundance_matrix = np.sum(self.abundance_tensor,axis=0)
         self.n_z = integrate.simps(self.abundance_matrix,self.obs_select_vec)
+
+        if self.cnc_params["convolve_nz"] == True:
+
+            self.n_z = convolve_1d(self.redshift_vec,self.n_z,sigma=self.cnc_params["sigma_nz"],type="fft")
 
     #Computes the binned log likelihood
 
