@@ -915,6 +915,8 @@ class cluster_number_counts:
                                         tt5 = time.time()
                                         self.t_55 = self.t_55  + tt5 - tt4b
 
+                                        print("np.shape(cpdf),np.shape(kernel)")
+                                        print(np.shape(cpdf),np.shape(kernel))
                                         cpdf = convolve_nd(cpdf,kernel)
 
                                         tt6 = time.time()
@@ -962,6 +964,10 @@ class cluster_number_counts:
 
                             lik_cluster_vec[redshift_error_id] = integrate.simps(cpdf_product_with_hmf,lnM)
 
+                            print("lik per cluster:",redshift_error_id,lik_cluster_vec[redshift_error_id])
+                            print("xobs",redshift_error_id,redshift_eval,x_obs)
+                            print("pdf_product_with_hmf",redshift_error_id,cpdf_product_with_hmf)
+                            # exit(0)
                             self.t_99 = self.t_99 + time.time() - tt9
 
                         elif self.cnc_params["data_lik_type"] == "direct_integral":

@@ -293,13 +293,13 @@ theory:
     cluster_catalogue: SPT2500d
     cosmo_amplitude_parameter: A_s
     cosmology_tool: classy_sz
-    dof: 3
-    hmf_calc: classy_sz
+    dof: 0
+    hmf_calc: cnc #classy_sz
     hmf_type: Tinker08
+    data_lik_from_abundance: False
     mass_definition: 500c
-    n_obs_select: 16382
-    n_points: 16382
-    n_points_data_lik: 64
+    n_points: 16000
+    n_points_data_lik: 1024
     n_z: 800
     number_cores_abundance: 12
     number_cores_data: 32
@@ -310,8 +310,8 @@ theory:
     observables:
     - - xi
       # - Yx
-      - WLMegacam
-      - WLHST
+      # - WLMegacam
+      #- WLHST
     parallelise_type: patch
     scalrel_type_deriv: analytical
     sigma_mass_prior: 10.0
