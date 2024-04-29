@@ -6,7 +6,7 @@ from .hmf import *
 
 cnc_params_default = {
 
-    "path_to_cosmopower_organization": "/your/path/to/cosmopower-organization/",
+    "path_to_cosmopower_organization": "/rds-d4/user/iz221/hpc-work/cosmopower/",
 
     #Number of cores
 
@@ -60,7 +60,7 @@ cnc_params_default = {
     "cosmology_tool": "astropy", #"astropy" or "classy_sz"
     "M_min": 5e13,
     "M_max": 5e15,
-    "hmf_calc": "cnc", #"cnc", "hmf", or "MiraTitan", "classy_sz"
+    "hmf_calc": "cnc", #"cnc", "hmf", "MiraTitan", or "class_sz"
     "hmf_type": "Tinker08",
     "mass_definition": "500c",
     "hmf_type_deriv": "numerical", #"analytical" or "numerical"
@@ -73,12 +73,6 @@ cnc_params_default = {
 
     "cosmo_model": "lcdm", # lcdm, mnu, neff, wcdm, ede
 
-
-    "class_sz_ndim_redshifts" : 100,
-    "class_sz_ndim_masses" : 100,  # when using cosmopower this is automatically fixed. 
-    "class_sz_concentration_parameter" : "B13",
-    "class_sz_output": 'mPk,m500c_to_m200c,m200c_to_m500c',
-    "class_sz_hmf": "M500", # M500 or T08M500c for Tinker et al 208 HMF defined at m500 critical. 
     #Redshift errors parameters
 
     "z_errors": False,
@@ -86,6 +80,9 @@ cnc_params_default = {
     "z_error_sigma_integral_range": 4.,
     "z_error_min": 1e-5, #minimum z std for which an integral over redshift in the cluster data term is performed (if "z_errors" = True)
     "z_bounds": False, #redshift bounds if there's no redshift measurement by the redshift is bounded (as in, e.g., SPT)
+
+    "convolve_nz": False,
+    "sigma_nz": 0.,
 
     #False detections
 
@@ -102,11 +99,6 @@ cnc_params_default = {
     "stacked_likelihood": False,
     "stacked_data": ["p_zc19_stacked"], #list of stacked data
     "compute_stacked_cov": True,
-
-    #Parms to compute mass calibration likelihood in an alternative way
-
-    "likelihood_cal_alt": False,
-    "observables_cal": ["p_zc19"],
 
     #Priors
 
