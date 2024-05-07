@@ -29,7 +29,7 @@ class scaling_relations:
 
         elif observable == "xi" or observable == "WLMegacam" or observable == "WLHST" or observable == "Yx": 
 
-            n_layers = 3
+            n_layers = 2
 
         else:
 
@@ -1003,14 +1003,17 @@ class scaling_relations:
 
                     #x0 is log q_true, x1 is q_true, returns q_true (including optimisation correction)
                     #dx1_dx0 = np.exp(x0)
+                    # print("hiiiiii")
                     dof = self.params["dof"]
                     exp = np.exp(2.*x0)
                     dx1_dx0 = exp/np.sqrt(exp+dof)
+                    # exit(0)
 
                     
                 if layer == 2:
-
-                    dx1_dx0 = 1.
+                    print("hiiiiii------------> exiting now")
+                    dx1_dx0 = 1e10*x0
+                    exit(0)
 
             if observable == "Yx" :
 
@@ -1585,7 +1588,7 @@ class scatter:
 
             elif observable1 == "xi" and observable2 == "xi":
 
-                cov = 1.
+                cov = 2.
 
             elif observable1 == "Yx" and observable2 == "Yx":
 
@@ -1616,7 +1619,7 @@ class scatter:
 
             elif observable1 == "xi" and observable2 == "xi":
 
-                cov = 1e-8
+                cov = 1.
 
             else:
 

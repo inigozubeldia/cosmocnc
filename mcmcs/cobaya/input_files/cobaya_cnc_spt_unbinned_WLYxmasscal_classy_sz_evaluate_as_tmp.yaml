@@ -215,7 +215,7 @@ params:
       scale: 0.004
   q_cutoff: 2.0
   sigma8:
-    derived: true
+    derived: False
     latex: \sigma_8
   sigma_lnYx:
     latex: \sigma_{\mathrm{X}}
@@ -284,7 +284,7 @@ theory:
     M_max: 1e16
     M_min: 1e13
     SZmPivot: 3e14
-    apply_obs_cutoff: true
+    apply_obs_cutoff: False
     bins_edges_obs_select: np.exp(np.linspace(np.log(5.),np.log(47),6))
     bins_edges_z: np.linspace(.25,2.,21)
     classy_sz_concentration_parameter: D08
@@ -296,9 +296,9 @@ theory:
     dof: 0
     hmf_calc: cnc #classy_sz
     hmf_type: Tinker08
-    data_lik_from_abundance: False
+    data_lik_from_abundance: False # False: backward, True: forward
     mass_definition: 500c
-    n_points: 16000
+    n_points: 12000
     n_points_data_lik: 1024
     n_z: 800
     number_cores_abundance: 12
@@ -313,7 +313,8 @@ theory:
       # - WLMegacam
       #- WLHST
     parallelise_type: patch
-    scalrel_type_deriv: analytical
+    scalrel_type_deriv: numerical
+    abundance_integral_type: fft
     sigma_mass_prior: 10.0
     z_error_min: 1e-5
     z_errors: true

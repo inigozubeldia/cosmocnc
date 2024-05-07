@@ -351,17 +351,13 @@ class cluster_number_counts:
                             dx1_dx0 = self.scal_rel_selection.eval_derivative_scaling_relation(x0,
                                                               layer=k,patch_index=patch_index,
                                                               scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
+                            
 
                             dn_dx1 = dn_dx0/dx1_dx0
+
                             x1_interp = np.linspace(np.min(x1),np.max(x1),self.cnc_params["n_points"])
-                            if k == 0:
-                                dn_dx1 = np.exp(np.interp(x1_interp,x1,np.log(dn_dx1)))
-                            elif k == 1:
-                                dn_dx1 = np.exp(np.interp(np.log(x1_interp),np.log(x1),np.log(dn_dx1)))
-                            dn_dx1[np.isnan(dn_dx1)] = 0.
+                            dn_dx1 = np.interp(x1_interp,x1,dn_dx1)
 
-
-                            # dn_dx1 = np.interp(x1_interp,x1,dn_dx1)
 
                             sigma_scatter = np.sqrt(self.scatter.get_cov(observable1=self.cnc_params["obs_select"],
                                                                          observable2=self.cnc_params["obs_select"],

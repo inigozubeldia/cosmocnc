@@ -25,6 +25,7 @@ cnc_params_default = {
     "sigma_mass_prior": 5.,
     "downsample_hmf_bc": 1,
 
+    "convolve_nz" : False,
 
     #Observables and catalogue
 
@@ -257,7 +258,7 @@ cosmo_params_default = {
 # "sigma_8":0.811, #if amplitude_paramter == "A_s", this is overriden; the amplitude is taken by the value given to "A_s" in this dictionary
 "tau_reio": 0.0544,
 
-"Om0":0.3096,
+"Om0":0.315, # boris: 0.3096,
 "Ob0":0.04897,
 "Ob0h2":0.04897*0.674**2,
 "Oc0h2":(0.315-0.04897)*0.674**2,

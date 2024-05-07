@@ -310,6 +310,10 @@ class cosmology_model:
             self.z_CMB = self.classy.get_current_derived_parameters(['z_rec'])['z_rec']
             self.D_CMB = self.classy.get_current_derived_parameters(['da_rec'])['da_rec']
             self.sigma8 = self.classy.get_current_derived_parameters(['sigma8'])['sigma8']
+
+            # print("sigma8:",self.sigma8)
+            # exit(0)
+
             self.As = np.exp(self.classy.get_current_derived_parameters(["ln10^{10}A_s"])["ln10^{10}A_s"])/1e10
             self.cosmo_params["A_s"] = self.As
             self.cosmo_params["sigma_8"] = self.sigma8

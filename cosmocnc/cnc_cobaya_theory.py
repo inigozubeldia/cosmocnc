@@ -434,6 +434,7 @@ class cnc(classy):
             state["derived"] = {p: derived.get(p) for p in self.output_params}
 
         print("Derived parameters",derived)
+        # exit(0)
 
         for product, collector in self.collectors.items():
 

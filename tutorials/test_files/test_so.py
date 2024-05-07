@@ -22,7 +22,6 @@ for i in range(0,len(binned_likelihood_types)):
     binned_obs_all = np.zeros((n_catalogues,n_bins[i]-1))
     n_tot_obs_vec = np.zeros(n_catalogues)
     for j in range(0,n_catalogues):
-        print("Catalogue",j)
         number_counts = cnc.cluster_number_counts()
         number_counts.cnc_params["compute_abundance_matrix"] = True
         number_counts.cnc_params["cluster_catalogue"] = "SO_sim_" + str(j)
