@@ -13,10 +13,10 @@ cm = 1./2.54
 fig = pl.figure()
 gs = fig.add_gridspec(2,1)#,hspace=0)
 axs = gs.subplots()#
-labels = ["SO baseline"]
+labels = ["SPT baseline"]
 k = 0
 binned_likelihood_types = ["obs_select","z"]
-n_catalogues = 100
+n_catalogues = 1
 n_bins = [20,20]
 for i in range(0,len(binned_likelihood_types)):
     binned_obs_all = np.zeros((n_catalogues,n_bins[i]-1))
@@ -24,16 +24,16 @@ for i in range(0,len(binned_likelihood_types)):
     for j in range(0,n_catalogues):
         number_counts = cnc.cluster_number_counts()
         number_counts.cnc_params["compute_abundance_matrix"] = True
-        number_counts.cnc_params["cluster_catalogue"] = "SO_sim_" + str(j)
-        number_counts.cnc_params["observables"] = [["q_so_sim"]]
-        number_counts.cnc_params["obs_select"] = "q_so_sim"
+        number_counts.cnc_params["cluster_catalogue"] = "SPT2500d"
+        number_counts.cnc_params["observables"] = [["xi"]]
+        number_counts.cnc_params["obs_select"] = "xi"
         number_counts.cnc_params["data_lik_from_abundance"] = True
         number_counts.cnc_params["number_cores_hmf"] = 1
         number_counts.cnc_params["number_cores_abundance"] = 1
         number_counts.cnc_params["number_cores_data"] = 8
         number_counts.cnc_params["obs_select_min"] = 5.
         number_counts.cnc_params["obs_select_max"] = 200.
-        number_counts.cnc_params["n_points"] = 1024*32 #64*4#2**13, ##number of points in which the mass function at each redshift (and all the convolutions) is evaluated
+        number_counts.cnc_params["n_points"] = 1024*16 #64*4#2**13, ##number of points in which the mass function at each redshift (and all the convolutions) is evaluated
         number_counts.cnc_params["n_obs_select"] = number_counts.cnc_params["n_points"]
         number_counts.cnc_params["parallelise_type"] = "redshift"
         number_counts.cnc_params["path_to_cosmopower_organization"] = "/Users/boris/Work/CLASS-SZ/SO-SZ/cosmopower-organization/"
@@ -48,27 +48,28 @@ for i in range(0,len(binned_likelihood_types)):
         number_counts.cnc_params["M_max"] = 1e16
         number_counts.cnc_params["apply_obs_cutoff"] = False
         number_counts.scal_rel_params["dof"] = 0.
-        number_counts.scal_rel_params["a_lens"] = 1.
-        number_counts.scal_rel_params["corr_lnq_lnp"] = 0.
-        number_counts.scal_rel_params["bias_sz"] = 0.8
+        # number_counts.scal_rel_params["a_lens"] = 1.
+        # number_counts.scal_rel_params["corr_lnq_lnp"] = 0.
+        # number_counts.scal_rel_params["bias_sz"] = 0.8
         number_counts.scal_rel_params["q_cutoff"] = 0.
+        number_counts.scal_rel_params['sigma_lnq'] = 0.01
         #number_counts.cosmo_params["k_cutoff"] = 0.67
         #number_counts.cosmo_params["ps_cutoff"] = 0.75
         number_counts.cnc_params["abundance_integral_type"] = "fft"
-        number_counts.cnc_params["likelihood_type"] = "binned"
-        number_counts.cnc_params["binned_lik_type"] = binned_likelihood_types[i] #can be "obs_select", "z", or "z_and_obs_select"
-        number_counts.cnc_params["bins_edges_z"] = np.linspace(number_counts.cnc_params["z_min"],number_counts.cnc_params["z_max"],n_bins[1])
-        number_counts.cnc_params["bins_edges_obs_select"] = np.exp(np.linspace(np.log(number_counts.cnc_params["obs_select_min"]),np.log(number_counts.cnc_params["obs_select_max"]),n_bins[0]))
+        number_counts.cnc_params["likelihood_type"] = "unbinned"
+        # number_counts.cnc_params["binned_lik_type"] = binned_likelihood_types[i] #can be "obs_select", "z", or "z_and_obs_select"
+        # number_counts.cnc_params["bins_edges_z"] = np.linspace(number_counts.cnc_params["z_min"],number_counts.cnc_params["z_max"],n_bins[1])
+        # number_counts.cnc_params["bins_edges_obs_select"] = np.exp(np.linspace(np.log(number_counts.cnc_params["obs_select_min"]),np.log(number_counts.cnc_params["obs_select_max"]),n_bins[0]))
         number_counts.initialise()
         if j == 0:
             t0 = time.time()
-            number_counts.get_log_lik_binned()
+            number_counts.get_log_lik()
             t1 = time.time()
             print("Time abundance",t1-t0)
             print("Time likelihood",t1-t0)
-            n_binned_theory = number_counts.n_binned
-            x = number_counts.bins_centres
-            n_tot_theory = np.sum(n_binned_theory) #number_counts.n_tot
+            # n_binned_theory = number_counts.n_binned
+            # x = number_counts.bins_centres
+            # n_tot_theory = np.sum(n_binned_theory) #number_counts.n_tot
             n_tot_obs = number_counts.catalogue.n_tot
             n_tot_theo = number_counts.n_tot
             print("Total n clusters",n_tot_obs,n_tot_theo)

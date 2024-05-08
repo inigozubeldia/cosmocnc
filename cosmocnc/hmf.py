@@ -307,6 +307,7 @@ class hmf_params:
             if self.mass_definition == "500c" or self.mass_definition == "200c":
 
                 Delta = np.log10(np.array([200.,300.,400.,600.,800.,1200.,1600.,2400.,3200.]))
+                # Delta = np.array([200.,300.,400.,600.,800.,1200.,1600.,2400.,3200.])
                 A = np.array([0.186,0.2,0.212,0.218,0.248,0.255,0.260,0.260,0.260])
                 a = np.array([1.47,1.52,1.56,1.61,1.87,2.13,2.30,2.53,2.66])
                 b = np.array([2.57,2.25,2.05,1.87,1.59,1.51,1.46,1.44,1.41])
@@ -319,6 +320,7 @@ class hmf_params:
         if self.hmf_type == "Tinker08":
 
             ret = np.interp(np.log10(Delta),self.params["Delta"],self.params[param])
+            # ret = np.interp(Delta,self.params["Delta"],self.params[param])
 
         return ret
 

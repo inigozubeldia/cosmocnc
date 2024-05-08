@@ -1588,7 +1588,7 @@ class scatter:
 
             elif observable1 == "xi" and observable2 == "xi":
 
-                cov = 2.
+                cov = 1.
 
             elif observable1 == "Yx" and observable2 == "Yx":
 
