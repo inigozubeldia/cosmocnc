@@ -29,7 +29,7 @@ class scaling_relations:
 
         elif observable == "xi" or observable == "WLMegacam" or observable == "WLHST" or observable == "Yx": 
 
-            n_layers = 2
+            n_layers = 3
 
         else:
 
@@ -645,12 +645,12 @@ class scaling_relations:
 
                 x1 = np.log(x1)
 
-            elif layer == 1:
+            elif layer == 2:
                 # x0 is lnYx(M)
                 x1 = np.exp(x0) ### OBS vs TRUE -- normal distribution, with mean = x1 = Yx-obs and std-dev = Yx_std
 
 
-            elif layer == 2:
+            elif layer == 1:
 
                 x1 = x0 
 
@@ -1588,7 +1588,7 @@ class scatter:
 
             elif observable1 == "xi" and observable2 == "xi":
 
-                cov = 1.
+                cov = 0.
 
             elif observable1 == "Yx" and observable2 == "Yx":
 

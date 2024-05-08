@@ -27,7 +27,7 @@ for i in range(0,len(binned_likelihood_types)):
         number_counts.cnc_params["cluster_catalogue"] = "SPT2500d"
         number_counts.cnc_params["observables"] = [["xi"]]
         number_counts.cnc_params["obs_select"] = "xi"
-        number_counts.cnc_params["data_lik_from_abundance"] = True
+        number_counts.cnc_params["data_lik_from_abundance"] = False
         number_counts.cnc_params["number_cores_hmf"] = 1
         number_counts.cnc_params["number_cores_abundance"] = 1
         number_counts.cnc_params["number_cores_data"] = 8
