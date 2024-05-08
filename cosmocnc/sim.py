@@ -8,13 +8,14 @@ import time
 class catalogue_generator:
 
     def __init__(self,number_counts=None,n_catalogues=1,seed=None
-    ,get_sky_coords=False,sky_frac=None):
+    ,get_sky_coords=False,sky_frac=None,get_theta=False):
 
         self.n_catalogues = n_catalogues
         self.get_sky_coords = get_sky_coords
         self.sky_frac = sky_frac
         self.number_counts = number_counts
         self.params_cnc = self.number_counts.cnc_params
+        self.get_theta = get_theta
 
         if seed is not None:
 
@@ -30,7 +31,7 @@ class catalogue_generator:
 
             self.sky_frac = np.sum(self.skyfracs)
 
-        # print("Sky frac",self.sky_frac) # TBD: make this optional 
+        print("Sky frac",self.sky_frac)
 
         self.hmf_matrix = self.number_counts.hmf_matrix*4.*np.pi*self.sky_frac
         self.ln_M = self.number_counts.ln_M
@@ -80,7 +81,27 @@ class catalogue_generator:
                 catalogue["lon"] = lon
                 catalogue["lat"] = lat
 
+            if self.get_theta == True:
+
+                catalogue["theta_so"] = self.get_theta_so(catalogue["M"],catalogue["z"])
+
+
             self.catalogue_list.append(catalogue)
+
+    def get_theta_so(self,M,z):
+
+        bias = self.number_counts.scal_rel_params["bias_sz"]
+        H0 = self.number_counts.cosmo_params["h"]*100.
+        D_A = self.number_counts.D_A
+        E_z = self.number_counts.E_z
+
+        D_A = np.interp(M,self.number_counts.redshift_vec,D_A)
+        E_z = np.interp(M,self.number_counts.redshift_vec,E_z)
+
+        prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(bias/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
+        theta_so = prefactor_M_500_to_theta*M**(1./3.) #in arcmin
+
+        return theta_so
 
     def generate_catalogues(self):
 

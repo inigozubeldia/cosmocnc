@@ -756,7 +756,7 @@ class cluster_number_counts:
 
                                                     xx = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],
                                                     layer=lay+1,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)
-                                                    
+
                                                     std = self.catalogue.catalogue[observable_set[j] + "_std"][cluster_index]
 
                                                     rInclude = self.scaling_relations[observable_set[j]].rInclude

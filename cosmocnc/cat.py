@@ -146,6 +146,97 @@ class cluster_catalogue:
 
             self.catalogue["validated"] = np.ones(len(self.catalogue[self.obs_select]))
 
+        elif self.catalogue_name == "planck_szifi_validation":
+
+            path = "/rds-d4/user/iz221/hpc-work/catalogues_szifi_planck/"
+
+            #prename = "planck_it_find_apodold_planckcibparams_sim_val_bias062_theta45"
+            #prename = "planck_it_find_apodold_planckcibparams_sim_val_fixed"
+            #prename = "planck_it_find_apodold_planckcibparams_sim_val_bias062"
+            theta_label = self.cnc_params["catalogue_params"]["theta_label"]
+
+            prename = "planck_it_find_apodold_planckcibparams_sim_val_bias062_" + theta_label
+
+            suffix = self.cnc_params["catalogue_params"]["filter"]
+
+            import szifi
+
+        #    name = path + prename + "_" + suffix + "_processed_id5arcmin.npy"
+            #name = path + prename + "_" + suffix + "_processed_cross_matched.npy"
+            #name = path + prename + "_" + suffix + "_processed_cross_matched_noid.npy"
+            # name = path + prename + "_" + suffix + "_processed_cross_matched_id1arcmin.npy"
+            # name = path + prename + "_" + suffix + "_processed_cross_matched_id3arcmin.npy"
+            #name = path + prename + "_" + suffix + "_processed_cross_matched_idmask1theta.npy"
+            #name = path + prename + "_" + suffix + "_processed_cross_matched_idmaskfixed5arcmin.npy"
+            #name = path + prename + "_" + suffix + "_processed_idmaskfixed5arcmin.npy"
+
+            suffix_merge = self.cnc_params["catalogue_params"]["suffix_merge"]
+
+            if theta_label == "":
+
+                name = path + prename + "" + suffix + "_processed_cross_matched_" + suffix_merge + ".npy"
+
+            else:
+
+                name = path + prename + "_" + suffix + "_processed_cross_matched_" + suffix_merge + ".npy"
+
+            #name = path + prename + "_" + suffix + "_processed.npy"
+
+            print(name)
+
+            (catalogue_obs_it,catalogue_obs_noit) = np.load(name,allow_pickle=True)[()]
+
+            if self.cnc_params["catalogue_params"]["iterative"] == True:
+
+                catalogue_obs = catalogue_obs_it
+                it_label = "it"
+
+            if self.cnc_params["catalogue_params"]["iterative"] == False:
+
+                catalogue_obs = catalogue_obs_noit
+                it_label = "noit"
+
+            #catalogue_obs.catalogue["validation"] = np.ones(len(catalogue_obs.catalogue["z"])) #REMOVEEEE
+
+            if self.cnc_params["catalogue_params"]["only_validated"] == True:
+
+                indices_val = np.where(catalogue_obs.catalogue["validation"] > 0.)[0]
+                catalogue_obs = szifi.get_catalogue_indices(catalogue_obs,indices_val)
+
+            indices = np.where((catalogue_obs.catalogue["z"] > self.cnc_params["z_min"]) & (catalogue_obs.catalogue["z"] < self.cnc_params["z_max"]) & (catalogue_obs.catalogue["q_opt"] > self.cnc_params["obs_select_min"]))
+            catalogue_obs = szifi.get_catalogue_indices(catalogue_obs,indices)
+
+            self.catalogue = {}
+            self.catalogue_patch = {}
+
+            n_clusters = len(catalogue_obs.catalogue["q_opt"])
+            self.catalogue["q_szifi_val"] = catalogue_obs.catalogue["q_opt"]
+            self.catalogue["z"] = catalogue_obs.catalogue["z"]
+
+            if self.cnc_params["catalogue_params"]["downsample"] == False:
+
+                self.catalogue_patch["q_szifi_val"] = np.zeros(n_clusters)
+
+            elif self.cnc_params["catalogue_params"]["downsample"] == True:
+
+                #indices_mapping = np.load(path + "indices_mapping_" + suffix + "_val_down20_" + it_label + "_bias062_theta32_" + suffix_merge + ".npy")
+                indices_mapping = np.load(path + "indices_mapping_" + suffix + "_val_down20_" + it_label + "_bias062_" + theta_label + "_" + suffix_merge + ".npy")
+
+                self.catalogue_patch["q_szifi_val"] = indices_mapping[catalogue_obs.catalogue["pixel_ids"].astype(np.int64)]
+
+
+        elif self.catalogue_name[0:20] == "zc19_simulated_paper":
+
+            catalogue = np.load(root_path + "data/catalogues_sim/catalogue_" + self.catalogue_name + ".npy",allow_pickle=True)[0]
+            self.catalogue = {}
+            self.catalogue_patch = {}
+
+            self.catalogue["q_mmf3_mean"] = catalogue["q_mmf3_mean"]
+            self.catalogue_patch["q_mmf3_mean"] = catalogue["q_mmf3_mean_patch"]
+            self.catalogue["p_zc19_mean"] = catalogue["p_zc19_mean"]
+            self.catalogue_patch["p_zc19_mean"] = catalogue["p_zc19_mean_patch"]
+            self.catalogue["z"] = catalogue["z"]
+
         elif self.catalogue_name[0:14] == "zc19_simulated":
 
             catalogue = np.load(root_path + "data/catalogues_sim/catalogue_" + self.catalogue_name + "_paper.npy",allow_pickle=True)[0]
@@ -344,7 +435,7 @@ class cluster_catalogue:
             self.catalogue = {}
             self.catalogue["q_so_sim"] = catalogue["q_so_sim"]
             self.catalogue["z"] = catalogue["z"]
-            self.catalogue["z_std"] = np.zeros(len(self.catalogue["z"]))
+            self.catalogue["z_std"] = np.zeros(len(self.catalogue["z"]))*1e-2
             self.catalogue["p_so_sim"] = catalogue["p_so_sim"]
 
             self.catalogue_patch = {}

@@ -51,7 +51,7 @@ class scaling_relations:
             if self.cnc_params["catalogue_params"]["downsample"] == True and observable == "q_mmf3":
 
                 (self.sigma_matrix,self.skyfracs,original_tile_vec) = np.load(root_path + "data/test_downsample_tiles_noisebased_mmf3.npy",allow_pickle=True)
-                # print("Total sky frac",np.sum(self.skyfracs)) # TBD make this optional 
+                print("Total sky frac",np.sum(self.skyfracs))
 
             else:
 
@@ -83,6 +83,14 @@ class scaling_relations:
 
             self.sigma_theta_lens_vec = np.load(root_path + "data/sigma_theta_lens_vec.npy") #first index is patch index, from 0 to 417
             self.sigma_theta_lens_vec[:,0,:] = self.sigma_theta_lens_vec[:,0,:]*180.*60./np.pi #in arcmin
+
+        if observable == "p_zc19_mean":
+
+            sigma_theta_lens_vec = np.load(root_path + "data/sigma_theta_lens_vec.npy") #first index is patch index, from 0 to 417
+            sigma_theta_lens_vec[:,0,:] = sigma_theta_lens_vec[:,0,:]*180.*60./np.pi #in arcmin
+
+            self.sigma_theta_lens_vec = np.zeros((1,sigma_theta_lens_vec.shape[1],sigma_theta_lens_vec.shape[2]))
+            self.sigma_theta_lens_vec[0,:,:] = np.mean(sigma_theta_lens_vec,axis=0)
 
         if observable == "p_so_sim_original" or observable == "p_so_sim_stacked":
 
@@ -163,6 +171,125 @@ class scaling_relations:
             self.theta_500_vec = np.exp(np.linspace(np.log(0.5),np.log(15.),15))
 
             self.pdf_false_detection = np.load("/rds-d4/user/iz221/hpc-work/catalogues_def/planck_hpc/false_detections_abundance_szifi.npy",allow_pickle=True)[()][dep_type]
+
+        if observable == "q_szifi_val":
+
+            theta_label = self.cnc_params["catalogue_params"]["theta_label"]
+
+            #self.theta_500_vec = np.exp(np.linspace(np.log(0.5),np.log(15.),15))
+            #self.theta_500_vec = np.exp(np.linspace(np.log(0.5),np.log(45.),25))
+
+            if theta_label == "theta32":
+
+                self.theta_500_vec = np.exp(np.linspace(np.log(0.5),np.log(32.),25))
+
+            elif theta_label == "theta32step100":
+
+                self.theta_500_vec = np.exp(np.linspace(np.log(0.5),np.log(32.),100))
+
+            elif theta_label == "":
+
+                self.theta_500_vec = np.exp(np.linspace(np.log(0.5),np.log(15.),15))
+
+
+            if self.cnc_params["catalogue_params"]["downsample"] == False:
+
+                path = "/rds-d4/user/iz221/hpc-work/catalogues_szifi_planck/"
+                #prename = "planck_it_find_apodold_planckcibparams_sim_val_bias062_theta45"
+                #prename = "planck_it_find_apodold_planckcibparams_sim_val_bias062"
+                #prename = "planck_it_find_apodold_planckcibparams_sim_val_fixed"
+                prename = "planck_it_find_apodold_planckcibparams_sim_val_bias062_" + theta_label
+
+                suffix = "mmf_6"
+
+                suffix_merge = self.cnc_params["catalogue_params"]["suffix_merge"]
+
+                #full_name_sigma_vec =  path + prename + "_" + suffix + "_sigma_vec_bias062_theta45.npy"
+                #full_name_sigma_vec =  path + prename + "_" + suffix + "_sigma_vec_bias062.npy"
+                full_name_sigma_vec =  path + prename + "_" + suffix + "_sigma_vec_bias062_" + suffix_merge + ".npy"
+
+                if self.cnc_params["catalogue_params"]["iterative"] == True:
+
+                    index_it = 0
+
+                if self.cnc_params["catalogue_params"]["iterative"] == False:
+
+                    index_it = 1
+
+                sigma_matrix_dict = np.load(full_name_sigma_vec,allow_pickle=True)[()][index_it] #[0] for it, [1] for non-it
+
+                self.sigma_matrix = 0.
+
+                j = 0
+
+                for key in sigma_matrix_dict.keys():
+
+                    self.sigma_matrix = self.sigma_matrix + sigma_matrix_dict[key]
+                    j = j + 1
+
+                self.sigma_matrix = self.sigma_matrix/float(j)
+
+                skyfracs = np.load(path + "fsky_dict_planck_szifi_val.npy",allow_pickle=True)[()]
+                skyfrac = 0.
+
+                for key in skyfracs.keys():
+
+                    skyfrac = skyfrac + skyfracs[key]
+
+                self.skyfracs = [skyfrac]
+
+            elif self.cnc_params["catalogue_params"]["downsample"] == True:
+
+                if self.cnc_params["catalogue_params"]["iterative"] == True:
+
+                    it_label = "it"
+
+                if self.cnc_params["catalogue_params"]["iterative"] == False:
+
+                    it_label = "noit"
+
+                path = "/rds-d4/user/iz221/hpc-work/catalogues_szifi_planck/"
+            #    prename = "planck_it_find_apodold_planckcibparams_sim_val_bias062_theta45"
+                #prename = "planck_it_find_apodold_planckcibparams_sim_val_bias062"
+
+                if theta_label == "":
+
+                    prename = "planck_it_find_apodold_planckcibparams_sim_val_bias062"
+
+                else:
+
+                    prename = "planck_it_find_apodold_planckcibparams_sim_val_bias062_" + theta_label
+
+                suffix = self.cnc_params["catalogue_params"]["filter"]
+
+                suffix_merge = self.cnc_params["catalogue_params"]["suffix_merge"]
+
+            #    full_name_sigma_vec =  path + prename + "_" + suffix + "_sigma_vec_down20_" + it_label + "_bias062_theta45.npy"
+    #            full_name_sigma_vec =  path + prename + "_" + suffix + "_sigma_vec_down20_" + it_label + "_bias062.npy"
+
+                full_name_sigma_vec =  path + prename + "_" + suffix + "_sigma_vec_down20_" + it_label + "_bias062_" + theta_label + "_" + suffix_merge + ".npy"
+
+                sigma_matrix_dict = np.load(full_name_sigma_vec,allow_pickle=True)[()]
+
+                self.sigma_matrix = np.zeros((20,len(sigma_matrix_dict[0])))
+
+                if suffix_merge == "mask1theta500" or suffix_merge == "maxmask1theta5005arcmin":
+
+                    skyfracs = np.load(path + "fsky_dict_planck_szifi_val_down20_" + suffix + "_" + it_label + "_bias062_" + theta_label + "_" + suffix_merge + ".npy",allow_pickle=True)[()]
+
+
+                else:
+
+                #skyfracs = np.load(path + "fsky_dict_planck_szifi_val_down20_" + it_label + "_bias062_theta45.npy",allow_pickle=True)[()]
+                #skyfracs = np.load(path + "fsky_dict_planck_szifi_val_down20_" + it_label + "_bias062.npy",allow_pickle=True)[()]
+                    skyfracs = np.load(path + "fsky_dict_planck_szifi_val_down20_" + it_label + "_bias062_" + theta_label + "_" + suffix_merge + ".npy",allow_pickle=True)[()]
+
+                self.skyfracs = np.zeros(20)
+
+                for i in range(0,self.sigma_matrix.shape[0]):
+
+                    self.sigma_matrix[i,:] = sigma_matrix_dict[i]
+                    self.skyfracs[i] = skyfracs[i]
 
         if observable == "q_so_sim":
 
@@ -274,7 +401,7 @@ class scaling_relations:
             self.prefactor_Y_500 = (self.params["bias_sz"]/6.)**self.params["alpha"]*(H0/70.)**(-2.+self.params["alpha"])*10.**self.params["log10_Y_star"]*E_z**self.params["beta"]*0.00472724*(D_A/500.)**(-2.)
             self.prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_sz"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
 
-        if observable == "p_zc19" or observable== "p_zc19_stacked" or observable == "p_so_sim" or observable == "p_so_sim_stacked" or observable == "p_so_goal3yr_sim" or observable == "p_so_goal3yr_sim_stacked":
+        if observable == "p_zc19" or observable == "p_zc19_mean" or observable== "p_zc19_stacked" or observable == "p_so_sim" or observable == "p_so_sim_stacked" or observable == "p_so_goal3yr_sim" or observable == "p_so_goal3yr_sim_stacked":
 
             H0 = other_params["H0"]
             E_z = other_params["E_z"]
@@ -295,7 +422,7 @@ class scaling_relations:
             self.prefactor_lens = factor*convergence
             self.prefactor_M_500_to_theta_lensing = 6.997*(H0/70.)**(-2./3.)*(self.params["bias_cmblens"]/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
 
-        if observable == "q_szifi":
+        if observable == "q_szifi" or observable == "q_szifi_val":
 
             E_z = other_params["E_z"]
             H0 = other_params["H0"]
@@ -436,7 +563,7 @@ class scaling_relations:
 
                 x1 = np.exp(x0)
 
-        if observable == "p_zc19":
+        if observable == "p_zc19" or observable == "p_zc19_mean":
 
             if layer == 0:
 
@@ -483,7 +610,7 @@ class scaling_relations:
                 x1 = np.log(self.prefactor_lens*self.params["a_lens"]*(0.1*self.params["bias_cmblens"])**(1./3.)) + x0/3. - log_sigma
 
 
-        if observable == "q_szifi":
+        if observable == "q_szifi" or observable == "q_szifi_val":
 
             if layer == 0:
 
@@ -493,7 +620,8 @@ class scaling_relations:
 
                 sigma_vec = self.sigma_matrix[patch_index,:]
 
-                sigma = np.interp(self.theta_500,self.theta_500_vec,sigma_vec)
+                #print(other_params["zc"],"theta_500",self.theta_500)
+                sigma = np.interp(self.theta_500,self.theta_500_vec,sigma_vec,left=sigma_vec[0],right=sigma_vec[-1])
                 x1 = np.log(y0/sigma)
 
             if layer == 1:
@@ -785,7 +913,7 @@ class scaling_relations:
                     exp = np.exp(2.*x0)
                     dx1_dx0 = exp/np.sqrt(exp+dof)
 
-            if observable == "q_szifi":
+            if observable == "q_szifi" or observable == "q_szifi_val":
 
                 if layer == 0:
 
@@ -823,7 +951,7 @@ class scaling_relations:
 
                     dx1_dx0 = np.exp(x0)
 
-            if observable == "p_zc19":
+            if observable == "p_zc19" or observable == "p_zc19_mean":
 
                 if layer == 0:
 
@@ -943,7 +1071,7 @@ class scaling_relations:
 
                 x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
 
-        if observable == "p_zc19" or observable== "p_zc19_stacked":
+        if observable == "p_zc19" or observable == "p_zc19_mean" or observable== "p_zc19_stacked":
 
             if layer == 0:
 
@@ -1061,7 +1189,7 @@ class scaling_relations:
 
     def get_cutoff(self,layer=0):
 
-        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi" or self.observable == "xi" or self.observable == "q_so_sim" or self.observable == "q_so_goal3yr_sim" or self.observable == "q_act_dr5_sim":
+        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi"or self.observable == "q_szifi_val" or self.observable == "xi" or self.observable == "q_so_sim" or self.observable == "q_so_goal3yr_sim" or self.observable == "q_act_dr5_sim":
 
             if layer == 0:
 
@@ -1201,6 +1329,10 @@ class scatter:
 
                 cov = self.params["sigma_lnp"]**2
 
+            elif observable1 == "p_zc19_mean" and observable2 == "p_zc19_mean":
+
+                cov = self.params["sigma_lnp"]**2
+
             elif observable1 == "p_so_sim" and observable2 == "p_so_sim":
 
                 cov = self.params["sigma_lnp"]**2
@@ -1226,7 +1358,15 @@ class scatter:
 
                 cov = self.params["corr_lnq_lnp"]*self.params["sigma_lnp"]*self.params["sigma_lnq"]
 
+            elif (observable1 == "q_mmf3_mean" and observable2 == "p_zc19_mean") or (observable1 == "p_zc19_mean" and observable2 == "q_mmf3_mean"):
+
+                cov = self.params["corr_lnq_lnp"]*self.params["sigma_lnp"]*self.params["sigma_lnq"]
+
             elif (observable1 == "q_szifi" and observable2 == "q_szifi"):
+
+                cov = self.params["sigma_lnq_szifi"]**2
+
+            elif (observable1 == "q_szifi_val" and observable2 == "q_szifi_val"):
 
                 cov = self.params["sigma_lnq_szifi"]**2
 
@@ -1299,6 +1439,10 @@ class scatter:
 
                 cov = 1.
 
+            elif observable1 == "p_zc19_mean" and observable2 == "p_zc19_mean":
+
+                cov = 1.
+
             elif observable1 == "p_so_sim" and observable2 == "p_so_sim":
 
                 cov = 1.
@@ -1309,6 +1453,10 @@ class scatter:
 
 
             elif (observable1 == "q_szifi" and observable2 == "q_szifi"):
+
+                cov = 1.
+
+            elif (observable1 == "q_szifi_val" and observable2 == "q_szifi_val"):
 
                 cov = 1.
 
