@@ -813,21 +813,24 @@ class cluster_number_counts:
                                         x_p = x_list_linear[lay]
 
 
-                                        # print(layers[-2],layers)
+                                        print("in loop:i,layers[-2],layers",i,layers[-2],layers)
                                         # exit(0)
                                         # go one layer back  and then forward in the code below
                                         if lay == layers[-2]:
+                                            print("case lay = layers[-2]:",cpdf_product)
 
                                             x1 = np.zeros((n_obs,len(lnM)))
 
                                             for j in range(0,n_obs):
 
                                                 x_obs_j = x_obs[j]
+                                                print("------> case lay = layers[-2]:j,cpdf_product",j,cpdf_product)
 
                                                 if isinstance(x_obs_j,(float,int,np.float32)) == True:
 
                                                     x1[j,:] = self.scaling_relations[observable_set[j]].eval_scaling_relation(x_p[j,:],
                                                     layer=lay+1,patch_index=int(observable_patches[observable_set[j]]),other_params=other_params)-x_obs_j
+                                                    print("usual case")
 
                                                 else:
 
@@ -871,6 +874,7 @@ class cluster_number_counts:
                                                         # exit(0)
 
                                                     x1[j,:] = np.sqrt(np.sum((dxwl/dxwl_std)**2,axis=0))
+                                                    print("multi points case")
 
                                             tt3 = time.time()
 
@@ -878,18 +882,23 @@ class cluster_number_counts:
                                             print("x_mesh",np.shape(x_mesh),x_mesh)
                                             print("covariance.cov[lay+1]",np.shape(covariance.cov[lay+1]),covariance.cov[lay+1])
                                             cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
+                                            print("---------------------__-----> getting cpdf:",cpdf)
 
                                         else:
+                                            print("getting cpdf in the other cases")
 
                                             if n_obs > 1:
 
                                                 x_mesh_interp_layer = np.transpose(get_mesh(x_list_linear[lay]).reshape(*x_mesh.shape[:-2],-1))
                                                 cpdf = interpolate.RegularGridInterpolator(x_list[lay],cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp_layer)
                                                 cpdf = np.transpose(cpdf.reshape(x_mesh.shape[1:]))
+                                                print("got cpdf:",cpdf)
 
                                             else:
-
+                                                print("got cpdf in the case of one observable before interp:",cpdf)
+                                                # exit(0)
                                                 cpdf = np.interp(x_list_linear[lay][0,:],x_list[lay][0,:],cpdf)
+                                                print("got cpdf in the case of one observable:",cpdf)
 
                                         tt4 = time.time()
                                         self.t_33 = self.t_33 + tt4 - tt3
@@ -905,16 +914,26 @@ class cluster_number_counts:
                                         tt4b = time.time()
 
                                         self.t_44 = self.t_44 + tt4b - tt4
-
-                                        kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
-
+                                        print("getting kernel: xmesh",x_p_mesh)
+                                        print("getting kernel: cov at lay",covariance.cov[lay],lay)
                                         tt5 = time.time()
-                                        self.t_55 = self.t_55  + tt5 - tt4b
+                                        if not np.all(covariance.cov[lay]==0):
 
-                                        print("np.shape(cpdf),np.shape(kernel)")
-                                        print(np.shape(cpdf),np.shape(kernel))
-                                        cpdf = convolve_nd(cpdf,kernel)
+                                            kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
+                                            print("got kernel",kernel)
+                                            # exit(0)
 
+                                            
+                                            self.t_55 = self.t_55  + tt5 - tt4b
+
+                                            print("-------<<<<<<<   np.shape(cpdf),np.shape(kernel)")
+                                            print(np.shape(cpdf),np.shape(kernel))
+                                            print("before convo : ",cpdf)
+                                            print("before convo, kernel : ",kernel)
+
+                                            cpdf = convolve_nd(cpdf,kernel)
+                                            print("after convo : ",cpdf)
+                                        
                                         tt6 = time.time()
                                         self.t_66 = self.t_66 + tt6 - tt5
 
@@ -951,6 +970,9 @@ class cluster_number_counts:
 
                             patch_select = int(observable_patches[self.cnc_params["obs_select"]])
 
+                            print("cpdf_product:",cpdf_product)
+                            print("halo_mass_function_z:",halo_mass_function_z)
+                            print("self.scal_rel_selection.skyfracs[patch_select]",self.scal_rel_selection.skyfracs[patch_select])
                             cpdf_product_with_hmf = cpdf_product*halo_mass_function_z*4.*np.pi*self.scal_rel_selection.skyfracs[patch_select]
 
                             return_dict["cpdf_" + str(cluster_index) + "_" + str(redshift_error_id)] = cpdf_product_with_hmf
