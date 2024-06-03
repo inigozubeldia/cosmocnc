@@ -798,12 +798,13 @@ class cluster_number_counts:
 
                                         self.t_44 = self.t_44 + tt4b - tt4
 
-                                        kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
+                                        if not np.all(covariance.cov[lay]==0):
+
+                                            kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
+                                            cpdf = convolve_nd(cpdf,kernel)
 
                                         tt5 = time.time()
                                         self.t_55 = self.t_55  + tt5 - tt4b
-
-                                        cpdf = convolve_nd(cpdf,kernel)
 
                                         tt6 = time.time()
                                         self.t_66 = self.t_66 + tt6 - tt5
@@ -1370,7 +1371,6 @@ class cluster_number_counts:
                 for j in range(0,len(self.cnc_params["bins_edges_obs_select"])-1):
 
                     n_observed = self.catalogue.number_counts[i,j]
-
 
                     redshift_vec_interp = np.linspace(self.cnc_params["bins_edges_z"][i],self.cnc_params["bins_edges_z"][i+1],n_bins_redshift)
                     obs_select_vec_interp = np.linspace(self.cnc_params["bins_edges_obs_select"][j],self.cnc_params["bins_edges_obs_select"][j+1],n_bins_obs_select)
