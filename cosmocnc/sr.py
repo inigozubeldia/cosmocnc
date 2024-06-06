@@ -1546,8 +1546,6 @@ class scatter:
 
                 cov = 0.
 
-<<<<<<< Updated upstream
-=======
 
         elif layer == 2:
 
@@ -1555,5 +1553,4 @@ class scatter:
 
                 cov = 1.
 
->>>>>>> Stashed changes
         return cov
