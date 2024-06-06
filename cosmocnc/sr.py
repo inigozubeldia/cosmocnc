@@ -27,14 +27,11 @@ class scaling_relations:
 
             n_layers = 1
 
-<<<<<<< Updated upstream
-=======
 
         elif observable == "q_so_sim" or observable == "xi" or observable == "WLMegacam" or observable == "WLHST" or observable == "Yx": 
 
             n_layers = 3
 
->>>>>>> Stashed changes
         else:
 
             n_layers = 2
