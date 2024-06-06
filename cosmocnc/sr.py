@@ -645,6 +645,10 @@ class scaling_relations:
 
             if layer == 1:
 
+                x1 =x0
+                
+            elif layer == 2:
+
                 x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
 
         # SPT case 

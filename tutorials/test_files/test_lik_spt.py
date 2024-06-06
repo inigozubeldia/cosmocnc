@@ -23,7 +23,7 @@ for i in range(0,len(data_lik_from_abundances)):
     number_counts.cnc_params["number_cores_hmf"] = 1
     number_counts.cnc_params["number_cores_abundance"] = 1
     number_counts.cnc_params["number_cores_data"] = 8
-    
+
     number_counts.cnc_params["obs_select_min"] = 5.
     number_counts.cnc_params["obs_select_max"] = 47.
 
@@ -42,7 +42,7 @@ for i in range(0,len(data_lik_from_abundances)):
     number_counts.cnc_params["M_min"] = 1e13
     number_counts.cnc_params["M_max"] = 1e16
 
-    number_counts.cnc_params["apply_obs_cutoff"] = True
+    number_counts.cnc_params["apply_obs_cutoff"] = False
 
     number_counts.scal_rel_params["dof"] = 0.
     number_counts.scal_rel_params["q_cutoff"] = 2.7
