@@ -2,6 +2,28 @@ import numpy as np
 import pylab as pl
 import warnings
 warnings.filterwarnings("ignore")
+import warnings
+from contextlib import contextmanager
+import logging
+
+# Suppress absl warnings
+@contextmanager
+def suppress_warnings():
+    warnings.filterwarnings("ignore")
+    try:
+        yield
+    finally:
+        warnings.resetwarnings()
+import absl.logging
+absl.logging.set_verbosity('error')
+# Suppress TensorFlow warnings
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+with suppress_warnings():
+    import tensorflow as tf
+    tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
+
 import cosmopower
 import os
 import subprocess

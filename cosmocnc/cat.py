@@ -7,7 +7,6 @@ from .config import *
 from .sr import *
 from .utils import *
 from .params import *
-import imp
 import pickle
 
 class cluster_catalogue:
@@ -701,6 +700,18 @@ class cluster_catalogue:
                 # WL simulation calibration data --  same as Bocquet's code
                 # WLsimcalibfile = options.get_string(option_section, 'WLsimcalibfile')
                 WLsimcalibfile = root_path + "data/spt/WLsimcalib_data.py"
+                import warnings
+                from contextlib import contextmanager
+
+                @contextmanager
+                def suppress_warnings():
+                    warnings.filterwarnings("ignore")
+                    try:
+                        yield
+                    finally:
+                        warnings.resetwarnings()
+                with suppress_warnings():
+                    import imp
                 WLsimcalib = imp.load_source('WLsimcalib', WLsimcalibfile)
 
                 self.WLcalib = WLsimcalib.WLcalibration

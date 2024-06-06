@@ -27,6 +27,14 @@ class scaling_relations:
 
             n_layers = 1
 
+<<<<<<< Updated upstream
+=======
+
+        elif observable == "q_so_sim" or observable == "xi" or observable == "WLMegacam" or observable == "WLHST" or observable == "Yx": 
+
+            n_layers = 3
+
+>>>>>>> Stashed changes
         else:
 
             n_layers = 2
@@ -642,7 +650,7 @@ class scaling_relations:
 
                 x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
 
-
+        # SPT case 
         if observable == 'xi':
 
             if layer == 0:
@@ -656,10 +664,17 @@ class scaling_relations:
 
             elif layer == 1:
 
-                #x0 is log q_true
-                x1 = np.sqrt(np.exp(x0)**2+self.params["dof"]) ### PDF of OBS vs TRUE -- normal distribution, with mean = x1 and std-dev = 1
+                x1 = x0 
+                
 
 
+            elif layer == 2:
+                
+                x1 = np.sqrt(np.exp(x0)**2+self.params["dof"]) 
+                
+
+
+        # SPT case 
         if observable == 'Yx':
 
             if layer == 0:
@@ -679,10 +694,17 @@ class scaling_relations:
 
                 x1 = np.log(x1)
 
-            elif layer == 1:
+            elif layer == 2:
                 # x0 is lnYx(M)
                 x1 = np.exp(x0) ### OBS vs TRUE -- normal distribution, with mean = x1 = Yx-obs and std-dev = Yx_std
 
+
+            elif layer == 1:
+
+                x1 = x0 
+
+
+        # SPT case 
         if observable == 'WLMegacam':
 
             if layer == 0:
@@ -694,9 +716,13 @@ class scaling_relations:
 
             elif layer == 1:
 
+                x1 = np.exp(x0)
+
+            elif layer == 2:
                 # x0 is lnMwl
 
-                x1 = np.exp(x0)*1e14
+                # x1 = np.exp(x0)*1e14
+                x1 = x0*1e14
                 h = other_params["H0"]/100.
                 rho_c_hunits = other_params['rho_c']/h**2
                 self.rho_c_z =  rho_c_hunits
@@ -734,9 +760,22 @@ class scaling_relations:
 
                 #x1 = g_2d[rInclude[-1]:,:]
                 x1 = g_2d[rInclude,:]
+                # if (self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'] == 'SPT-CLJ2355-5055'): -- spt debug
+                #     print(self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'])
+                #     print('MC SPT-CLJ2355-5055')
+                #     print('Dl',Dl)
+                #     print(">>>>>>>>>>>>>>>>>>>>>>>> h:",h)
+                #     np.savetxt('/Users/boris/Desktop/SPT-CLJ2355-5055_cnc.txt',
+                #         np.c_[mArr,m200c,c200c,gamma_2d[5],kappa_2d[5],g_2d[5]])
+                #     # print('rPhysRef',rPhysRef)
+                #     print('file saved',self.rInclude)
+                #     print('Sigma_c = %.8e'%Sigma_c)
+                    # exit(0)
+                # exit(0)
                 #x1[rInclude[-1]:,:] = 0.
 
 
+        # SPT case 
         if observable == 'WLHST':
 
             if layer == 0:
@@ -748,8 +787,13 @@ class scaling_relations:
 
 
             elif layer == 1:
+
+                x1 = np.exp(x0)
+
+            elif layer == 2:
                 # x0 is lnMwl
-                x1 = np.exp(x0)*1e14
+                # x1 = np.exp(x0)*1e14
+                x1 = x0*1e14
                 h = other_params["H0"]/100.
                 rho_c_hunits = other_params['rho_c']/h**2
                 self.rho_c_z =  rho_c_hunits
@@ -810,7 +854,7 @@ class scaling_relations:
 
                 # Only consider 500<r/kpc/1500 in reference cosmology
                 cosmoRef = self.spt_cosmoRef
-
+                ### HST cosmoRef 
                 DlRef = np.exp(np.interp(np.log(1.+zcluster),
                                          self.spt_ln1pzs,
                                          self.spt_lndas_hmpc))
@@ -822,7 +866,10 @@ class scaling_relations:
                 x1 = g_2d[rInclude,:]
                 #x1 = g_2d
                 #x1[rInclude[-1]:,:] = 0.
-
+                # if (self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'] == 'SPT-CLJ2355-5055'): #---- debug spt
+                #     print('HST SPT-CLJ2355-5055')
+                #     print('DlRef',DlRef)
+                #     exit(0)
         if observable == "q_act_dr5_sim":
 
             if layer == 0:
@@ -1189,13 +1236,23 @@ class scaling_relations:
 
     def get_cutoff(self,layer=0):
 
-        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi"or self.observable == "q_szifi_val" or self.observable == "xi" or self.observable == "q_so_sim" or self.observable == "q_so_goal3yr_sim" or self.observable == "q_act_dr5_sim":
+        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi"or self.observable == "q_szifi_val"  or self.observable == "q_so_sim" or self.observable == "q_so_goal3yr_sim" or self.observable == "q_act_dr5_sim":
 
             if layer == 0:
 
                 cutoff = -np.inf
 
             elif layer == 1:
+
+                cutoff = self.params["q_cutoff"]
+
+        if self.observable == "xi":
+
+            if layer == 0 or layer == 1:
+
+                cutoff = -np.inf
+
+            elif layer == 2:
 
                 cutoff = self.params["q_cutoff"]
 
@@ -1478,7 +1535,7 @@ class scatter:
 
             elif observable1 == "xi" and observable2 == "xi":
 
-                cov = 1.
+                cov = 0
 
             elif observable1 == "Yx" and observable2 == "Yx":
 
@@ -1492,4 +1549,14 @@ class scatter:
 
                 cov = 0.
 
+<<<<<<< Updated upstream
+=======
+
+        elif layer == 2:
+
+            if (observable1 == "q_so_sim" and observable2 == "q_so_sim") or (observable1 == "xi" and observable2 == "xi"):
+
+                cov = 1.
+
+>>>>>>> Stashed changes
         return cov
