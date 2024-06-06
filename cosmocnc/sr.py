@@ -645,9 +645,9 @@ class scaling_relations:
 
             if layer == 1:
 
-                x1 =x0
-                
-            elif layer == 2:
+                x1 = x0
+
+            if layer == 2:
 
                 x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
 
@@ -1520,7 +1520,7 @@ class scatter:
 
             elif (observable1 == "q_so_sim" and observable2 == "q_so_sim"):
 
-                cov = 1.
+                cov = 0
 
             elif (observable1 == "q_so_goal3yr_sim" and observable2 == "q_so_goal3yr_sim"):
 
