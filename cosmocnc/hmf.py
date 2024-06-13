@@ -3,6 +3,8 @@ import pylab as pl
 import copy
 from mcfit import TophatVar
 import time
+# from .utils import configure_logging
+import logging
 
 class halo_mass_function:
 
@@ -14,7 +16,8 @@ class halo_mass_function:
                  n_points=1000,
                  type_deriv="numerical",
                  hmf_calc="cnc",
-                 extra_params=None):
+                 extra_params=None,
+                 logger = None):
 
         self.hmf_type = hmf_type
         self.mass_definition = mass_definition
@@ -27,6 +30,9 @@ class halo_mass_function:
         self.type_deriv = type_deriv
         self.hmf_calc = hmf_calc
         self.extra_params = extra_params
+
+
+        self.logger = logging.getLogger(__name__)
 
         self.sigma_r_dict = {}
 
@@ -193,7 +199,7 @@ class halo_mass_function:
 
                 M_vec = np.exp(np.linspace(np.log(M_min),np.log(M_max),n_points))
                 M_vec_h = M_vec*self.h
-                # print('hmf',np.shape(redshift),np.shape(M_vec_h))
+                self.logger.debug(f'hmf: {np.shape(redshift)}, {np.shape(M_vec_h)}')
                 # print(M_vec_h)
                 # exit(0)
                 hmf  =  np.zeros((len(redshift),len(M_vec_h)))
@@ -203,7 +209,7 @@ class halo_mass_function:
                     if volume_element == True:
                         hmf[i,:] *=self.cosmology.background_cosmology.differential_comoving_volume(redshift[i]).value
                 # hmf =
-                # print('hmf',np.shape(hmf))
+                self.logger.debug(f'hmf: {np.shape(hmf)}')
                 # exit(0)
                 hmf *= M_vec/1e14
                 M_eval = np.log(M_vec/1e14)

@@ -45,13 +45,21 @@ for i in range(0,len(data_lik_from_abundances)):
     number_counts.cnc_params["apply_obs_cutoff"] = False
 
     number_counts.scal_rel_params["dof"] = 0.
-    number_counts.scal_rel_params["q_cutoff"] = 2.7
+    number_counts.scal_rel_params["q_cutoff"] = 2. ## see section 3.1.1 of https://arxiv.org/pdf/1812.01679.pdf
 
 
 
     number_counts.cnc_params["abundance_integral_type"] = "fft"
 
     number_counts.cnc_params["likelihood_type"] = "unbinned"
+    number_counts.cnc_params["cosmology_tool"] = "classy_sz"
+
+    number_counts.cnc_params["class_sz_ndim_redshifts"] = 500
+    number_counts.cnc_params["class_sz_ndim_masses"] = 100
+    number_counts.cnc_params["class_sz_concentration_parameter"] = "B13"
+
+    number_counts.cnc_params["class_sz_hmf"] = "T08M500c"
+    number_counts.cnc_params["hmf_calc"] = "classy_sz"
 
 
     number_counts.initialise()

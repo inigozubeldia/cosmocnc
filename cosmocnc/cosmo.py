@@ -13,9 +13,12 @@ import time
 class cosmology_model:
 
     def __init__(self,cosmo_params=None,cosmology_tool="astropy",power_spectrum_type="cosmopower",
-    amplitude_parameter="sigma_8",cnc_params = None):
+    amplitude_parameter="sigma_8",cnc_params = None,logger = None):
 
         self.cnc_params = cnc_params
+
+        self.logger = logging.getLogger(__name__)
+
 
         if cosmo_params is None:
 
@@ -23,6 +26,8 @@ class cosmology_model:
 
         self.cosmo_params = cosmo_params
         self.amplitude_parameter = amplitude_parameter
+
+        
 
 
         if cosmology_tool == "classy_sz":
@@ -75,15 +80,19 @@ class cosmology_model:
                            'm_ncdm' : self.cosmo_params["m_nu"],
                            'T_ncdm' : 0.71611,
 
+
+
                           'output': self.cnc_params["class_sz_output"],  
                           'skip_background_and_thermo': 0,
                           'skip_chi': 1,
                           'skip_hubble': 1,
                           'skip_cmb': 1,
                           'skip_pknl': 1,
-                          'skip_pkl': 0,
+                          'skip_pkl': 0, # compute pkl from emulators 
                           'skip_sigma8_and_der': 0,
                           'skip_sigma8_at_z': 1,
+                          'skip_input': 0,
+                          'skip_class_sz': 0,
                           'HMF_prescription_NCDM': 1,
                           'no_spline_in_tinker': 1,
 
@@ -97,6 +106,7 @@ class cosmology_model:
                           'concentration parameter': self.cnc_params["class_sz_concentration_parameter"],
                           'cosmo_model': self.cosmo_model_dict[self.cnc_params['cosmo_model']],
                           'mass function' : self.cnc_params["class_sz_hmf"]
+
                           })
 
             if  self.cnc_params['cosmo_model'] == "wcdm":
@@ -107,11 +117,16 @@ class cosmology_model:
                 })
 
             if  self.cnc_params['hmf_calc'] == "classy_sz":
+                # print('adding dndlnM to class_sz output')
                 self.classy.set({
                     'output': self.cnc_params["class_sz_output"] + ",dndlnM"
                 })
 
+            self.logger.info('computing class_szfast')
+
             self.classy.compute_class_szfast()
+
+            self.logger.info('computing class_szfast done')
 
             self.T_CMB_0 = self.classy.T_cmb()
             self.N_eff = self.classy.get_current_derived_parameters(['Neff'])['Neff']
@@ -134,6 +149,8 @@ class cosmology_model:
             self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
             self.get_dndlnM_at_z_and_M = np.vectorize(self.classy.get_dndlnM_at_z_and_M)
             self.get_delta_mean_from_delta_crit_at_z = np.vectorize(self.classy.get_delta_mean_from_delta_crit_at_z)
+
+            self.logger.debug(f'class_szfast done: {self.T_CMB_0}, {self.sigma8}, {self.get_dndlnM_at_z_and_M(0.1,1e14)}')
 
         if cosmology_tool == "astropy":
 
@@ -204,6 +221,8 @@ class cosmology_model:
                           'skip_pknl': 1,
                           'skip_pkl': 0,
                           'skip_sigma8_and_der': 0,
+                          'skip_input': 0,
+                          'skip_class_sz': 0,
                           'skip_sigma8_at_z': 1,
                           'HMF_prescription_NCDM': 1,
                           'no_spline_in_tinker': 1,
@@ -230,6 +249,7 @@ class cosmology_model:
                 })
 
             if  self.cnc_params['hmf_calc'] == "classy_sz":
+                print('adding dndlnM to class_sz output in update_cosmology')
                 self.classy.set({
                     'output': self.cnc_params["class_sz_output"] + ",dndlnM"
                 })

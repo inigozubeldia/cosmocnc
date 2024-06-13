@@ -32,15 +32,27 @@ class cluster_number_counts:
 
         self.hmf_extra_params = {}
 
+        set_verbosity(self.cnc_params["cosmocnc_verbose"])
+
+        
+
+        
+
     #Loads data (catalogue and scaling relation data)
 
+
+
     def initialise(self):
+
+        set_verbosity(self.cnc_params["cosmocnc_verbose"])
+        self.logger = logging.getLogger(__name__)
 
         self.cosmology = cosmology_model(cosmo_params=self.cosmo_params,
                                          cosmology_tool = self.cnc_params["cosmology_tool"],
                                          power_spectrum_type=self.cnc_params["power_spectrum_type"],
                                          amplitude_parameter=self.cnc_params["cosmo_amplitude_parameter"],
-                                         cnc_params = self.cnc_params
+                                         cnc_params = self.cnc_params,
+                                         logger = self.logger
                                          )
 
         if self.cnc_params["load_catalogue"] == True:
@@ -144,7 +156,7 @@ class cluster_number_counts:
         self.halo_mass_function = halo_mass_function(cosmology=self.cosmology,hmf_type=self.cnc_params["hmf_type"],
         mass_definition=self.cnc_params["mass_definition"],M_min=self.cnc_params["M_min"],
         M_max=self.cnc_params["M_max"],n_points=self.cnc_params["n_points"],type_deriv=self.cnc_params["hmf_type_deriv"],
-        hmf_calc=self.cnc_params["hmf_calc"],extra_params=self.hmf_extra_params)
+        hmf_calc=self.cnc_params["hmf_calc"],extra_params=self.hmf_extra_params,logger = self.logger)
 
         n_cores = self.cnc_params["number_cores_hmf"]
         indices_split = np.array_split(np.arange(self.cnc_params["n_z"]),n_cores)
@@ -189,7 +201,13 @@ class cluster_number_counts:
 
         elif self.cnc_params["hmf_calc"] == "classy_sz":
 
+            self.logger.info('collecting hmf')
+
+
             self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=True)
+
+
+            self.logger.debug('collecting hmf done')
 
 
 
@@ -1196,7 +1214,7 @@ class cluster_number_counts:
         self.n_obs = np.sum(self.n_obs_matrix,axis=0)
         self.n_tot = np.sum(self.n_tot_vec)
 
-        print("Total clusters",self.n_tot)
+        self.logger.info("Total clusters: %.5e",self.n_tot)
 
         if self.cnc_params["non_validated_clusters"] == True:
 
@@ -1272,9 +1290,9 @@ class cluster_number_counts:
 
         self.t_total = time.time()-t0
 
-        print("Time",self.t_total)
+        self.logger.info("Time: %.5e",self.t_total)
 
-        print("log_lik",log_lik)
+        self.logger.info("log_lik: %.5e",log_lik)
 
         if np.isnan(log_lik) == True:
 
@@ -1427,7 +1445,8 @@ class cluster_number_counts:
             self.n_binned_obs = np.zeros(len(self.cnc_params["bins_edges_z"])-1)
             self.bins_centres = (self.cnc_params["bins_edges_z"][1:] + self.cnc_params["bins_edges_z"][0:-1])*0.5
             n_bins_redshift = int(len(self.redshift_vec)/(len(self.bins_centres)-1))
-            print("n int",n_bins_redshift)
+
+            self.logger.debug("n int: %d",n_bins_redshift)
 
             for i in range(0,len(self.cnc_params["bins_edges_z"])-1):
 

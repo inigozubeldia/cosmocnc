@@ -110,6 +110,10 @@ cnc_params_default = {
     "priors": False,
     "theta_mc_prior": False,
 
+
+    # Verbose:
+    "cosmocnc_verbose": "extensive" # none, minimal or extensive
+
     }
 
 scal_rel_params_ref = {
