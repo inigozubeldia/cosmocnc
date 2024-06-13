@@ -33,7 +33,7 @@ for i in range(0,len(data_lik_from_abundances)):
     number_counts.cnc_params["z_min"] = 0.01
     number_counts.cnc_params["n_z"] = 100
     number_counts.scal_rel_params["dof"] = 0.
-    number_counts.cnc_params["M_min"] = 1e13
+    number_counts.cnc_params["M_min"] = 1e12
     number_counts.cnc_params["M_max"] = 1e16
 
     number_counts.cnc_params["apply_obs_cutoff"] = False

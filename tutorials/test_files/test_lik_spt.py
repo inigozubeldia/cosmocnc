@@ -39,7 +39,7 @@ for i in range(0,len(data_lik_from_abundances)):
     number_counts.cnc_params["z_min"] = 0.25
     number_counts.cnc_params["n_z"] = 100
 
-    number_counts.cnc_params["M_min"] = 1e13
+    number_counts.cnc_params["M_min"] = 1e12
     number_counts.cnc_params["M_max"] = 1e16
 
     number_counts.cnc_params["apply_obs_cutoff"] = False
@@ -60,6 +60,9 @@ for i in range(0,len(data_lik_from_abundances)):
 
     number_counts.cnc_params["class_sz_hmf"] = "T08M500c"
     number_counts.cnc_params["hmf_calc"] = "classy_sz"
+
+
+    number_counts.cnc_params["cosmocnc_verbose"] = "none"
 
 
     number_counts.initialise()
