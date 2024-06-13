@@ -776,7 +776,14 @@ class cluster_number_counts:
                                             tt3 = time.time()
 
                                             x_mesh = get_mesh(x1)
+                                            
                                             cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
+
+                                            if self.cnc_params["apply_obs_cutoff"] == True:
+
+                                                indices = np.where(x_mesh[0,:]+x_obs_j < self.scal_rel_params["q_cutoff"])[0]
+                                                cpdf[indices] = 0
+
 
                                         else:
 
