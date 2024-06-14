@@ -8,14 +8,14 @@ import math
 import time
 import sys
 import pylab as pl
-#import numba
-#from .fast_interp import *
+
+
 
 import logging
 
 def configure_logging(level=logging.INFO):
     logging.basicConfig(
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        format='%(levelname)s - %(message)s',
         level=level
     )
 
@@ -25,6 +25,7 @@ def set_verbosity(verbosity):
         'minimal': logging.INFO,
         'extensive': logging.DEBUG
     }
+    # print(f'Setting verbosity to {verbosity}')
     level = levels.get(verbosity, logging.INFO)
     configure_logging(level)
 

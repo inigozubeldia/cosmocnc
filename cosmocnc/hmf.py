@@ -3,7 +3,6 @@ import pylab as pl
 import copy
 from mcfit import TophatVar
 import time
-# from .utils import configure_logging
 import logging
 
 class halo_mass_function:

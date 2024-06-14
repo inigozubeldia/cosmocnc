@@ -32,7 +32,6 @@ class cluster_number_counts:
 
         self.hmf_extra_params = {}
 
-        set_verbosity(self.cnc_params["cosmocnc_verbose"])
 
         
 
