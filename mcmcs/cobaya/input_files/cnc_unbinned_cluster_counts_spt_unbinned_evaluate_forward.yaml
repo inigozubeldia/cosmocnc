@@ -1,0 +1,228 @@
+likelihood:
+  cosmocnc.cnc_cobaya_likelihood.cnc_likelihood: null
+output: /Users/boris/Work/CLASS-SZ/SO-SZ/cosmocnc/mcmcs/cobaya/chains/cnc_unbinned_cluster_counts_spt_unbinned_evaluate
+params:
+  A_sz:
+    latex: A_{\mathrm{SZ}}
+    prior:
+      max: 10
+      min: 1
+    proposal: 0.05
+    ref:
+      dist: norm
+      loc: 2.0
+      scale: 0.05
+  A_x:
+    latex: A_{\mathrm{X}}
+    prior:
+      max: 10
+      min: 3.0
+    proposal: 0.05
+    ref:
+      dist: norm
+      loc: 5.0
+      scale: 0.05
+  B_sz:
+    latex: B_{\mathrm{SZ}}
+    prior:
+      max: 2.5
+      min: 1.0
+    proposal: 0.05
+    ref:
+      dist: norm
+      loc: 1.5
+      scale: 0.05
+  B_x:
+    latex: B_{\mathrm{X}}
+    prior:
+      max: 0.9
+      min: 0.3
+    proposal: 0.05
+    ref:
+      dist: norm
+      loc: 0.6
+      scale: 0.05
+  C_sz:
+    latex: C_{\mathrm{SZ}}
+    prior:
+      max: 2.0
+      min: -1.0
+    proposal: 0.05
+    ref:
+      dist: norm
+      loc: 0.5
+      scale: 0.05
+  C_x:
+    latex: C_{\mathrm{X}}
+    prior:
+      max: 0.5
+      min: -1.0
+    proposal: 0.05
+    ref:
+      dist: norm
+      loc: 0.25
+      scale: 0.05
+  H0:
+    latex: H_0
+    prior:
+      max: 100.0
+      min: 40.0
+    proposal: 1.0
+    ref:
+      dist: norm
+      loc: 67.4
+      scale: 1.0
+  Ob0:
+    latex: \Omega_\mathrm{b}
+    prior:
+      max: 0.2
+      min: 0.01
+    proposal: 0.005
+    ref:
+      dist: norm
+      loc: 0.048
+      scale: 0.005
+  Om0:
+    latex: \Omega_\mathrm{m}
+    prior:
+      max: 0.5
+      min: 0.08
+    proposal: 0.05
+    ref:
+      dist: norm
+      loc: 0.31
+      scale: 0.05
+  corr_xi_Yx:
+    latex: \rho_{\mathrm{SZ},\mathrm{X}}
+    prior:
+      max: 1
+      min: -1
+    proposal: 0.01
+    ref:
+      dist: norm
+      loc: 0.0
+      scale: 0.01
+  n_s:
+    latex: n_\mathrm{s}
+    prior:
+      max: 1.0492
+      min: 0.8812
+    proposal: 0.004
+    ref:
+      dist: norm
+      loc: 0.96
+      scale: 0.004
+  sigma_8:
+    latex: \sigma_8
+    prior:
+      max: 2.0
+      min: 0.1
+    proposal: 0.01
+    ref:
+      dist: norm
+      loc: 0.81
+      scale: 0.01
+  sigma_lnYx:
+    latex: \sigma_{\mathrm{X}}
+    prior:
+      max: 0.3
+      min: 0.05
+    proposal: 0.01
+    ref:
+      dist: norm
+      loc: 0.179
+      scale: 0.01
+  sigma_lnq:
+    latex: \sigma_{\mathrm{SZ}}
+    prior:
+      max: 0.3
+      min: 0.05
+    proposal: 0.01
+    ref:
+      dist: norm
+      loc: 0.179
+      scale: 0.01
+  tau_reio:
+    value: 0.06
+prior:
+  Ob0h2_prior: 'lambda Ob0,H0: stats.norm.logpdf(Ob0*H0**2/10000, loc=0.022245895,
+    scale=0.00015)'
+  n_s_prior: 'lambda n_s: stats.norm.logpdf(n_s, loc=0.96, scale=0.0042)'
+  sigma_lnq_prior: 'lambda sigma_lnq: stats.norm.logpdf(sigma_lnq, loc=0.173, scale=0.023)'
+sampler:
+  evaluate:
+    override:
+      A_sz: 5.5
+      A_x: 6.5
+      B_sz: 1.75
+      B_x: 0.6
+      C_sz: 0.5
+      C_x: -0.25
+      H0: 67.4416
+      Ob0: 0.0471481
+      Om0: 0.318898
+      corr_xi_Yx: 0.1
+      n_s: 0.955518
+      sigma_8: 0.813132
+      sigma_lnYx: 0.255
+      sigma_lnq: 0.255
+theory:
+  cosmocnc.cnc_cobaya_theory.cnc:
+    SZmPivot: 300000000000000.0
+    bins_edges_obs_select:
+    - 4.999999999999999
+    - 7.827004347638214
+    - 12.252399411589499
+    - 19.17991669270218
+    - 30.02425826822375
+    - 46.99999999999999
+    bins_edges_z:
+    - 0.25
+    - 0.3375
+    - 0.425
+    - 0.5125
+    - 0.6
+    - 0.6875
+    - 0.7749999999999999
+    - 0.8624999999999999
+    - 0.95
+    - 1.0375
+    - 1.125
+    - 1.2125
+    - 1.2999999999999998
+    - 1.3875
+    - 1.4749999999999999
+    - 1.5625
+    - 1.65
+    - 1.7374999999999998
+    - 1.825
+    - 1.9124999999999999
+    - 2.0
+    class_sz_concentration_parameter: B13
+    class_sz_cosmo_model: ede-v2
+    class_sz_hmf: T08M500c
+    class_sz_ndim_masses: 100
+    class_sz_ndim_redshifts: 500
+    cluster_catalogue: SPT2500d
+    cosmocnc_verbose: extensive
+    cosmology_tool: classy_sz
+    data_lik_from_abundance: false
+    dof: 3.0
+    hmf_calc: classy_sz
+    n_points: 65536
+    number_cores_abundance: 10
+    number_cores_data: 10
+    number_cores_hmf: 10
+    obs_select: xi
+    obs_select_max: 47.0
+    obs_select_min: 5.0
+    observables:
+    - - xi
+    parallelise_type: patch
+    q_cutoff: 2.0
+    scalrel_type_deriv: numerical
+    z_error_min: 1.0e-05
+    z_errors: true
+    z_max: 2.0
+    z_min: 0.25
+timing: true

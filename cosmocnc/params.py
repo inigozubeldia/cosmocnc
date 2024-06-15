@@ -71,7 +71,7 @@ cnc_params_default = {
     "scalrel_type_deriv": "analytical", #"analytical" or "numerical"
     "sigma_scatter_min": 1e-5,
 
-    "cosmo_model": "lcdm", # lcdm, mnu, neff, wcdm, ede
+    "class_sz_cosmo_model": "lcdm", # lcdm, mnu, neff, wcdm, ede
     "class_sz_ndim_redshifts" : 100,
     "class_sz_ndim_masses" : 100,  # when using cosmopower this is automatically fixed. 
     "class_sz_concentration_parameter" : "B13",

@@ -66,6 +66,8 @@ class cosmology_model:
                                      'neff' : 2,
                                      'wcdm' : 3,
                                      'ede'  : 4,
+                                     'mnu-3states' : 5,
+                                     'ede-v2'  : 6,
                                      }
 
             self.classy.set({
@@ -84,6 +86,7 @@ class cosmology_model:
 
                           'output': self.cnc_params["class_sz_output"],  
                           'skip_background_and_thermo': 0,
+                          
                           'skip_chi': 1,
                           'skip_hubble': 1,
                           'skip_cmb': 1,
@@ -93,6 +96,8 @@ class cosmology_model:
                           'skip_sigma8_at_z': 1,
                           'skip_input': 0,
                           'skip_class_sz': 0,
+
+
                           'HMF_prescription_NCDM': 1,
                           'no_spline_in_tinker': 1,
 
@@ -103,13 +108,13 @@ class cosmology_model:
 
                           'ndim_redshifts' : self.cnc_params["class_sz_ndim_redshifts"],
                           'ndim_masses' : self.cnc_params["class_sz_ndim_masses"], # automatically set in fast mode
-                          'concentration parameter': self.cnc_params["class_sz_concentration_parameter"],
-                          'cosmo_model': self.cosmo_model_dict[self.cnc_params['cosmo_model']],
-                          'mass function' : self.cnc_params["class_sz_hmf"]
+                          'concentration_parameter': self.cnc_params["class_sz_concentration_parameter"],
+                          'cosmo_model': self.cosmo_model_dict[self.cnc_params['class_sz_cosmo_model']],
+                          'mass_function' : self.cnc_params["class_sz_hmf"]
 
                           })
 
-            if  self.cnc_params['cosmo_model'] == "wcdm":
+            if  self.cnc_params['class_sz_cosmo_model'] == "wcdm":
 
                 self.classy.set({
                     'Omega_Lambda' : 0.,
@@ -214,6 +219,9 @@ class cosmology_model:
                            'm_ncdm' : self.cosmo_params["m_nu"],
                            'T_ncdm' : 0.71611,
 
+
+                           'output': self.cnc_params["class_sz_output"],  
+
                           'skip_background_and_thermo': 0,
                           'skip_chi': 1,
                           'skip_hubble': 1,
@@ -224,8 +232,10 @@ class cosmology_model:
                           'skip_input': 0,
                           'skip_class_sz': 0,
                           'skip_sigma8_at_z': 1,
+                
                           'HMF_prescription_NCDM': 1,
                           'no_spline_in_tinker': 1,
+                
 
                           # for mass conversion routines:
                           'output': self.cnc_params["class_sz_output"],
@@ -235,13 +245,14 @@ class cosmology_model:
                           'z_max' : self.cnc_params["z_max"]*1.2,
 
                           'ndim_redshifts' : self.cnc_params["class_sz_ndim_redshifts"],
-                          'ndim_masses' : self.cnc_params["class_sz_ndim_masses"],
-                          'concentration parameter': self.cnc_params["class_sz_concentration_parameter"],
-                          'cosmo_model': self.cosmo_model_dict[self.cnc_params['cosmo_model']],
-                          'mass function' : self.cnc_params["class_sz_hmf"]
+                          'ndim_masses' : self.cnc_params["class_sz_ndim_masses"], # automatically set in fast mode
+                          'concentration_parameter': self.cnc_params["class_sz_concentration_parameter"],
+                          'cosmo_model': self.cosmo_model_dict[self.cnc_params['class_sz_cosmo_model']],
+                          'mass_function' : self.cnc_params["class_sz_hmf"]
+
                           }
 
-            if  self.cnc_params['cosmo_model'] == "wcdm":
+            if  self.cnc_params['class_sz_cosmo_model'] == "wcdm":
 
                 classy_params.update({
                     'Omega_Lambda' : 0.,
@@ -249,7 +260,7 @@ class cosmology_model:
                 })
 
             if  self.cnc_params['hmf_calc'] == "classy_sz":
-                print('adding dndlnM to class_sz output in update_cosmology')
+                self.logger.info('adding dndlnM to class_sz output in update_cosmology')
                 self.classy.set({
                     'output': self.cnc_params["class_sz_output"] + ",dndlnM"
                 })
