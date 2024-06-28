@@ -194,15 +194,17 @@ class halo_mass_function:
 
 
         elif self.hmf_calc == "classy_sz":
+            self.logger.debug(f'hmf_calc: {self.hmf_calc}')
+            self.logger.debug(f'testing to evaluate hmf {self.cosmology.get_dndlnM_at_z_and_M(0.6,5e14)}')
+
             if log == True:
 
                 M_vec = np.exp(np.linspace(np.log(M_min),np.log(M_max),n_points))
                 M_vec_h = M_vec*self.h
                 self.logger.debug(f'hmf: {np.shape(redshift)}, {np.shape(M_vec_h)}')
-                # print(M_vec_h)
-                # exit(0)
+
                 hmf  =  np.zeros((len(redshift),len(M_vec_h)))
-                # hmf  =  np.zeros((len(M_vec_h),len(redshift)))
+
                 for i in range(len(redshift)):
                     hmf[i,:] = self.cosmology.get_dndlnM_at_z_and_M(redshift[i],M_vec_h)*1e14/M_vec_h*self.h**4
                     if volume_element == True:

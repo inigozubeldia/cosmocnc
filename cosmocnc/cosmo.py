@@ -124,7 +124,7 @@ class cosmology_model:
             if  self.cnc_params['hmf_calc'] == "classy_sz":
                 self.logger.info('adding dndlnM to class_sz output')
                 self.classy.set({
-                    'output': self.cnc_params["class_sz_output"] + ",dndlnM"
+                    'output': self.cnc_params["class_sz_output"] + ",dndlnm"
                 })
 
             self.logger.info('computing class_szfast')
@@ -149,13 +149,15 @@ class cosmology_model:
             self.background_cosmology = classy_sz(self.classy)
             self.background_cosmology.H0.value = self.classy.h()*100.
 
+            self.logger.debug(f'Got: {self.T_CMB_0}, {self.sigma8}')
+
             self.get_m500c_to_m200c_at_z_and_M = np.vectorize(self.classy.get_m500c_to_m200c_at_z_and_M)
             self.get_m200c_to_m500c_at_z_and_M = np.vectorize(self.classy.get_m200c_to_m500c_at_z_and_M)
             self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
             self.get_dndlnM_at_z_and_M = np.vectorize(self.classy.get_dndlnM_at_z_and_M)
             self.get_delta_mean_from_delta_crit_at_z = np.vectorize(self.classy.get_delta_mean_from_delta_crit_at_z)
 
-            self.logger.debug(f'class_szfast done: {self.T_CMB_0}, {self.sigma8}, {self.get_dndlnM_at_z_and_M(0.6,5e14)}')
+            # self.logger.debug(f'collected hmf')
 
         if cosmology_tool == "astropy":
 
@@ -262,7 +264,7 @@ class cosmology_model:
             if  self.cnc_params['hmf_calc'] == "classy_sz":
                 self.logger.info('adding dndlnM to class_sz output in update_cosmology')
                 self.classy.set({
-                    'output': self.cnc_params["class_sz_output"] + ",dndlnM"
+                    'output': self.cnc_params["class_sz_output"] + ",dndlnm"
                 })
 
 
