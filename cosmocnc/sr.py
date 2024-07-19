@@ -358,7 +358,7 @@ class scaling_relations:
         if observable == "q_act_dr5_sim":
 
             sim_id = self.cnc_params["catalogue_params"]["sim_id"] + 1
-
+            #### update here
             f = open(root_path + "data/selection_files_act_feb2624/nemo_sim_thetas_260224_30bins_ir" + str(sim_id) + ".txt","r")
             self.theta_500_vec = np.array(f.readlines()).astype(np.float64)
             f.close()
