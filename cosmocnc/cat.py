@@ -1,5 +1,6 @@
 import numpy as np
 import pylab as pl
+import sys
 import scipy.integrate as integrate
 from astropy.io import fits
 from astropy.table import Table
@@ -19,6 +20,8 @@ class cluster_catalogue:
                  obs_select=None,
                  cnc_params=None,
                  scal_rel_params=None):
+        
+        self.logger = logging.getLogger(__name__)
 
         if scal_rel_params is None:
 
@@ -533,7 +536,7 @@ class cluster_catalogue:
 
         elif self.catalogue_name[0:12] == "planck_szifi":
 
-            import sys
+            # import sys 
             sys.path.insert(0,'/home/iz221/planck_sz/')
             import cat
 
@@ -788,7 +791,8 @@ class cluster_catalogue:
 
                 self.catalogue['WLdata'] = np.asarray(spt_catalog['WLdata'][indices_catalog])
 
-        elif self.catalogue_name[0:11] == "act_dr5_sim":
+        # elif self.catalogue_name[0:11] == "act_dr5_sim":
+        elif self.catalogue_name == "act":
 
             #SZ data from ACT
 
@@ -799,6 +803,10 @@ class cluster_catalogue:
             data_act = {}
             data_act["SNR"] = act_cat[2]
             data_act["z"] = act_cat[0]
+
+            self.logger.debug(data_act["SNR"])
+            self.logger.debug(data_act["z"])
+            # sys.exit()
 
             indices_act = []
 

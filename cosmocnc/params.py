@@ -115,7 +115,7 @@ cnc_params_default = {
 
 
     # Verbose:
-    "cosmocnc_verbose": "extensive" # none, minimal or extensive
+    "cosmocnc_verbose": "none" # none, minimal or extensive
 
     }
 

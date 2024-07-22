@@ -56,6 +56,9 @@ class cluster_number_counts:
 
         if self.cnc_params["load_catalogue"] == True:
 
+            self.logger.debug("loading catalogue")
+            self.logger.debug(self.cnc_params["cluster_catalogue"])
+
             self.catalogue = cluster_catalogue(catalogue_name=self.cnc_params["cluster_catalogue"],
                                                precompute_cnc_quantities=True,
                                                bins_obs_select_edges=self.cnc_params["bins_edges_obs_select"],
@@ -291,21 +294,33 @@ class cluster_number_counts:
                         t0 = time.time()
 
                         self.scal_rel_selection.precompute_scaling_relation(params=self.scal_rel_params,
-                                                other_params=other_params,
-                                                patch_index=patch_index)
+                                                                            other_params=other_params,
+                                                                            patch_index=patch_index)
 
                         for k in range(0,self.scal_rel_selection.get_n_layers()):
 
                             x1 = self.scal_rel_selection.eval_scaling_relation(x0,
                                                          layer=k,
-                                                        other_params=other_params,
+                                                         other_params=other_params,
                                                          patch_index=patch_index)
 
                             dx1_dx0 = self.scal_rel_selection.eval_derivative_scaling_relation(x0,
-                                                              layer=k,patch_index=patch_index,
-                                                              scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
-
-                            dn_dx1 = dn_dx0/dx1_dx0
+                                                                                               layer=k,
+                                                                                               patch_index=patch_index,
+                                                                                               scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
+                            
+                            # Check if 0 or NaN is in dx1_dx0 and print the arrays if the condition is met
+                            if 0 in dx1_dx0 or np.isnan(dx1_dx0).any():
+                                # print('x0:', x0)
+                                # print('x1:', x1)
+                                # print('layer:', k)
+                                # print('dx1_dx0:', dx1_dx0)
+                                # print('dx1_dx0 shape:', dx1_dx0.shape)
+                                # print('dn_dx0 shape:', dn_dx0.shape)
+                                # sys.exit("Exiting because 0 or NaN found in dx1_dx0")
+                                dn_dx1 = 0.*dn_dx0
+                            else:
+                                dn_dx1 = dn_dx0/dx1_dx0
 
                             x1_interp = np.linspace(np.min(x1),np.max(x1),self.cnc_params["n_points"])
                             dn_dx1 = np.interp(x1_interp,x1,dn_dx1)
@@ -321,9 +336,12 @@ class cluster_number_counts:
                                 indices = np.where(x1_interp < cutoff)
                                 dn_dx1[indices] = 0.
 
-                            dn_dx1 = convolve_1d(x1_interp,dn_dx1,sigma=sigma_scatter,
-                            type=self.cnc_params["abundance_integral_type"],sigma_min=self.cnc_params["sigma_scatter_min"])
+                            dn_dx1 = convolve_1d(x1_interp,dn_dx1,
+                                                 sigma=sigma_scatter,
+                                                 type=self.cnc_params["abundance_integral_type"],
+                                                 sigma_min=self.cnc_params["sigma_scatter_min"])
 
+                            # pass to next layer 
                             x0 = x1_interp
                             dn_dx0 = dn_dx1
 
@@ -516,7 +534,7 @@ class cluster_number_counts:
 
             t1 = time.time()
 
-        #    print("Ini",t1-t0)
+
 
             def f_mp(rank,out_q):
 
@@ -1021,24 +1039,7 @@ class cluster_number_counts:
 
             self.cpdf_dict = return_dict
 
-            # print("")
-            # print("")
-            # print("")
-            # print("Time hmf2",self.time_hmf2)
-            # print("Time select",self.time_select)
-            # print("Time mass range",self.time_mass_range)
-            # print("Time back",self.time_back)
-            # print("T0",self.t_00)
-            # print("T1",self.t_11)
-            # print("T2",self.t_22)
-            # print("T3",self.t_33)
-            # print("T4",self.t_44)
-            # print("T5",self.t_55)
-            # print("T6",self.t_66)
-            # print("T7",self.t_77)
-            # print("T8",self.t_88)
-            # print("T9",self.t_99)
-            # print("T sum",self.t_00+self.t_11+self.t_22+self.t_33+self.t_44+self.t_55+self.t_66+self.t_77+self.t_88+self.t_99)
+
 
         return log_lik_data
 
