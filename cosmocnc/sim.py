@@ -39,10 +39,9 @@ class catalogue_generator:
 
     def get_total_number_clusters(self):
 
-        self.dndz = integrate.simps(self.hmf_matrix,self.ln_M,axis=1)
-        self.dndln_M = integrate.simps(self.hmf_matrix,self.redshift_vec,axis=0)
-
-        self.n_tot = integrate.simps(self.dndz,self.redshift_vec)
+        self.dndz = integrate.simpson(self.hmf_matrix, x=self.ln_M,axis=1)
+        self.dndln_M = integrate.simpson(self.hmf_matrix, x=self.redshift_vec,axis=0)
+        self.n_tot = integrate.simpson(self.dndz, x=self.redshift_vec)
 
     def sample_total_number_clusters(self):
 
