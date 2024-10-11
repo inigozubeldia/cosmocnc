@@ -33,9 +33,9 @@ class cluster_number_counts:
         self.hmf_extra_params = {}
 
 
-        
 
-        
+
+
 
     #Loads data (catalogue and scaling relation data)
 
@@ -158,7 +158,7 @@ class cluster_number_counts:
         self.halo_mass_function = halo_mass_function(cosmology=self.cosmology,hmf_type=self.cnc_params["hmf_type"],
         mass_definition=self.cnc_params["mass_definition"],M_min=self.cnc_params["M_min"],
         M_max=self.cnc_params["M_max"],n_points=self.cnc_params["n_points"],type_deriv=self.cnc_params["hmf_type_deriv"],
-        hmf_calc=self.cnc_params["hmf_calc"],extra_params=self.hmf_extra_params,logger = self.logger)
+        hmf_calc=self.cnc_params["hmf_calc"],extra_params=self.hmf_extra_params,logger = self.logger,interp_tinker=self.cnc_params["interp_tinker"])
 
         n_cores = self.cnc_params["number_cores_hmf"]
         indices_split = np.array_split(np.arange(self.cnc_params["n_z"]),n_cores)
@@ -308,7 +308,7 @@ class cluster_number_counts:
                                                                                                layer=k,
                                                                                                patch_index=patch_index,
                                                                                                scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
-                            
+
                             # Check if 0 or NaN is in dx1_dx0 and print the arrays if the condition is met
                             if 0 in dx1_dx0 or np.isnan(dx1_dx0).any():
                                 # print('x0:', x0)
@@ -341,7 +341,7 @@ class cluster_number_counts:
                                                  type=self.cnc_params["abundance_integral_type"],
                                                  sigma_min=self.cnc_params["sigma_scatter_min"])
 
-                            # pass to next layer 
+                            # pass to next layer
                             x0 = x1_interp
                             dn_dx0 = dn_dx1
 
@@ -811,7 +811,7 @@ class cluster_number_counts:
                                             tt3 = time.time()
 
                                             x_mesh = get_mesh(x1)
-                                            
+
                                             cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
 
                                             if self.cnc_params["apply_obs_cutoff"] == True:

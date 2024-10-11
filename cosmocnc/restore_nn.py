@@ -1,5 +1,5 @@
 
-
+import numpy as np
 import warnings
 from contextlib import contextmanager
 import logging
@@ -16,26 +16,26 @@ dtype = tf.float32
 
 class Restore_NN(tf.keras.Model):
 
-    def __init__(self, 
-                 parameters=None, 
-                 modes=None, 
-                 parameters_mean=None, 
-                 parameters_std=None, 
-                 features_mean=None, 
-                 features_std=None, 
-                 n_hidden=[512,512,512], 
-                 restore=False, 
-                 restore_filename=None, 
+    def __init__(self,
+                 parameters=None,
+                 modes=None,
+                 parameters_mean=None,
+                 parameters_std=None,
+                 features_mean=None,
+                 features_std=None,
+                 n_hidden=[512,512,512],
+                 restore=False,
+                 restore_filename=None,
                  trainable=True,
                  optimizer=None,
-                 verbose=False, 
+                 verbose=False,
                  ):
-        
+
         # super
         super(Restore_NN, self).__init__()
 
         # restore
-        
+
         self.restore(restore_filename)
 
 
@@ -51,7 +51,7 @@ class Restore_NN(tf.keras.Model):
         self.W = []
         self.b = []
         self.alphas = []
-        self.betas = [] 
+        self.betas = []
         for i in range(self.n_layers):
             self.W.append(tf.Variable(tf.random.normal([self.architecture[i], self.architecture[i+1]], 0., 1e-3), name="W_" + str(i), trainable=trainable))
             self.b.append(tf.Variable(tf.zeros([self.architecture[i+1]]), name = "b_" + str(i), trainable=trainable))
@@ -160,8 +160,8 @@ class Restore_NN(tf.keras.Model):
 
 
     # auxiliary function to sort input parameters
-    def dict_to_ordered_arr_np(self, 
-                               input_dict, 
+    def dict_to_ordered_arr_np(self,
+                               input_dict,
                                ):
         r"""
         Sort input parameters
@@ -181,11 +181,11 @@ class Restore_NN(tf.keras.Model):
 
 
     # forward prediction given input parameters implemented in Numpy
-    def forward_pass_np(self, 
+    def forward_pass_np(self,
                         parameters_arr
                         ):
         r"""
-        Forward pass through the network to predict the output, 
+        Forward pass through the network to predict the output,
         fully implemented in Numpy
 
         Parameters:
@@ -215,7 +215,7 @@ class Restore_NN(tf.keras.Model):
 
 
     # Numpy array predictions
-    def predictions_np(self, 
+    def predictions_np(self,
                        parameters_dict
                        ):
         r"""
@@ -257,12 +257,12 @@ class Restore_NN(tf.keras.Model):
 
 class Restore_PCAplusNN(tf.keras.Model):
 
-    def __init__(self, 
+    def __init__(self,
                  cp_pca=None,
-                 n_hidden=[512,512,512], 
-                 restore=False, 
-                 restore_filename=None, 
-                 trainable=True, 
+                 n_hidden=[512,512,512],
+                 restore=False,
+                 restore_filename=None,
+                 trainable=True,
                  optimizer=None,
                  verbose=False,
                  ):
@@ -294,7 +294,7 @@ class Restore_PCAplusNN(tf.keras.Model):
         self.W = []
         self.b = []
         self.alphas = []
-        self.betas = [] 
+        self.betas = []
         for i in range(self.n_layers):
             self.W.append(tf.Variable(tf.random.normal([self.architecture[i], self.architecture[i+1]], 0., np.sqrt(2./self.n_parameters)), name="W_" + str(i), trainable=trainable))
             self.b.append(tf.Variable(tf.zeros([self.architecture[i+1]]), name = "b_" + str(i), trainable=trainable))
@@ -409,7 +409,7 @@ class Restore_PCAplusNN(tf.keras.Model):
             # import sys
             # sys.exit(0)
 
-            # self.pca_transform_matrix_ = fpz["pca_transform_matrix"]        
+            # self.pca_transform_matrix_ = fpz["pca_transform_matrix"]
 
             # Fallback to 'weights_' if individual 'W_i' are not found
             if "weights_" in fpz:
@@ -432,8 +432,8 @@ class Restore_PCAplusNN(tf.keras.Model):
 
 
     # auxiliary function to sort input parameters
-    def dict_to_ordered_arr_np(self, 
-                               input_dict, 
+    def dict_to_ordered_arr_np(self,
+                               input_dict,
                                ):
         r"""
         Sort input parameters
@@ -453,11 +453,11 @@ class Restore_PCAplusNN(tf.keras.Model):
 
 
     # forward prediction given input parameters implemented in Numpy
-    def forward_pass_np(self, 
+    def forward_pass_np(self,
                         parameters_arr,
                         ):
         r"""
-        Forward pass through the network to predict the output, 
+        Forward pass through the network to predict the output,
         fully implemented in Numpy
 
         Parameters:
@@ -486,7 +486,7 @@ class Restore_PCAplusNN(tf.keras.Model):
         return np.dot(layers[-1]*self.pca_std_ + self.pca_mean_, self.pca_transform_matrix_)*self.features_std_ + self.features_mean_
 
 
-    def predictions_np(self, 
+    def predictions_np(self,
                        parameters_dict,
                        ):
         r"""

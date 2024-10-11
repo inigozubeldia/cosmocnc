@@ -16,7 +16,8 @@ class halo_mass_function:
                  type_deriv="numerical",
                  hmf_calc="cnc",
                  extra_params=None,
-                 logger = None):
+                 logger = None,
+                 interp_tinker=None):
 
         self.hmf_type = hmf_type
         self.mass_definition = mass_definition
@@ -29,6 +30,8 @@ class halo_mass_function:
         self.type_deriv = type_deriv
         self.hmf_calc = hmf_calc
         self.extra_params = extra_params
+
+        self.other_params = {"interp_tinker":interp_tinker}
 
 
         self.logger = logging.getLogger(__name__)
@@ -127,14 +130,16 @@ class halo_mass_function:
                     else:
 
                         rescale = self.cosmology.cosmo_params["Om0"]*(1.+redshift)**3/(self.cosmology.background_cosmology.H(redshift).value/(self.cosmology.cosmo_params["h"]*100.))**2
-                
+
                 elif self.mass_definition[-1] == "m":
 
                     rescale = 1
 
                 Delta = float(self.mass_definition[0:-1])/rescale
 
-                fsigma = f_sigma(sigma,redshift=redshift,hmf_type=self.hmf_type,Delta=Delta,mass_definition=self.mass_definition)
+                fsigma = f_sigma(sigma,redshift=redshift,hmf_type=self.hmf_type,
+                Delta=Delta,mass_definition=self.mass_definition,
+                other_params=self.other_params)
                 self.fsigma = fsigma
 
                 hmf = -fsigma*rho_m/M_vec/dMdR*dsigmadR/sigma
@@ -268,9 +273,9 @@ class sigma_R:
 
 #Delta is w.r.t. mean
 
-def f_sigma(sigma,redshift=None,hmf_type="Tinker08",Delta=None,mass_definition="500c"):
+def f_sigma(sigma,redshift=None,hmf_type="Tinker08",Delta=None,mass_definition="500c",other_params=None):
 
-    params = hmf_params(hmf_type=hmf_type,mass_definition=mass_definition)
+    params = hmf_params(hmf_type=hmf_type,mass_definition=mass_definition,other_params=other_params)
 
     if hmf_type == "Tinker08":
 
@@ -287,16 +292,24 @@ def f_sigma(sigma,redshift=None,hmf_type="Tinker08",Delta=None,mass_definition="
 
 class hmf_params:
 
-    def __init__(self,hmf_type="Tinker08",mass_definition="500c"):
+    def __init__(self,hmf_type="Tinker08",mass_definition="500c",other_params=None):
 
         self.hmf_type = hmf_type
         self.mass_definition = mass_definition
+        self.other_params = other_params
 
         if self.hmf_type == "Tinker08":
 
             if self.mass_definition == "500c":
 
-                Delta = np.log10(np.array([200.,300.,400.,600.,800.,1200.,1600.,2400.,3200.]))
+                if other_params["interp_tinker"] == "log":
+
+                    Delta = np.log10(np.array([200.,300.,400.,600.,800.,1200.,1600.,2400.,3200.]))
+
+                elif other_params["interp_tinker"] == "linear":
+
+                    Delta = np.array([200.,300.,400.,600.,800.,1200.,1600.,2400.,3200.])
+
                 A = np.array([0.186,0.2,0.212,0.218,0.248,0.255,0.260,0.260,0.260])
                 a = np.array([1.47,1.52,1.56,1.61,1.87,2.13,2.30,2.53,2.66])
                 b = np.array([2.57,2.25,2.05,1.87,1.59,1.51,1.46,1.44,1.41])
@@ -308,7 +321,13 @@ class hmf_params:
 
         if self.hmf_type == "Tinker08":
 
-            ret = np.interp(np.log10(Delta),self.params["Delta"],self.params[param])
+            if self.other_params["interp_tinker"] == "log":
+
+                ret = np.interp(np.log10(Delta),self.params["Delta"],self.params[param])
+
+            if self.other_params["interp_tinker"] == "linear":
+
+                ret = np.interp(Delta,self.params["Delta"],self.params[param])
 
         return ret
 
