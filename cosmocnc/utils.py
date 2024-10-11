@@ -8,8 +8,26 @@ import math
 import time
 import sys
 import pylab as pl
-#import numba
-#from .fast_interp import *
+
+
+
+import logging
+
+def configure_logging(level=logging.INFO):
+    logging.basicConfig(
+        format='%(levelname)s - %(message)s',
+        level=level
+    )
+
+def set_verbosity(verbosity):
+    levels = {
+        'none': logging.CRITICAL,
+        'minimal': logging.INFO,
+        'extensive': logging.DEBUG
+    }
+    # print(f'Setting verbosity to {verbosity}')
+    level = levels.get(verbosity, logging.INFO)
+    configure_logging(level)
 
 def convolve_1d(x,dn_dx,sigma=None,type="fft",kernel=None,sigma_min=0):
 

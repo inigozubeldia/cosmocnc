@@ -3,6 +3,7 @@ import pylab as pl
 import copy
 from mcfit import TophatVar
 import time
+import logging
 
 class halo_mass_function:
 
@@ -14,7 +15,8 @@ class halo_mass_function:
                  n_points=1000,
                  type_deriv="numerical",
                  hmf_calc="cnc",
-                 extra_params=None):
+                 extra_params=None,
+                 logger = None):
 
         self.hmf_type = hmf_type
         self.mass_definition = mass_definition
@@ -27,6 +29,9 @@ class halo_mass_function:
         self.type_deriv = type_deriv
         self.hmf_calc = hmf_calc
         self.extra_params = extra_params
+
+
+        self.logger = logging.getLogger(__name__)
 
         self.sigma_r_dict = {}
 
@@ -115,8 +120,14 @@ class halo_mass_function:
 
                 if self.mass_definition[-1] == "c":
 
-                    rescale = self.cosmology.cosmo_params["Om0"]*(1.+redshift)**3/(self.cosmology.background_cosmology.H(redshift).value/(self.cosmology.cosmo_params["h"]*100.))**2
+                    if "cosmology_tool" == "classy_sz":
 
+                        rescale = 1./self.cosmology.get_delta_mean_from_delta_crit_at_z(1.,redshift) # this is omega_m(z) without neutrinos computed by class_sz
+
+                    else:
+
+                        rescale = self.cosmology.cosmo_params["Om0"]*(1.+redshift)**3/(self.cosmology.background_cosmology.H(redshift).value/(self.cosmology.cosmo_params["h"]*100.))**2
+                
                 elif self.mass_definition[-1] == "m":
 
                     rescale = 1
@@ -181,7 +192,36 @@ class halo_mass_function:
 
                         hmf[i,:] = hmf[i,:]*self.cosmology.background_cosmology.differential_comoving_volume(redshift[i]).value
 
-        if volume_element == True and self.hmf_calc != "MiraTitan":
+
+        elif self.hmf_calc == "classy_sz":
+            self.logger.debug(f'hmf_calc: {self.hmf_calc}')
+            self.logger.debug(f'testing to evaluate hmf {self.cosmology.get_dndlnM_at_z_and_M(0.6,5e14)}')
+
+            if log == True:
+
+                M_vec = np.exp(np.linspace(np.log(M_min),np.log(M_max),n_points))
+                M_vec_h = M_vec*self.h
+                self.logger.debug(f'hmf: {np.shape(redshift)}, {np.shape(M_vec_h)}')
+
+                hmf  =  np.zeros((len(redshift),len(M_vec_h)))
+
+                for i in range(len(redshift)):
+                    hmf[i,:] = self.cosmology.get_dndlnM_at_z_and_M(redshift[i],M_vec_h)*1e14/M_vec_h*self.h**4
+                    if volume_element == True:
+                        hmf[i,:] *=self.cosmology.background_cosmology.differential_comoving_volume(redshift[i]).value
+                # hmf =
+                self.logger.debug(f'hmf: {np.shape(hmf)}')
+                # exit(0)
+                hmf *= M_vec/1e14
+                M_eval = np.log(M_vec/1e14)
+                if np.isnan(hmf).any():
+                    print('nan in hmf')
+                    exit(0)
+                # print('hmf',hmf)
+                # exit(0)
+
+
+        if volume_element == True and self.hmf_calc != "MiraTitan" and self.hmf_calc != "classy_sz":
 
             hmf = hmf*self.cosmology.background_cosmology.differential_comoving_volume(redshift).value
 
@@ -256,7 +296,7 @@ class hmf_params:
 
             if self.mass_definition == "500c":
 
-                Delta = np.array([200.,300.,400.,600.,800.,1200.,1600.,2400.,3200.])
+                Delta = np.log10(np.array([200.,300.,400.,600.,800.,1200.,1600.,2400.,3200.]))
                 A = np.array([0.186,0.2,0.212,0.218,0.248,0.255,0.260,0.260,0.260])
                 a = np.array([1.47,1.52,1.56,1.61,1.87,2.13,2.30,2.53,2.66])
                 b = np.array([2.57,2.25,2.05,1.87,1.59,1.51,1.46,1.44,1.41])
@@ -268,7 +308,7 @@ class hmf_params:
 
         if self.hmf_type == "Tinker08":
 
-            ret = np.interp(Delta,self.params["Delta"],self.params[param])
+            ret = np.interp(np.log10(Delta),self.params["Delta"],self.params[param])
 
         return ret
 

@@ -32,18 +32,32 @@ class cluster_number_counts:
 
         self.hmf_extra_params = {}
 
+
+        
+
+        
+
     #Loads data (catalogue and scaling relation data)
 
+
+
     def initialise(self):
+
+        set_verbosity(self.cnc_params["cosmocnc_verbose"])
+        self.logger = logging.getLogger(__name__)
 
         self.cosmology = cosmology_model(cosmo_params=self.cosmo_params,
                                          cosmology_tool = self.cnc_params["cosmology_tool"],
                                          power_spectrum_type=self.cnc_params["power_spectrum_type"],
                                          amplitude_parameter=self.cnc_params["cosmo_amplitude_parameter"],
-                                         cnc_params = self.cnc_params
+                                         cnc_params = self.cnc_params,
+                                         logger = self.logger
                                          )
 
         if self.cnc_params["load_catalogue"] == True:
+
+            self.logger.debug("loading catalogue")
+            self.logger.debug(self.cnc_params["cluster_catalogue"])
 
             self.catalogue = cluster_catalogue(catalogue_name=self.cnc_params["cluster_catalogue"],
                                                precompute_cnc_quantities=True,
@@ -144,7 +158,7 @@ class cluster_number_counts:
         self.halo_mass_function = halo_mass_function(cosmology=self.cosmology,hmf_type=self.cnc_params["hmf_type"],
         mass_definition=self.cnc_params["mass_definition"],M_min=self.cnc_params["M_min"],
         M_max=self.cnc_params["M_max"],n_points=self.cnc_params["n_points"],type_deriv=self.cnc_params["hmf_type_deriv"],
-        hmf_calc=self.cnc_params["hmf_calc"],extra_params=self.hmf_extra_params)
+        hmf_calc=self.cnc_params["hmf_calc"],extra_params=self.hmf_extra_params,logger = self.logger)
 
         n_cores = self.cnc_params["number_cores_hmf"]
         indices_split = np.array_split(np.arange(self.cnc_params["n_z"]),n_cores)
@@ -185,6 +199,19 @@ class cluster_number_counts:
         elif self.cnc_params["hmf_calc"] == "MiraTitan":
 
             self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=True)
+
+
+        elif self.cnc_params["hmf_calc"] == "classy_sz":
+
+            self.logger.info('collecting hmf')
+
+
+            self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=True)
+
+
+            self.logger.debug('collecting hmf done')
+
+
 
         t1 = time.time()
 
@@ -267,21 +294,33 @@ class cluster_number_counts:
                         t0 = time.time()
 
                         self.scal_rel_selection.precompute_scaling_relation(params=self.scal_rel_params,
-                                                other_params=other_params,
-                                                patch_index=patch_index)
+                                                                            other_params=other_params,
+                                                                            patch_index=patch_index)
 
                         for k in range(0,self.scal_rel_selection.get_n_layers()):
 
                             x1 = self.scal_rel_selection.eval_scaling_relation(x0,
                                                          layer=k,
-                                                        other_params=other_params,
+                                                         other_params=other_params,
                                                          patch_index=patch_index)
 
                             dx1_dx0 = self.scal_rel_selection.eval_derivative_scaling_relation(x0,
-                                                              layer=k,patch_index=patch_index,
-                                                              scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
-
-                            dn_dx1 = dn_dx0/dx1_dx0
+                                                                                               layer=k,
+                                                                                               patch_index=patch_index,
+                                                                                               scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
+                            
+                            # Check if 0 or NaN is in dx1_dx0 and print the arrays if the condition is met
+                            if 0 in dx1_dx0 or np.isnan(dx1_dx0).any():
+                                # print('x0:', x0)
+                                # print('x1:', x1)
+                                # print('layer:', k)
+                                # print('dx1_dx0:', dx1_dx0)
+                                # print('dx1_dx0 shape:', dx1_dx0.shape)
+                                # print('dn_dx0 shape:', dn_dx0.shape)
+                                # sys.exit("Exiting because 0 or NaN found in dx1_dx0")
+                                dn_dx1 = 0.*dn_dx0
+                            else:
+                                dn_dx1 = dn_dx0/dx1_dx0
 
                             x1_interp = np.linspace(np.min(x1),np.max(x1),self.cnc_params["n_points"])
                             dn_dx1 = np.interp(x1_interp,x1,dn_dx1)
@@ -297,9 +336,12 @@ class cluster_number_counts:
                                 indices = np.where(x1_interp < cutoff)
                                 dn_dx1[indices] = 0.
 
-                            dn_dx1 = convolve_1d(x1_interp,dn_dx1,sigma=sigma_scatter,
-                            type=self.cnc_params["abundance_integral_type"],sigma_min=self.cnc_params["sigma_scatter_min"])
+                            dn_dx1 = convolve_1d(x1_interp,dn_dx1,
+                                                 sigma=sigma_scatter,
+                                                 type=self.cnc_params["abundance_integral_type"],
+                                                 sigma_min=self.cnc_params["sigma_scatter_min"])
 
+                            # pass to next layer 
                             x0 = x1_interp
                             dn_dx0 = dn_dx1
 
@@ -492,7 +534,7 @@ class cluster_number_counts:
 
             t1 = time.time()
 
-        #    print("Ini",t1-t0)
+
 
             def f_mp(rank,out_q):
 
@@ -769,7 +811,14 @@ class cluster_number_counts:
                                             tt3 = time.time()
 
                                             x_mesh = get_mesh(x1)
+                                            
                                             cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
+
+                                            if self.cnc_params["apply_obs_cutoff"] == True:
+
+                                                indices = np.where(x_mesh[0,:]+x_obs_j < self.scal_rel_params["q_cutoff"])[0]
+                                                cpdf[indices] = 0
+
 
                                         else:
 
@@ -798,12 +847,13 @@ class cluster_number_counts:
 
                                         self.t_44 = self.t_44 + tt4b - tt4
 
-                                        kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
+                                        if not np.all(covariance.cov[lay]==0):
+
+                                            kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
+                                            cpdf = convolve_nd(cpdf,kernel)
 
                                         tt5 = time.time()
                                         self.t_55 = self.t_55  + tt5 - tt4b
-
-                                        cpdf = convolve_nd(cpdf,kernel)
 
                                         tt6 = time.time()
                                         self.t_66 = self.t_66 + tt6 - tt5
@@ -989,24 +1039,7 @@ class cluster_number_counts:
 
             self.cpdf_dict = return_dict
 
-            # print("")
-            # print("")
-            # print("")
-            # print("Time hmf2",self.time_hmf2)
-            # print("Time select",self.time_select)
-            # print("Time mass range",self.time_mass_range)
-            # print("Time back",self.time_back)
-            # print("T0",self.t_00)
-            # print("T1",self.t_11)
-            # print("T2",self.t_22)
-            # print("T3",self.t_33)
-            # print("T4",self.t_44)
-            # print("T5",self.t_55)
-            # print("T6",self.t_66)
-            # print("T7",self.t_77)
-            # print("T8",self.t_88)
-            # print("T9",self.t_99)
-            # print("T sum",self.t_00+self.t_11+self.t_22+self.t_33+self.t_44+self.t_55+self.t_66+self.t_77+self.t_88+self.t_99)
+
 
         return log_lik_data
 
@@ -1188,7 +1221,7 @@ class cluster_number_counts:
         self.n_obs = np.sum(self.n_obs_matrix,axis=0)
         self.n_tot = np.sum(self.n_tot_vec)
 
-        print("Total clusters",self.n_tot)
+        self.logger.info("Total clusters: %.5e",self.n_tot)
 
         if self.cnc_params["non_validated_clusters"] == True:
 
@@ -1264,9 +1297,9 @@ class cluster_number_counts:
 
         self.t_total = time.time()-t0
 
-        print("Time",self.t_total)
+        self.logger.info("Time: %.5e",self.t_total)
 
-        print("log_lik",log_lik)
+        self.logger.info("log_lik: %.5e",log_lik)
 
         if np.isnan(log_lik) == True:
 
@@ -1371,7 +1404,6 @@ class cluster_number_counts:
 
                     n_observed = self.catalogue.number_counts[i,j]
 
-
                     redshift_vec_interp = np.linspace(self.cnc_params["bins_edges_z"][i],self.cnc_params["bins_edges_z"][i+1],n_bins_redshift)
                     obs_select_vec_interp = np.linspace(self.cnc_params["bins_edges_obs_select"][j],self.cnc_params["bins_edges_obs_select"][j+1],n_bins_obs_select)
                     X,Y = np.meshgrid(redshift_vec_interp,obs_select_vec_interp)
@@ -1420,7 +1452,8 @@ class cluster_number_counts:
             self.n_binned_obs = np.zeros(len(self.cnc_params["bins_edges_z"])-1)
             self.bins_centres = (self.cnc_params["bins_edges_z"][1:] + self.cnc_params["bins_edges_z"][0:-1])*0.5
             n_bins_redshift = int(len(self.redshift_vec)/(len(self.bins_centres)-1))
-            print("n int",n_bins_redshift)
+
+            self.logger.debug("n int: %d",n_bins_redshift)
 
             for i in range(0,len(self.cnc_params["bins_edges_z"])-1):
 

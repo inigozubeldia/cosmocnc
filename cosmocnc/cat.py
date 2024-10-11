@@ -1,5 +1,6 @@
 import numpy as np
 import pylab as pl
+import sys
 import scipy.integrate as integrate
 from astropy.io import fits
 from astropy.table import Table
@@ -7,7 +8,6 @@ from .config import *
 from .sr import *
 from .utils import *
 from .params import *
-import imp
 import pickle
 
 class cluster_catalogue:
@@ -20,6 +20,8 @@ class cluster_catalogue:
                  obs_select=None,
                  cnc_params=None,
                  scal_rel_params=None):
+        
+        self.logger = logging.getLogger(__name__)
 
         if scal_rel_params is None:
 
@@ -534,7 +536,7 @@ class cluster_catalogue:
 
         elif self.catalogue_name[0:12] == "planck_szifi":
 
-            import sys
+            # import sys 
             sys.path.insert(0,'/home/iz221/planck_sz/')
             import cat
 
@@ -701,6 +703,18 @@ class cluster_catalogue:
                 # WL simulation calibration data --  same as Bocquet's code
                 # WLsimcalibfile = options.get_string(option_section, 'WLsimcalibfile')
                 WLsimcalibfile = root_path + "data/spt/WLsimcalib_data.py"
+                import warnings
+                from contextlib import contextmanager
+
+                @contextmanager
+                def suppress_warnings():
+                    warnings.filterwarnings("ignore")
+                    try:
+                        yield
+                    finally:
+                        warnings.resetwarnings()
+                with suppress_warnings():
+                    import imp
                 WLsimcalib = imp.load_source('WLsimcalib', WLsimcalibfile)
 
                 self.WLcalib = WLsimcalib.WLcalibration
@@ -777,16 +791,22 @@ class cluster_catalogue:
 
                 self.catalogue['WLdata'] = np.asarray(spt_catalog['WLdata'][indices_catalog])
 
-        elif self.catalogue_name[0:11] == "act_dr5_sim":
+        # elif self.catalogue_name[0:11] == "act_dr5_sim":
+        elif self.catalogue_name == "act":
 
             #SZ data from ACT
 
             threshold = 5.
 
-            act_cat = np.loadtxt(root_path + "data/act_dr5/SZ_cat_nemosimkit_130923.txt").transpose()
+            # act_cat = np.loadtxt(root_path + "data/act_dr5/SZ_cat_nemosimkit_130923.txt").transpose()
+            act_cat = np.loadtxt(root_path + "data/SZ_cat_nemosimkit_19jul24_100bins_sim1.txt").transpose()
             data_act = {}
             data_act["SNR"] = act_cat[2]
             data_act["z"] = act_cat[0]
+
+            self.logger.debug(data_act["SNR"])
+            self.logger.debug(data_act["z"])
+            # sys.exit()
 
             indices_act = []
 
@@ -811,7 +831,8 @@ class cluster_catalogue:
 
             if self.obs_select == "q_act":
 
-                patch_index_vec = np.load(root_path + "data/act_dr5/SZ_cat_nemosimkit_cluster_patch_indices.npy")
+                # patch_index_vec = np.load(root_path + "data/act_dr5/SZ_cat_nemosimkit_cluster_patch_indices.npy")
+                patch_index_vec = np.load(root_path + "data/SZ_cat_nemosimkit_cluster_patch_indices_19jul24_100bins_sim1.npy")
                 patch_index_vec = patch_index_vec[indices_act]
                 self.catalogue_patch[observable][indices_z] = patch_index_vec[indices_z]
 
