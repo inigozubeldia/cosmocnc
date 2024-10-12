@@ -34,7 +34,7 @@ class cosmology_model:
 
             from classy_sz import Class
 
-            self.classy = Class()
+            self.classy = Class(default=False)
 
             if self.amplitude_parameter == "sigma_8":
 
@@ -110,7 +110,11 @@ class cosmology_model:
                           'ndim_masses' : self.cnc_params["class_sz_ndim_masses"], # automatically set in fast mode
                           'concentration_parameter': self.cnc_params["class_sz_concentration_parameter"],
                           'cosmo_model': self.cosmo_model_dict[self.cnc_params['class_sz_cosmo_model']],
-                          'mass_function' : self.cnc_params["class_sz_hmf"]
+                          'mass_function' : self.cnc_params["class_sz_hmf"],
+                          'classy_sz_verbose': 'none',
+
+                          'use_m500c_in_ym_relation' : 1,
+                          'use_m200c_in_ym_relation' : 0,
 
                           })
 
@@ -249,8 +253,13 @@ class cosmology_model:
                           'ndim_redshifts' : self.cnc_params["class_sz_ndim_redshifts"],
                           'ndim_masses' : self.cnc_params["class_sz_ndim_masses"], # automatically set in fast mode
                           'concentration_parameter': self.cnc_params["class_sz_concentration_parameter"],
+                          
                           'cosmo_model': self.cosmo_model_dict[self.cnc_params['class_sz_cosmo_model']],
-                          'mass_function' : self.cnc_params["class_sz_hmf"]
+                          'mass_function' : self.cnc_params["class_sz_hmf"],
+
+                          'classy_sz_verbose': 'none',
+                          'use_m500c_in_ym_relation' : 1,
+                          'use_m200c_in_ym_relation' : 0,
 
                           }
 
