@@ -83,7 +83,7 @@ class scaling_relations:
 
             q_vec = np.linspace(6.,10.,self.cnc_params["n_points"])
             pdf_fd = np.exp(-(q_vec-3.)**2/1.5**2)
-            pdf_fd = pdf_fd/integrate.simps(pdf_fd,q_vec)
+            pdf_fd = pdf_fd/integrate.simpson(pdf_fd,x=q_vec)
             self.pdf_false_detection = [q_vec,pdf_fd]
 
         if observable == "p_zc19" or observable == "p_zc19_stacked":
@@ -315,7 +315,7 @@ class scaling_relations:
 
             q_vec = np.linspace(5.,10.,self.cnc_params["n_points"])
             pdf_fd = np.exp(-(q_vec-3.)**2/1.5**2)
-            pdf_fd = pdf_fd/integrate.simps(pdf_fd,q_vec)
+            pdf_fd = pdf_fd/integrate.simpson(pdf_fd,x=q_vec)
             self.pdf_false_detection = [q_vec,pdf_fd]
 
         if observable == "q_so_goal3yr_sim":
@@ -335,7 +335,7 @@ class scaling_relations:
 
             q_vec = np.linspace(5.,10.,self.cnc_params["n_points"])
             pdf_fd = np.exp(-(q_vec-3.)**2/1.5**2)
-            pdf_fd = pdf_fd/integrate.simps(pdf_fd,q_vec)
+            pdf_fd = pdf_fd/integrate.simpson(pdf_fd,x=q_vec)
             self.pdf_false_detection = [q_vec,pdf_fd]
 
 

@@ -32,9 +32,9 @@ class cosmology_model:
 
         if cosmology_tool == "classy_sz":
 
-            from classy_sz import Class
+            from classy_sz import Class as Class_sz
 
-            self.classy = Class(default=False)
+            self.classy = Class_sz()
 
             if self.amplitude_parameter == "sigma_8":
 
@@ -72,30 +72,11 @@ class cosmology_model:
 
             self.classy.set({
                            'H0': self.cosmo_params["h"]*100.,
-                           #'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
-                           #'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2,
                            'tau_reio':  self.cosmo_params["tau_reio"],
                            'n_s': self.cosmo_params["n_s"],
 
-                           'N_ncdm' : 1,  # this should not be hardcode  (TBD 26feb24)
-                           'N_ur' : 2.0328,  # this should not be hardcode  (TBD 26feb24)
-                           'm_ncdm' : self.cosmo_params["m_nu"],
-                           'T_ncdm' : 0.71611,
-
-
-
                           'output': self.cnc_params["class_sz_output"],  
-                          'skip_background_and_thermo': 0,
-                          
-                          'skip_chi': 1,
-                          'skip_hubble': 1,
-                          'skip_cmb': 1,
-                          'skip_pknl': 1,
-                          'skip_pkl': 0, # compute pkl from emulators 
-                          'skip_sigma8_and_der': 0,
-                          'skip_sigma8_at_z': 1,
-                          'skip_input': 0,
-                          'skip_class_sz': 0,
+
 
 
                           'HMF_prescription_NCDM': 1,
@@ -111,7 +92,6 @@ class cosmology_model:
                           'concentration_parameter': self.cnc_params["class_sz_concentration_parameter"],
                           'cosmo_model': self.cosmo_model_dict[self.cnc_params['class_sz_cosmo_model']],
                           'mass_function' : self.cnc_params["class_sz_hmf"],
-                          'classy_sz_verbose': 'none',
 
                           'use_m500c_in_ym_relation' : 1,
                           'use_m200c_in_ym_relation' : 0,
@@ -219,25 +199,10 @@ class cosmology_model:
                            'H0': self.cosmo_params["h"]*100.,
                            'tau_reio':  self.cosmo_params["tau_reio"],
                            'n_s': self.cosmo_params["n_s"],
-
-                           'N_ncdm' : 1,  # this should not be hardcode  (TBD 26feb24)
-                           'N_ur' : 2.0328,  # this should not be hardcode  (TBD 26feb24)
                            'm_ncdm' : self.cosmo_params["m_nu"],
-                           'T_ncdm' : 0.71611,
 
 
                            'output': self.cnc_params["class_sz_output"],  
-
-                          'skip_background_and_thermo': 0,
-                          'skip_chi': 1,
-                          'skip_hubble': 1,
-                          'skip_cmb': 1,
-                          'skip_pknl': 1,
-                          'skip_pkl': 0,
-                          'skip_sigma8_and_der': 0,
-                          'skip_input': 0,
-                          'skip_class_sz': 0,
-                          'skip_sigma8_at_z': 1,
                 
                           'HMF_prescription_NCDM': 1,
                           'no_spline_in_tinker': 1,
@@ -257,7 +222,7 @@ class cosmology_model:
                           'cosmo_model': self.cosmo_model_dict[self.cnc_params['class_sz_cosmo_model']],
                           'mass_function' : self.cnc_params["class_sz_hmf"],
 
-                          'classy_sz_verbose': 'none',
+                        #   'classy_sz_verbose': 'none',
                           'use_m500c_in_ym_relation' : 1,
                           'use_m200c_in_ym_relation' : 0,
 

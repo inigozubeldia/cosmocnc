@@ -368,11 +368,11 @@ class cluster_number_counts:
 
                 self.abundance_tensor[i,j,:] = return_dict[str(i) + "_" + str(j)]
 
-    #        self.n_obs_matrix[i,:] = integrate.simps(self.abundance_tensor[i,:,:],self.redshift_vec,axis=0)
-    #        self.n_tot_vec[i] = integrate.simps(self.n_obs_matrix[i,:],self.obs_select_vec,axis=0)
+    #        self.n_obs_matrix[i,:] = integrate.simpson(self.abundance_tensor[i,:,:],x=self.redshift_vec,axis=0)
+    #        self.n_tot_vec[i] = integrate.simpson(self.n_obs_matrix[i,:],x=self.obs_select_vec,axis=0)
 
-            self.n_obs_matrix[i,:] = integrate.simps(self.abundance_tensor[i,:,:],self.redshift_vec,axis=0)
-            self.n_tot_vec[i] = integrate.simps(self.n_obs_matrix[i,:],self.obs_select_vec,axis=0)
+            self.n_obs_matrix[i,:] = integrate.simpson(self.abundance_tensor[i,:,:],x=self.redshift_vec,axis=0)
+            self.n_tot_vec[i] = integrate.simpson(self.n_obs_matrix[i,:],x=self.obs_select_vec,axis=0)
 
 
         if self.cnc_params["compute_abundance_matrix"] == True:
@@ -436,7 +436,7 @@ class cluster_number_counts:
                     abundance_interp = interpolate.interp1d(self.redshift_vec,abundance_matrix,axis=0,kind="linear")
                     z_bounded = np.linspace(lower_z,upper_z,self.cnc_params["n_z"])
                     abundance_z_bounds = abundance_interp(z_bounded)
-                    n_obs = integrate.simps(abundance_z_bounds,z_bounded,axis=0)
+                    n_obs = integrate.simpson(abundance_z_bounds,x=z_bounded,axis=0)
 
                     if self.cnc_params["non_validated_clusters"] == True:
 
@@ -509,7 +509,7 @@ class cluster_number_counts:
 
                             abundance_z = abundance_interp(eval_points)
 
-                            lik_cluster = integrate.simps(abundance_z*z_error_likelihood,z_eval_vec)
+                            lik_cluster = integrate.simpson(abundance_z*z_error_likelihood,x=z_eval_vec)
 
                             log_lik_clusters = log_lik_clusters + np.log(lik_cluster)
 
@@ -898,7 +898,7 @@ class cluster_number_counts:
 
                             tt9 = time.time()
 
-                            lik_cluster_vec[redshift_error_id] = integrate.simps(cpdf_product_with_hmf,lnM)
+                            lik_cluster_vec[redshift_error_id] = integrate.simpson(cpdf_product_with_hmf,x=lnM)
 
                             self.t_99 = self.t_99 + time.time() - tt9
 
@@ -985,11 +985,11 @@ class cluster_number_counts:
 
                                 for o in range(0,n_obs):
 
-                                    integrand = integrate.simps(integrand,x_variables[o],axis=0)
+                                    integrand = integrate.simpson(integrand,x=x_variables[o],axis=0)
 
                                 integrand_m[m] = integrand
 
-                            integral = integrate.simps(integrand_m,lnM)
+                            integral = integrate.simpson(integrand_m,x=lnM)
                             lik_cluster_vec[redshift_error_id] = integral
 
                         t4 = time.time()
@@ -1002,7 +1002,7 @@ class cluster_number_counts:
 
                         return_dict["z_err_lik_" + str(cluster_index)] = z_error_likelihood
 
-                        lik_cluster = integrate.simps(lik_cluster_vec*z_error_likelihood,z_eval_vec)
+                        lik_cluster = integrate.simpson(lik_cluster_vec*z_error_likelihood,x=z_eval_vec)
 
                     else:
 
@@ -1012,9 +1012,9 @@ class cluster_number_counts:
 
                             cpdf = return_dict["cpdf_" + str(cluster_index) + "_" + str(redshift_error_id)]
                             lnM_vec = return_dict["lnm_vec_" + str(cluster_index) + "_" + str(redshift_error_id)]
-                            norm = integrate.simps(cpdf,lnM_vec)
-                            lnM_mean = integrate.simps(lnM_vec*cpdf,lnM_vec)/norm
-                            lnM_std = np.sqrt(integrate.simps(lnM_vec**2*cpdf,lnM_vec)/norm-lnM_mean**2)
+                            norm = integrate.simpson(cpdf,x=lnM_vec)
+                            lnM_mean = integrate.simpson(lnM_vec*cpdf,x=lnM_vec)/norm
+                            lnM_std = np.sqrt(integrate.simpson(lnM_vec**2*cpdf,x=lnM_vec)/norm-lnM_mean**2)
 
                             return_dict["lnM_mean_" + str(cluster_index)] = lnM_mean
                             return_dict["lnM_std_" + str(cluster_index)] = lnM_std
@@ -1090,7 +1090,7 @@ class cluster_number_counts:
 
                     cpdf = self.cpdf_dict["cpdf_" + str(cluster_index) + "_" + str(redshift_error_id)]
                     lnM_vec = self.cpdf_dict["lnm_vec_" + str(cluster_index) + "_" + str(redshift_error_id)]
-                    cpdf = cpdf/integrate.simps(cpdf,lnM_vec)
+                    cpdf = cpdf/integrate.simpson(cpdf,x=lnM_vec)
 
                     D_A = np.interp(redshift_eval,self.redshift_vec,self.D_A)
                     E_z = np.interp(redshift_eval,self.redshift_vec,self.E_z)
@@ -1118,11 +1118,11 @@ class cluster_number_counts:
                         obs_mean_vec,obs_var_vec = obs_mean_vec
                         obs_second_moment_vec = obs_var_vec + obs_mean_vec**2
 
-                    obs_mean = integrate.simps(obs_mean_vec*cpdf,lnM_vec)
+                    obs_mean = integrate.simpson(obs_mean_vec*cpdf,x=lnM_vec)
 
                     if self.cnc_params["compute_stacked_cov"] == True:
 
-                        obs_second_moment = integrate.simps(obs_second_moment_vec*cpdf,lnM_vec)
+                        obs_second_moment = integrate.simpson(obs_second_moment_vec*cpdf,x=lnM_vec)
                         obs_var = obs_second_moment - obs_mean**2
 
                 return_dict[stacked_data_label + "_" + str(cluster_index)] = obs_mean
@@ -1248,7 +1248,7 @@ class cluster_number_counts:
 
         obs_select_vec_interp = np.linspace(obs_max,self.cnc_params["obs_select_max"],100)
         n_interp = np.interp(obs_select_vec_interp,self.obs_select_vec,n_obs)
-        n_theory = integrate.simps(n_interp,obs_select_vec_interp)
+        n_theory = integrate.simpson(n_interp,x=obs_select_vec_interp)
 
         log_lik = -n_theory
 
@@ -1267,8 +1267,8 @@ class cluster_number_counts:
         self.lik_ev_eval = np.exp(self.log_lik_ev_eval)
 
         self.obs_select_max_pdf = np.gradient(self.lik_ev_eval,self.obs_select_vec)
-        self.obs_select_max_mean = integrate.simps(self.obs_select_max_pdf*self.obs_select_vec,self.obs_select_vec)
-        self.obs_select_max_std = np.sqrt(integrate.simps(self.obs_select_max_pdf*(self.obs_select_vec-self.obs_select_max_mean)**2,self.obs_select_vec))
+        self.obs_select_max_mean = integrate.simpson(self.obs_select_max_pdf*self.obs_select_vec,x=self.obs_select_vec)
+        self.obs_select_max_std = np.sqrt(integrate.simpson(self.obs_select_max_pdf*(self.obs_select_vec-self.obs_select_max_mean)**2,x=self.obs_select_vec))
 
     #Reurns log likelihood, with priors
 
@@ -1364,7 +1364,7 @@ class cluster_number_counts:
     def get_abundance_matrix(self):
 
         self.abundance_matrix = np.sum(self.abundance_tensor,axis=0)
-        self.n_z = integrate.simps(self.abundance_matrix,self.obs_select_vec)
+        self.n_z = integrate.simpson(self.abundance_matrix,x=self.obs_select_vec)
 
         if self.cnc_params["convolve_nz"] == True:
 
@@ -1410,7 +1410,7 @@ class cluster_number_counts:
 
                     abundance_matrix_interp = interpolate.RegularGridInterpolator((self.redshift_vec,self.obs_select_vec),self.abundance_matrix,bounds_error=False,fill_value=0)((X,Y))
 
-                    n_theory = integrate.simps(integrate.simps(abundance_matrix_interp,redshift_vec_interp),obs_select_vec_interp)
+                    n_theory = integrate.simpson(integrate.simpson(abundance_matrix_interp,redshift_vec_interp),x=obs_select_vec_interp)
 
                     self.n_binned[i,j] = n_theory
                     self.n_binned_obs[i,j] = n_observed
@@ -1435,7 +1435,7 @@ class cluster_number_counts:
                 obs_select_vec_interp = np.linspace(self.cnc_params["bins_edges_obs_select"][i],self.cnc_params["bins_edges_obs_select"][i+1],n_bins_obs_select)
                 n_interp = np.interp(obs_select_vec_interp,self.obs_select_vec,n_obs)
 
-                n_theory = integrate.simps(n_interp,obs_select_vec_interp)
+                n_theory = integrate.simpson(n_interp,x=obs_select_vec_interp)
                 n_observed = self.catalogue.number_counts[i]
                 self.n_binned_obs[i] = n_observed
                 self.n_binned[i] = n_theory
@@ -1460,7 +1460,7 @@ class cluster_number_counts:
                 redshift_vec_interp = np.linspace(self.cnc_params["bins_edges_z"][i],self.cnc_params["bins_edges_z"][i+1],n_bins_redshift)
                 n_interp = np.interp(redshift_vec_interp,self.redshift_vec,self.n_z)
 
-                n_theory = integrate.simps(n_interp,redshift_vec_interp)
+                n_theory = integrate.simpson(n_interp,x=redshift_vec_interp)
                 n_observed = self.catalogue.number_counts[i]
                 self.n_binned_obs[i] = n_observed
                 self.n_binned[i] = n_theory
