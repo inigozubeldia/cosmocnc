@@ -27,6 +27,11 @@ class cosmology_model:
         self.cosmo_params = cosmo_params
         self.amplitude_parameter = amplitude_parameter
 
+        self.logger.info(f'Cosmology params: {self.cosmo_params}')
+        if self.cnc_params["cosmo_model"] != self.cnc_params["class_sz_cosmo_model"]:
+            self.logger.warning(f'Cosmology model in cosmocnc params and classy_sz params do not match. Using classy_sz params.')
+            self.cnc_params["class_sz_cosmo_model"] = self.cnc_params["cosmo_model"]
+
         
 
 

@@ -73,7 +73,7 @@ cnc_params_default = {
     "interp_tinker": "linear", #"linear" or "log" 
 
 
-    "cosmo_model": "lcdm", # remove redundancy
+    "cosmo_model": "lcdm", # redundancy taken care of in cosmo.py
     "class_sz_cosmo_model": "lcdm", # lcdm, mnu, neff, wcdm, ede
 
     "class_sz_ndim_redshifts" : 100,
