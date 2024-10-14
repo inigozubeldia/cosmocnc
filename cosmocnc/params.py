@@ -70,14 +70,14 @@ cnc_params_default = {
     "cosmo_param_density": "critical", #"physical" or "critical"
     "scalrel_type_deriv": "analytical", #"analytical" or "numerical"
     "sigma_scatter_min": 1e-5,
-    "interp_tinker": "linear", #"linear" or "log" 
+    "interp_tinker": "linear", #"linear" or "log"
 
 
-    "cosmo_model": "lcdm", # remove redundancy
-
+    "cosmo_model": "lcdm", # redundancy taken care of in cosmo.py
     "class_sz_cosmo_model": "lcdm", # lcdm, mnu, neff, wcdm, ede
+
     "class_sz_ndim_redshifts" : 100,
-    "class_sz_ndim_masses" : 100,  # when using cosmopower this is automatically fixed.
+    "class_sz_ndim_masses" : 100,  # when using emulators this is automatically fixed.
     "class_sz_concentration_parameter" : "B13",
     "class_sz_output": 'mPk,m500c_to_m200c,m200c_to_m500c',
     "class_sz_hmf": "T08M500c", # M500 or T08M500c for Tinker et al 208 HMF defined at m500 critical.
@@ -235,6 +235,12 @@ scaling_relation_params_default = {
 "B0": 0.08,
 "C0": 0.,
 "sigma_lnq_act": 0.2,
+
+#Planck DES Y3:
+
+"lnb_wl_sigma": 0., #prior: unit standard deviation, mean 0
+"b_wl_m": 1.029,
+"s_wl_m": -0.226,
 }
 
 cosmo_params_default = {
