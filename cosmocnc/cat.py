@@ -20,7 +20,7 @@ class cluster_catalogue:
                  obs_select=None,
                  cnc_params=None,
                  scal_rel_params=None):
-        
+
         self.logger = logging.getLogger(__name__)
 
         if scal_rel_params is None:
@@ -534,85 +534,112 @@ class cluster_catalogue:
             self.catalogue_patch["m_lens"] = catalogue["m_lens_patch"]
             self.catalogue["z"] = catalogue["z"]
 
-        elif self.catalogue_name[0:12] == "planck_szifi":
+        elif self.catalogue_name == "planck_szifi":
 
-            # import sys 
-            sys.path.insert(0,'/home/iz221/planck_sz/')
-            import cat
+            #SZiFi catalogue
 
-            path = "/rds-d4/user/iz221/hpc-work/catalogues_def/planck_hpc/"
-
-            mask_type = self.cnc_params["catalogue_params"]["mask_type"]
-
-            if mask_type == "cosmology_2":
-
-                (catalogue_master) = np.load(path + "master_catalogue_planck_withfixed_planckcibparams_withnoit_cross_validated_cosmologymask_withdownsamplednoise.npy",allow_pickle=True)[()]
-
-            if mask_type == "cosmology_3":
-
-                (catalogue_master) = np.load(path + "master_catalogue_planck_withfixed_planckcibparams_withnoit_cross_validated_cosmologymask3_withdownsamplednoise.npy",allow_pickle=True)[()]
-
-            dep_type = self.catalogue_name[13:]
+            master_catalogue = np.load("/home/iz221/planck_sz/master_catalogue_szifi_planck.npy",allow_pickle=True)[()]
 
             self.catalogue = {}
             self.catalogue_patch = {}
 
-            q_szifi = catalogue_master.catalogue_master.catalogue["q_opt_" + dep_type]
-            z = catalogue_master.catalogue_master.catalogue["redshift"]
+            mmf_type = self.cnc_params["catalogue_params"]["mmf_type"]
+
+            it_label = ""
+            it_label2 = ""
+
+            if self.cnc_params["catalogue_params"]["iterative"] == False:
+
+                it_label = "noit_"
+                it_label2 = "_noit"
+
+            q_szifi = master_catalogue["SNR_" + it_label + mmf_type]
+            z = master_catalogue["redshift"]
 
             q_th = self.cnc_params["obs_select_min"]
 
-            validated = catalogue_master.catalogue_master.catalogue["validated"]
+            confirmed = master_catalogue["confirmed"]
+            cosmology_mask = master_catalogue["cosmology_mask"]
 
             include_non_validated = self.cnc_params["catalogue_params"]["include_non_validated"]
 
             if include_non_validated == True:
 
-                indices = np.where((q_szifi > q_th))
+                indices = np.where((q_szifi > q_th) & (confirmed > -0.5) & (cosmology_mask > 0.5)) #excluding false d.
 
             elif include_non_validated == False:
 
-                indices = np.where((q_szifi > q_th) & (validated > 0.))
+                indices = np.where((q_szifi > q_th) & (confirmed > 0.5) & (cosmology_mask > 0.5))
 
             self.catalogue["q_szifi"] = q_szifi[indices]
             self.catalogue["z"] = z[indices]
 
             self.catalogue["z"][np.where(self.catalogue["z"] < 0.)] = None
-
             self.catalogue["z_std"] = np.zeros(len(indices[0]))
+
+            name_mcmf = master_catalogue["name_planck-mcmf"][indices]
+
+            print("N clusters",len(self.catalogue["z"]))
+            print("N clusters with z",len(self.catalogue["z"][self.catalogue["z"]>0.0001]))
+
+            #SZiFi patches
 
             downsample_flag = self.cnc_params["catalogue_params"]["downsample"]
 
             if downsample_flag == False:
 
-                sigma_matrix = catalogue_master.sigma_matrices[dep_type]
-                q_patches = catalogue_master.catalogue_master.catalogue["pixel_ids"][indices]
-                skyfracs = catalogue_master.skyfracs["cosmology"]
+                self.catalogue_patch["q_szifi"] = master_catalogue["tile_" + it_label + mmf_type][indices]
 
             elif downsample_flag == True:
 
-                sigma_matrix = catalogue_master.sigma_matrices[dep_type + "_downnoisebased"]
-                pixel_ids_original = catalogue_master.catalogue_master.catalogue["pixel_ids"][indices]
-                original_tile_vec = catalogue_master.original_tile_vecs["cosmology" + "_" + dep_type + "_downnoisebased"]
-                skyfracs = catalogue_master.skyfracs["cosmology" + "_" + dep_type + "_downnoisebased"]
+                index_translation_down = np.load("/rds-d4/user/iz221/hpc-work/catalogues_szifi_planck/index_translation_down.npy",allow_pickle=True)[()][mmf_type + it_label2]
 
-                q_patches = np.zeros(len(indices[0]))
+                self.catalogue_patch["q_szifi"] = index_translation_down[master_catalogue["tile_" + it_label + mmf_type][indices].astype("int")]
 
-                for i in range(0,len(indices[0])):
+            #DES Y3 data
 
-                    q_patches[i] = original_tile_vec[int(pixel_ids_original[i])]
+            des_y3_lensing_data = np.load("/home/iz221/planck_lensing/lensing_desy3_planck.npy",allow_pickle=True)[()]
 
-    #        indices_sigma = np.where(skyfracs > 1e-10)
-            indices_sigma = np.where(skyfracs > 2e-4)
+            radii = des_y3_lensing_data["radii"]
+            shear = des_y3_lensing_data["shear"]
+            shear_err = des_y3_lensing_data["shear_err"]
+            richness = des_y3_lensing_data["richness"]
+            redshift_mcmf = des_y3_lensing_data["redshift_mcmf"]
 
+            #self.catalogue["shear_des_y3"] = []
+            self.catalogue["shear_des_y3_std"] = []
+            self.catalogue["shear_des_y3_radii"] = []
+            self.catalogue["redshift_mcmf"] = []
+            shear_des = []
 
-            q_patches_new = np.zeros(len(indices[0]))
+            for i in range(0,len(self.catalogue["q_szifi"])):
 
-            for i in range(0,len(indices[0])):
+                name_cluster_mcmf = name_mcmf[i]
 
-                q_patches_new[i] = np.where(indices_sigma[0] == int(q_patches[i]))[0]
+                if name_cluster_mcmf in radii.keys():
 
-            self.catalogue_patch["q_szifi"] = q_patches_new
+                    indices_nonan = np.where(~np.isnan(np.array(shear[name_cluster_mcmf])))[0]
+
+                    shear_des.append(np.array(shear[name_cluster_mcmf])[indices_nonan])
+                    self.catalogue["shear_des_y3_std"].append(np.array(shear_err[name_cluster_mcmf])[indices_nonan])
+                    self.catalogue["shear_des_y3_radii"].append(np.array(radii[name_cluster_mcmf])[indices_nonan])
+                    self.catalogue["redshift_mcmf"].append(redshift_mcmf[name_cluster_mcmf])
+
+                else:
+
+                    shear_des.append(np.nan)
+                    self.catalogue["shear_des_y3_std"].append(np.nan)
+                    self.catalogue["shear_des_y3_radii"].append(np.nan)
+                    self.catalogue["redshift_mcmf"].append(np.nan)
+
+            self.catalogue["shear_des_y3"] = shear_des
+
+            self.catalogue_patch["shear_des_y3"] = np.zeros(len(self.catalogue["shear_des_y3"]))
+
+            # for i in range(0,len(self.catalogue["redshift_mcmf"])):
+            #
+            #     print(self.catalogue["redshift_mcmf"][i],self.catalogue["z"][i])
+
 
         elif self.catalogue_name == "SPT2500d":
 
@@ -798,8 +825,11 @@ class cluster_catalogue:
 
             threshold = 5.
 
+            path = "/rds-d4/user/iz221/hpc-work/data_nemo/"
+
+
             # act_cat = np.loadtxt(root_path + "data/act_dr5/SZ_cat_nemosimkit_130923.txt").transpose()
-            act_cat = np.loadtxt(root_path + "data/SZ_cat_nemosimkit_130923.txt").transpose()
+            act_cat = np.loadtxt(path + "SZ_cat_nemosimkit_141024.txt").transpose()
             data_act = {}
             data_act["SNR"] = act_cat[2]
             data_act["z"] = act_cat[0]
@@ -832,7 +862,7 @@ class cluster_catalogue:
             if self.obs_select == "q_act":
 
                 # patch_index_vec = np.load(root_path + "data/act_dr5/SZ_cat_nemosimkit_cluster_patch_indices.npy")
-                patch_index_vec = np.load(root_path + "data/SZ_cat_nemosimkit_cluster_patch_indices.npy")
+                patch_index_vec = np.load(root_path + "SZ_cat_nemosimkit_cluster_patch_indices.npy")
                 patch_index_vec = patch_index_vec[indices_act]
                 self.catalogue_patch[observable][indices_z] = patch_index_vec[indices_z]
 
@@ -911,7 +941,9 @@ class cluster_catalogue:
 
                         observable_set_cluster.append(observable)
 
-                observables_cluster.append(observable_set_cluster)
+                if len(observable_set_cluster) > 0:
+
+                    observables_cluster.append(observable_set_cluster)
 
             self.observable_dict[i] = observables_cluster
 
