@@ -1,24 +1,22 @@
 import numpy as np
-
+import scipy.integrate as integrate
 import sys
 from .ps import *
 from .config import *
 from .hmf import *
-import scipy.integrate as integrate
+from .params import *
 import time
-
-#for now only lcdm
-
 
 class cosmology_model:
 
     def __init__(self,cosmo_params=None,cosmology_tool="astropy",power_spectrum_type="cosmopower",
-    amplitude_parameter="sigma_8",cnc_params = None,logger = None):
+    amplitude_parameter="sigma_8",cnc_params=None):
+
+        if cnc_params is None:
+
+            cnc_params = cnc_params_default
 
         self.cnc_params = cnc_params
-
-        self.logger = logging.getLogger(__name__)
-
 
         if cosmo_params is None:
 
@@ -27,19 +25,11 @@ class cosmology_model:
         self.cosmo_params = cosmo_params
         self.amplitude_parameter = amplitude_parameter
 
-        self.logger.info(f'Cosmology params: {self.cosmo_params}')
-        if self.cnc_params["cosmo_model"] != self.cnc_params["class_sz_cosmo_model"]:
-            self.logger.warning(f'Cosmology model in cosmocnc params and classy_sz params do not match. Using classy_sz params.')
-            self.cnc_params["class_sz_cosmo_model"] = self.cnc_params["cosmo_model"]
-
-        
-
-
         if cosmology_tool == "classy_sz":
 
-            from classy_sz import Class as Class_sz
+            from classy_sz import Class
 
-            self.classy = Class_sz()
+            self.classy = Class()
 
             if self.amplitude_parameter == "sigma_8":
 
@@ -71,56 +61,51 @@ class cosmology_model:
                                      'neff' : 2,
                                      'wcdm' : 3,
                                      'ede'  : 4,
-                                     'mnu-3states' : 5,
-                                     'ede-v2'  : 6,
                                      }
 
             self.classy.set({
                            'H0': self.cosmo_params["h"]*100.,
+                           #'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
+                           #'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2,
                            'tau_reio':  self.cosmo_params["tau_reio"],
                            'n_s': self.cosmo_params["n_s"],
 
-                          'output': self.cnc_params["class_sz_output"],  
+                           'N_ncdm' : 1,  # this should not be hardcode  (TBD 26feb24)
+                           'N_ur' : 2.0328,  # this should not be hardcode  (TBD 26feb24)
+                           'm_ncdm' : self.cosmo_params["m_nu"],
+                           'T_ncdm' : 0.71611,
 
+                          'output': 'mPk,m500c_to_m200c,m200c_to_m500c',  # this should not be hardcode  (TBD 26feb24)
+                          'skip_background_and_thermo': 0,
+                          'skip_chi': 1,
+                          'skip_hubble': 1,
+                          'skip_cmb': 1,
+                          'skip_pknl': 1,
+                          'skip_pkl': 0,
+                          'skip_sigma8_and_der': 0,
+                          'skip_sigma8_at_z': 1,
 
-
-                          'HMF_prescription_NCDM': 1,
-                          'no_spline_in_tinker': 1,
-
-                          'M_min' : self.cnc_params["M_min"]*0.8,
-                          'M_max' : self.cnc_params["M_max"]*1.2,
-                          'z_min' : self.cnc_params["z_min"]*0.8,
-                          'z_max' : self.cnc_params["z_max"]*1.2,
-
-                          'ndim_redshifts' : self.cnc_params["class_sz_ndim_redshifts"],
-                          'ndim_masses' : self.cnc_params["class_sz_ndim_masses"], # automatically set in fast mode
-                          'concentration_parameter': self.cnc_params["class_sz_concentration_parameter"],
-                          'cosmo_model': self.cosmo_model_dict[self.cnc_params['class_sz_cosmo_model']],
-                          'mass_function' : self.cnc_params["class_sz_hmf"],
-
-                          'use_m500c_in_ym_relation' : 1,
-                          'use_m200c_in_ym_relation' : 0,
-
+                          'M_min' : self.cnc_params["M_min"]*0.1,
+                          'M_max' : self.cnc_params["M_max"]*2.,
+                          'z_min' : self.cnc_params["z_min"]*0.1,
+                          'z_max' : self.cnc_params["z_max"]*2.,
+                          'ndim_redshifts' :50,
+                          'ndim_masses' :50,
+                          'concentration parameter':'D08', # this should not be hardcode  (TBD 26feb24)
+                          # 'class_sz_verbose': 1,
+                          # 'background_verbose':3,
+                          # 'thermodynamics_verbose':3
+                          'cosmo_model': self.cosmo_model_dict[self.cnc_params['cosmo_model']]
                           })
 
-            if  self.cnc_params['class_sz_cosmo_model'] == "wcdm":
+            if  self.cnc_params['cosmo_model'] == "wcdm":
 
                 self.classy.set({
                     'Omega_Lambda' : 0.,
                     'w0_fld' : self.cosmo_params["w0"],
                 })
 
-            if  self.cnc_params['hmf_calc'] == "classy_sz":
-                self.logger.info('adding dndlnM to class_sz output')
-                self.classy.set({
-                    'output': self.cnc_params["class_sz_output"] + ",dndlnm"
-                })
-
-            self.logger.info('computing class_szfast')
-
             self.classy.compute_class_szfast()
-
-            self.logger.info('computing class_szfast done')
 
             self.T_CMB_0 = self.classy.T_cmb()
             self.N_eff = self.classy.get_current_derived_parameters(['Neff'])['Neff']
@@ -138,15 +123,10 @@ class cosmology_model:
             self.background_cosmology = classy_sz(self.classy)
             self.background_cosmology.H0.value = self.classy.h()*100.
 
-            self.logger.debug(f'Got: {self.T_CMB_0}, {self.sigma8}')
-
             self.get_m500c_to_m200c_at_z_and_M = np.vectorize(self.classy.get_m500c_to_m200c_at_z_and_M)
             self.get_m200c_to_m500c_at_z_and_M = np.vectorize(self.classy.get_m200c_to_m500c_at_z_and_M)
             self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
             self.get_dndlnM_at_z_and_M = np.vectorize(self.classy.get_dndlnM_at_z_and_M)
-            self.get_delta_mean_from_delta_crit_at_z = np.vectorize(self.classy.get_delta_mean_from_delta_crit_at_z)
-
-            # self.logger.debug(f'collected hmf')
 
         if cosmology_tool == "astropy":
 
@@ -202,50 +182,44 @@ class cosmology_model:
 
             classy_params = {
                            'H0': self.cosmo_params["h"]*100.,
+                          # 'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
+                          # 'omega_cdm': (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2,
                            'tau_reio':  self.cosmo_params["tau_reio"],
                            'n_s': self.cosmo_params["n_s"],
+
+                           'N_ncdm' : 1,  # this should not be hardcode  (TBD 26feb24)
+                           'N_ur' : 2.0328,  # this should not be hardcode  (TBD 26feb24)
                            'm_ncdm' : self.cosmo_params["m_nu"],
+                           'T_ncdm' : 0.71611,
 
-
-                           'output': self.cnc_params["class_sz_output"],  
-                
-                          'HMF_prescription_NCDM': 1,
-                          'no_spline_in_tinker': 1,
-                
+                          'skip_background_and_thermo': 0,
+                          'skip_chi': 1,
+                          'skip_hubble': 1,
+                          'skip_cmb': 1,
+                          'skip_pknl': 1,
+                          'skip_pkl': 0,
+                          'skip_sigma8_and_der': 0,
+                          'skip_sigma8_at_z': 1,
 
                           # for mass conversion routines:
-                          'output': self.cnc_params["class_sz_output"],
-                          'M_min' : self.cnc_params["M_min"]*0.8,
-                          'M_max' : self.cnc_params["M_max"]*1.2,
-                          'z_min' : self.cnc_params["z_min"]*0.8,
-                          'z_max' : self.cnc_params["z_max"]*1.2,
+                          'output': 'mPk,m500c_to_m200c,m200c_to_m500c', # this should not be hardcode  (TBD 26feb24)
+                          'M_min' : self.cnc_params["M_min"]*0.1,
+                          'M_max' : self.cnc_params["M_max"]*2.,
+                          'z_min' : self.cnc_params["z_min"]*0.1,
+                          'z_max' : self.cnc_params["z_max"]*2.,
+                          'ndim_redshifts' :50,
+                          'ndim_masses' :50,
+                          'concentration parameter':'D08', # this should not be hardcode  (TBD 26feb24)
 
-                          'ndim_redshifts' : self.cnc_params["class_sz_ndim_redshifts"],
-                          'ndim_masses' : self.cnc_params["class_sz_ndim_masses"], # automatically set in fast mode
-                          'concentration_parameter': self.cnc_params["class_sz_concentration_parameter"],
-                          
-                          'cosmo_model': self.cosmo_model_dict[self.cnc_params['class_sz_cosmo_model']],
-                          'mass_function' : self.cnc_params["class_sz_hmf"],
-
-                        #   'classy_sz_verbose': 'none',
-                          'use_m500c_in_ym_relation' : 1,
-                          'use_m200c_in_ym_relation' : 0,
-
+                          'cosmo_model': self.cosmo_model_dict[self.cnc_params['cosmo_model']]
                           }
 
-            if  self.cnc_params['class_sz_cosmo_model'] == "wcdm":
+            if  self.cnc_params['cosmo_model'] == "wcdm":
 
                 classy_params.update({
                     'Omega_Lambda' : 0.,
                     'w0_fld' : self.cosmo_params["w0"],
                 })
-
-            if  self.cnc_params['hmf_calc'] == "classy_sz":
-                self.logger.info('adding dndlnM to class_sz output in update_cosmology')
-                self.classy.set({
-                    'output': self.cnc_params["class_sz_output"] + ",dndlnm"
-                })
-
 
             if self.amplitude_parameter == "sigma_8":
 
@@ -259,8 +233,6 @@ class cosmology_model:
 
                 classy_params['omega_b'] = self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2
                 classy_params['omega_cdm'] = (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2
-                self.cosmo_params["Ob0h2"] = self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2
-                self.cosmo_params["Oc0h2"] = classy_params['omega_cdm'] 
 
             elif self.cnc_params["cosmo_param_density"] == "physical":
 
@@ -290,7 +262,6 @@ class cosmology_model:
             self.background_cosmology.H0.value = self.classy.h()*100.
             self.get_m500c_to_m200c_at_z_and_M = np.vectorize(self.classy.get_m500c_to_m200c_at_z_and_M)
             self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
-            self.get_dndlnM_at_z_and_M = np.vectorize(self.classy.get_dndlnM_at_z_and_M)
 
         if cosmology_tool == "astropy":
 
@@ -361,8 +332,6 @@ class cosmology_model:
     def get_Omega_nu(self):
 
         return self.Omega_nu
-
-
 
 class classy_sz:
 

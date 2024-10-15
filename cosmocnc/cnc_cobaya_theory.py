@@ -5,7 +5,6 @@ from cobaya.tools import load_module
 import logging
 import os
 import numpy as np
-from .utils import *
 
 class cnc(classy):
 
@@ -26,6 +25,7 @@ class cnc(classy):
     sigma_mass_prior : Optional[str] =  5.
 
 
+    cosmo_model : Optional[str] = "lcdm"
 
     #Observables and catalogue
 
@@ -101,19 +101,8 @@ class cnc(classy):
 
     # scaling relation parameter:
     dof: Optional[str] = 0
-    q_cutoff: Optional[str] = 0
 
-    # class_sz parameters
-    class_sz_cosmo_model: Optional[str] = "lcdm"
-    class_sz_ndim_redshifts: Optional[str] = 500
-    class_sz_ndim_masses: Optional[str] = 100
-    class_sz_concentration_parameter: Optional[str] = "B13"
-    class_sz_hmf: Optional[str] = "T08M500c"
-
-
-    # verbose parameter
-    cosmocnc_verbose: Optional[str] = "none"
-
+    #parallelise_type : Optional[str] = "redshift" #"patch" or "redshift"
 
     def initialize(self):
 
@@ -125,8 +114,6 @@ class cnc(classy):
         from cosmocnc import cluster_number_counts
 
         self.cnc = cluster_number_counts()
-        set_verbosity(self.cnc.cnc_params["cosmocnc_verbose"])
-        self.logger = logging.getLogger(__name__)
         self.cnc.cnc_params["cosmology_tool"] = self.cosmology_tool
         self.cnc.cnc_params["number_cores_abundance"] = self.number_cores_abundance
         self.cnc.cnc_params["number_cores_hmf"] = self.number_cores_hmf
@@ -144,7 +131,7 @@ class cnc(classy):
         self.cnc.cnc_params["n_points_data_lik"] = int(self.n_points_data_lik) # 128, #number of points for the computation of the cluster data part of the likelihood
         self.cnc.cnc_params["sigma_mass_prior"] = self.sigma_mass_prior # 5.,
 
-        self.cnc.cnc_params["cosmo_model"] = self.class_sz_cosmo_model
+        self.cnc.cnc_params["cosmo_model"] = self.cosmo_model
         self.cnc.cnc_params["cosmo_param_density"] = self.cosmo_param_density
 
         #Observables and catalogue
@@ -211,21 +198,7 @@ class cnc(classy):
         # self.cnc.cnc_params["theta_mc_prior"] = self.theta_mc_prior # True,
 
         # scaling relation param:
-        # dealing with degrees of freedom and truncations
         self.cnc.cnc_params["dof"] = self.dof
-        self.cnc.cnc_params["q_cutoff"] = self.q_cutoff
-
-
-        # class_sz parameters
-        self.cnc.cnc_params["class_sz_ndim_redshifts"] = self.class_sz_ndim_redshifts
-        self.cnc.cnc_params["class_sz_ndim_masses"] = self.class_sz_ndim_masses
-        self.cnc.cnc_params["class_sz_concentration_parameter"] = self.class_sz_concentration_parameter
-        self.cnc.cnc_params["class_sz_hmf"] = self.class_sz_hmf
-        self.cnc.cnc_params["class_sz_cosmo_model"] = self.class_sz_cosmo_model
-
-
-        # verbose paramater
-        self.cnc.cnc_params["cosmocnc_verbose"] = self.cosmocnc_verbose
 
         super(classy,self).initialize()
         self.extra_args["output"] = self.extra_args.get("output","")
@@ -263,6 +236,63 @@ class cnc(classy):
         # print('cls',cls)
 
         return cls
+
+    # # def _get_derived_all(self, derived_requested=True):
+    # #     return [],[]
+    # def _cnc_get_derived_all(self, derived_requested=True):
+    #     """
+    #     Returns a dictionary of derived parameters with their values,
+    #     using the *current* state (i.e. it should only be called from
+    #     the ``compute`` method).
+    #
+    #     Parameter names are returned in CLASS nomenclature.
+    #
+    #     To get a parameter *from a likelihood* use `get_param` instead.
+    #     """
+    #
+    #     # TODO: fails with derived_requested=False
+    #     # Put all parameters in CLASS nomenclature (self.derived_extra already is)
+    #
+    #     # print('out_params',self.output_params,derived_requested)
+    #
+    #     derived = {}
+    #     # for p in self.output_params:
+    #     #     if p == 'theta_mc':
+    #     #         cosmology = self.cnc.cosmology
+    #     #         derived[p] = cosmology.get_theta_mc()
+    #     # print('derived:',derived)
+    #
+    #
+    #
+    #     # requested = [self.translate_param(p) for p in (
+    #     #     self.output_params if derived_requested else [])]
+    #     # requested_and_extra = dict.fromkeys(set(requested).union(self.derived_extra))
+    #     # Parameters with their own getters
+    #     # if "theta_mc" in requested_and_extra:
+    #     #     print('trying to get theta_mc')
+    #         # requested_and_extra["rs_drag"] = self.get_theta_mc()
+    #     # if "Omega_nu" in requested_and_extra:
+    #     #     requested_and_extra["Omega_nu"] = self.classy.Omega_nu
+    #     # if "T_cmb" in requested_and_extra:
+    #     #     requested_and_extra["T_cmb"] = self.classy.T_cmb()
+    #     # if "T_cmb_dcdmsr" in requested_and_extra:
+    #     #     requested_and_extra["T_cmb_dcdmsr"] = self.classy.T_cmb_dcdmsr()
+    #     # Get the rest using the general derived param getter
+    #     # No need for error control: classy.get_current_derived_parameters is passed
+    #     # every derived parameter not excluded before, and cause an error, indicating
+    #     # which parameters are not recognized
+    #     # requested_and_extra.update(
+    #     #     self.classy.get_current_derived_parameters(
+    #     #         [p for p, v in requested_and_extra.items() if v is None]))
+    #     # # Separate the parameters before returning
+    #     # # Remember: self.output_params is in sampler nomenclature,
+    #     # # but self.derived_extra is in CLASS
+    #     # derived = {
+    #     #     p: requested_and_extra[self.translate_param(p)] for p in self.output_params}
+    #     # derived_extra = {p: requested_and_extra[p] for p in self.derived_extra}
+    #     # return derived, derived_extra
+    #     return derived
+
 
     def calculate(self, state, want_derived=True, **params_values_dict):
 
@@ -326,7 +356,6 @@ class cnc(classy):
         assign_parameter_value(scal_rel_params,params_values,'SZmPivot')
         # updating scaling relations params that are not varied in mcmc, but passed in input
         scal_rel_params['dof'] = self.cnc.cnc_params["dof"]
-        scal_rel_params['q_cutoff'] = self.cnc.cnc_params["q_cutoff"]
 
         self.cnc.update_params(cosmo_params,scal_rel_params)
 
@@ -385,7 +414,7 @@ class cnc(classy):
 
             state["derived"] = {p: derived.get(p) for p in self.output_params}
 
-        self.logger.info(f"Derived parameters: {derived}")
+        print("Derived parameters",derived)
 
         for product, collector in self.collectors.items():
 

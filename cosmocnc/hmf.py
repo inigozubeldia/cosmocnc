@@ -3,7 +3,6 @@ import pylab as pl
 import copy
 from mcfit import TophatVar
 import time
-import logging
 
 class halo_mass_function:
 
@@ -15,9 +14,7 @@ class halo_mass_function:
                  n_points=1000,
                  type_deriv="numerical",
                  hmf_calc="cnc",
-                 extra_params=None,
-                 logger = None,
-                 interp_tinker=None):
+                 extra_params=None):
 
         self.hmf_type = hmf_type
         self.mass_definition = mass_definition
@@ -30,11 +27,6 @@ class halo_mass_function:
         self.type_deriv = type_deriv
         self.hmf_calc = hmf_calc
         self.extra_params = extra_params
-
-        self.other_params = {"interp_tinker":interp_tinker}
-
-
-        self.logger = logging.getLogger(__name__)
 
         self.sigma_r_dict = {}
 
@@ -123,13 +115,7 @@ class halo_mass_function:
 
                 if self.mass_definition[-1] == "c":
 
-                    if "cosmology_tool" == "classy_sz":
-
-                        rescale = 1./self.cosmology.get_delta_mean_from_delta_crit_at_z(1.,redshift) # this is omega_m(z) without neutrinos computed by class_sz
-
-                    else:
-
-                        rescale = self.cosmology.cosmo_params["Om0"]*(1.+redshift)**3/(self.cosmology.background_cosmology.H(redshift).value/(self.cosmology.cosmo_params["h"]*100.))**2
+                    rescale = self.cosmology.cosmo_params["Om0"]*(1.+redshift)**3/(self.cosmology.background_cosmology.H(redshift).value/(self.cosmology.cosmo_params["h"]*100.))**2
 
                 elif self.mass_definition[-1] == "m":
 
@@ -137,9 +123,7 @@ class halo_mass_function:
 
                 Delta = float(self.mass_definition[0:-1])/rescale
 
-                fsigma = f_sigma(sigma,redshift=redshift,hmf_type=self.hmf_type,
-                Delta=Delta,mass_definition=self.mass_definition,
-                other_params=self.other_params)
+                fsigma = f_sigma(sigma,redshift=redshift,hmf_type=self.hmf_type,Delta=Delta,mass_definition=self.mass_definition)
                 self.fsigma = fsigma
 
                 hmf = -fsigma*rho_m/M_vec/dMdR*dsigmadR/sigma
@@ -197,36 +181,7 @@ class halo_mass_function:
 
                         hmf[i,:] = hmf[i,:]*self.cosmology.background_cosmology.differential_comoving_volume(redshift[i]).value
 
-
-        elif self.hmf_calc == "classy_sz":
-            self.logger.debug(f'hmf_calc: {self.hmf_calc}')
-            self.logger.debug(f'testing to evaluate hmf {self.cosmology.get_dndlnM_at_z_and_M(0.6,5e14)}')
-
-            if log == True:
-
-                M_vec = np.exp(np.linspace(np.log(M_min),np.log(M_max),n_points))
-                M_vec_h = M_vec*self.h
-                self.logger.debug(f'hmf: {np.shape(redshift)}, {np.shape(M_vec_h)}')
-
-                hmf  =  np.zeros((len(redshift),len(M_vec_h)))
-
-                for i in range(len(redshift)):
-                    hmf[i,:] = self.cosmology.get_dndlnM_at_z_and_M(redshift[i],M_vec_h)*1e14/M_vec_h*self.h**4
-                    if volume_element == True:
-                        hmf[i,:] *=self.cosmology.background_cosmology.differential_comoving_volume(redshift[i]).value
-                # hmf =
-                self.logger.debug(f'hmf: {np.shape(hmf)}')
-                # exit(0)
-                hmf *= M_vec/1e14
-                M_eval = np.log(M_vec/1e14)
-                if np.isnan(hmf).any():
-                    print('nan in hmf')
-                    exit(0)
-                # print('hmf',hmf)
-                # exit(0)
-
-
-        if volume_element == True and self.hmf_calc != "MiraTitan" and self.hmf_calc != "classy_sz":
+        if volume_element == True and self.hmf_calc != "MiraTitan":
 
             hmf = hmf*self.cosmology.background_cosmology.differential_comoving_volume(redshift).value
 
@@ -273,9 +228,9 @@ class sigma_R:
 
 #Delta is w.r.t. mean
 
-def f_sigma(sigma,redshift=None,hmf_type="Tinker08",Delta=None,mass_definition="500c",other_params=None):
+def f_sigma(sigma,redshift=None,hmf_type="Tinker08",Delta=None,mass_definition="500c"):
 
-    params = hmf_params(hmf_type=hmf_type,mass_definition=mass_definition,other_params=other_params)
+    params = hmf_params(hmf_type=hmf_type,mass_definition=mass_definition)
 
     if hmf_type == "Tinker08":
 
@@ -292,28 +247,18 @@ def f_sigma(sigma,redshift=None,hmf_type="Tinker08",Delta=None,mass_definition="
 
 class hmf_params:
 
-    def __init__(self,hmf_type="Tinker08",mass_definition="500c",other_params=None):
+    def __init__(self,hmf_type="Tinker08",mass_definition="500c"):
 
         self.hmf_type = hmf_type
         self.mass_definition = mass_definition
-        self.other_params = other_params
 
         if self.hmf_type == "Tinker08":
 
-            if self.mass_definition == "500c":
-
-                if other_params["interp_tinker"] == "log":
-
-                    Delta = np.log10(np.array([200.,300.,400.,600.,800.,1200.,1600.,2400.,3200.]))
-
-                elif other_params["interp_tinker"] == "linear":
-
-                    Delta = np.array([200.,300.,400.,600.,800.,1200.,1600.,2400.,3200.])
-
-                A = np.array([0.186,0.2,0.212,0.218,0.248,0.255,0.260,0.260,0.260])
-                a = np.array([1.47,1.52,1.56,1.61,1.87,2.13,2.30,2.53,2.66])
-                b = np.array([2.57,2.25,2.05,1.87,1.59,1.51,1.46,1.44,1.41])
-                c = np.array([1.19,1.27,1.34,1.45,1.58,1.80,1.97,2.24,2.44])
+            Delta = np.array([200.,300.,400.,600.,800.,1200.,1600.,2400.,3200.])
+            A = np.array([0.186,0.2,0.212,0.218,0.248,0.255,0.260,0.260,0.260])
+            a = np.array([1.47,1.52,1.56,1.61,1.87,2.13,2.30,2.53,2.66])
+            b = np.array([2.57,2.25,2.05,1.87,1.59,1.51,1.46,1.44,1.41])
+            c = np.array([1.19,1.27,1.34,1.45,1.58,1.80,1.97,2.24,2.44])
 
             self.params = {"A":A,"b":b,"a":a,"c":c,"Delta":Delta}
 
@@ -321,13 +266,8 @@ class hmf_params:
 
         if self.hmf_type == "Tinker08":
 
-            if self.other_params["interp_tinker"] == "log":
-
-                ret = np.interp(np.log10(Delta),self.params["Delta"],self.params[param])
-
-            elif self.other_params["interp_tinker"] == "linear":
-
-                ret = np.interp(Delta,self.params["Delta"],self.params[param])
+            #ret = np.interp(Delta,self.params["Delta"],self.params[param])
+            ret = np.interp(np.log(Delta),np.log(self.params["Delta"]),self.params[param])
 
         return ret
 

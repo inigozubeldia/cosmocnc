@@ -2,31 +2,11 @@ import numpy as np
 import pylab as pl
 import warnings
 warnings.filterwarnings("ignore")
-import warnings
-from contextlib import contextmanager
-import logging
-
-# Suppress absl warnings
-@contextmanager
-def suppress_warnings():
-    warnings.filterwarnings("ignore")
-    try:
-        yield
-    finally:
-        warnings.resetwarnings()
-
-# Suppress TensorFlow warnings
-import os
-
-# Additional suppression
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("ignore", category=RuntimeWarning)
-
-# import cosmopower
+import cosmopower
 import os
 import subprocess
-from .restore_nn import Restore_NN
-from .restore_nn import Restore_PCAplusNN
+from cosmopower import cosmopower_NN
+from cosmopower import cosmopower_PCAplusNN
 from .config import *
 import scipy.optimize as optimize
 import os
@@ -73,25 +53,25 @@ class cosmopower:
 
         path_to_emulators = path + self.mp +'/'
 
-        self.cp_tt_nn[self.mp] = Restore_NN(restore=True,
+        self.cp_tt_nn[self.mp] = cosmopower_NN(restore=True,
                                  restore_filename=path_to_emulators + 'TTTEEE/' + emulator_dict[self.mp]['TT'])
 
-        self.cp_te_nn[self.mp] = Restore_PCAplusNN(restore=True,
+        self.cp_te_nn[self.mp] = cosmopower_PCAplusNN(restore=True,
                                         restore_filename=path_to_emulators + 'TTTEEE/' + emulator_dict[self.mp]['TE'])
 
-        self.cp_ee_nn[self.mp] = Restore_NN(restore=True,
+        self.cp_ee_nn[self.mp] = cosmopower_NN(restore=True,
                                  restore_filename=path_to_emulators + 'TTTEEE/' + emulator_dict[self.mp]['EE'])
 
-        self.cp_pp_nn[self.mp] = Restore_NN(restore=True,
+        self.cp_pp_nn[self.mp] = cosmopower_NN(restore=True,
                                  restore_filename=path_to_emulators + 'PP/' + emulator_dict[self.mp]['PP'])
 
-        self.cp_pknl_nn[self.mp] = Restore_NN(restore=True,
+        self.cp_pknl_nn[self.mp] = cosmopower_NN(restore=True,
                                    restore_filename=path_to_emulators + 'PK/' + emulator_dict[self.mp]['PKNL'])
 
-        self.cp_pkl_nn[self.mp] = Restore_NN(restore=True,
+        self.cp_pkl_nn[self.mp] = cosmopower_NN(restore=True,
                                   restore_filename=path_to_emulators + 'PK/' + emulator_dict[self.mp]['PKL'])
 
-        self.cp_der_nn = Restore_NN(restore=True,restore_filename=path_to_emulators + 'derived-parameters/DER_v1',)
+        self.cp_der_nn = cosmopower_NN(restore=True,restore_filename=path_to_emulators + 'derived-parameters/DER_v1',)
 
     def get_sigma_8(self):
 

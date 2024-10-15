@@ -14,8 +14,6 @@ class scaling_relations:
 
     def __init__(self,observable="q_mmf3",cnc_params=None,catalogue=None):
 
-        self.logger = logging.getLogger(__name__)
-
         self.observable = observable
         self.cnc_params = cnc_params
         self.preprecompute = False
@@ -28,11 +26,6 @@ class scaling_relations:
         if observable == "p_zc19_stacked" or observable == "p_so_sim_stacked" or observable == "p_so_goal3yr_stacked":
 
             n_layers = 1
-
-
-        elif observable == "xi" or observable == "WLMegacam" or observable == "WLHST" or observable == "Yx":
-
-            n_layers = 3
 
         else:
 
@@ -58,7 +51,7 @@ class scaling_relations:
             if self.cnc_params["catalogue_params"]["downsample"] == True and observable == "q_mmf3":
 
                 (self.sigma_matrix,self.skyfracs,original_tile_vec) = np.load(root_path + "data/test_downsample_tiles_noisebased_mmf3.npy",allow_pickle=True)
-
+                print("Total sky frac",np.sum(self.skyfracs))
 
             else:
 
@@ -83,7 +76,7 @@ class scaling_relations:
 
             q_vec = np.linspace(6.,10.,self.cnc_params["n_points"])
             pdf_fd = np.exp(-(q_vec-3.)**2/1.5**2)
-            pdf_fd = pdf_fd/integrate.simpson(pdf_fd,x=q_vec)
+            pdf_fd = pdf_fd/integrate.simps(pdf_fd,q_vec)
             self.pdf_false_detection = [q_vec,pdf_fd]
 
         if observable == "p_zc19" or observable == "p_zc19_stacked":
@@ -129,6 +122,7 @@ class scaling_relations:
             self.sigma_lens_poly = np.polyfit(x,y,deg=3)
 
             sigma_sz_vec_eval = np.exp(np.polyval(self.sigma_lens_poly,x))
+
 
         if observable == "q_szifi":
 
@@ -342,7 +336,6 @@ class scaling_relations:
                         self.poly_dict[i] = sigma_sz_poly
                         self.poly_dict_der[i] = sigma_sz_polyder
 
-
         if observable == "q_so_sim":
 
             theta_500_vec,sigma_sz_vec = np.load(root_path + "data/so_sim_sz_mf_noise.npy")
@@ -360,7 +353,7 @@ class scaling_relations:
 
             q_vec = np.linspace(5.,10.,self.cnc_params["n_points"])
             pdf_fd = np.exp(-(q_vec-3.)**2/1.5**2)
-            pdf_fd = pdf_fd/integrate.simpson(pdf_fd,x=q_vec)
+            pdf_fd = pdf_fd/integrate.simps(pdf_fd,q_vec)
             self.pdf_false_detection = [q_vec,pdf_fd]
 
         if observable == "q_so_goal3yr_sim":
@@ -380,7 +373,7 @@ class scaling_relations:
 
             q_vec = np.linspace(5.,10.,self.cnc_params["n_points"])
             pdf_fd = np.exp(-(q_vec-3.)**2/1.5**2)
-            pdf_fd = pdf_fd/integrate.simpson(pdf_fd,x=q_vec)
+            pdf_fd = pdf_fd/integrate.simps(pdf_fd,q_vec)
             self.pdf_false_detection = [q_vec,pdf_fd]
 
 
@@ -402,22 +395,17 @@ class scaling_relations:
             # the spt field correction is what multiplies the zeta[z,M] relation
             self.SPTfieldCorrection = np.asarray(SPTfieldCorrection)
 
-        # if observable == "q_act_dr5_sim":
-        if observable == "q_act":
+        if observable == "q_act_dr5_sim":
 
-            path = "/rds-d4/user/iz221/hpc-work/data_nemo/"
-            # sim_id = self.cnc_params["catalogue_params"]["sim_id"] + 1
-            #### update here
-            # f = open(root_path + "data/selection_files_act_feb2624/nemo_sim_thetas_19jul24_100bins_sim1" + str(sim_id) + ".txt","r")
-            f = open(path + "nemo_sim_thetas_141024_49bins" + ".txt","r")
+            sim_id = self.cnc_params["catalogue_params"]["sim_id"] + 1
+
+            f = open(root_path + "data/selection_files_act_feb2624/nemo_sim_thetas_260224_30bins_ir" + str(sim_id) + ".txt","r")
             self.theta_500_vec = np.array(f.readlines()).astype(np.float64)
             f.close()
-            # f = open(root_path + "data/selection_files_act_feb2624/nemo_sim_ylims_19jul24_100bins_sim1" + str(sim_id) + ".txt","r")
-            f = open(path + "nemo_sim_ylims_141024_49bins" + ".txt","r")
+            f = open(root_path + "data/selection_files_act_feb2624/nemo_sim_ylims_260224_30bins_ir" + str(sim_id) + ".txt","r")
             sigma_matrix_flat = np.array(f.readlines()).astype(np.float64)
             f.close()
-            # f = open(root_path + "data/selection_files_act_feb2624/nemo_sim_skyfracs_19jul24_100bins_sim1" + str(sim_id) + ".txt","r")
-            f = open(path + "nemo_sim_skyfracs_141024_49bins" + ".txt","r")
+            f = open(root_path + "data/selection_files_act_feb2624/nemo_sim_skyfracs_260224_30bins_ir" + str(sim_id) + ".txt","r")
             self.skyfracs = np.array(f.readlines()).astype(np.float64)
             f.close()
             self.sigma_matrix = sigma_matrix_flat.reshape((len(self.theta_500_vec),len(self.skyfracs)))
@@ -573,7 +561,7 @@ class scaling_relations:
                             }
             self.spt_ln1pzs,self.spt_lndas_hmpc = np.loadtxt(root_path +  'data/spt/spt_cosmoref1_ln1pz_lndahmpc.txt',unpack=True)
 
-        if self.observable == "q_act":
+        if self.observable == "q_act_dr5_sim":
 
             H0 = other_params["H0"]
             E_z = other_params["E_z"]
@@ -720,7 +708,7 @@ class scaling_relations:
 
                 x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
 
-        # SPT case
+
         if observable == 'xi':
 
             if layer == 0:
@@ -734,17 +722,10 @@ class scaling_relations:
 
             elif layer == 1:
 
-                x1 = x0
+                #x0 is log q_true
+                x1 = np.sqrt(np.exp(x0)**2+self.params["dof"]) ### PDF of OBS vs TRUE -- normal distribution, with mean = x1 and std-dev = 1
 
 
-
-            elif layer == 2:
-
-                x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
-
-
-
-        # SPT case
         if observable == 'Yx':
 
             if layer == 0:
@@ -764,183 +745,9 @@ class scaling_relations:
 
                 x1 = np.log(x1)
 
-            elif layer == 2:
+            elif layer == 1:
                 # x0 is lnYx(M)
                 x1 = np.exp(x0) ### OBS vs TRUE -- normal distribution, with mean = x1 = Yx-obs and std-dev = Yx_std
-
-
-            elif layer == 1:
-
-                x1 = x0
-
-
-        # SPT case
-        if observable == 'WLMegacam':
-
-            if layer == 0:
-
-                #x0 is ln M_500
-                M_500 = np.exp(x0) #### Msun
-                x1 = M_500*self.params['bWL_Megacam'] # eq. 3 in 1812.01679 (Bocquet et al)
-                x1 = np.log(x1)
-
-            elif layer == 1:
-
-                x1 = np.exp(x0)
-
-            elif layer == 2:
-                # x0 is lnMwl
-
-                # x1 = np.exp(x0)*1e14
-                x1 = x0*1e14
-                h = other_params["H0"]/100.
-                rho_c_hunits = other_params['rho_c']/h**2
-                self.rho_c_z =  rho_c_hunits
-                Dl = other_params['D_A']*h
-
-                self.get_beta(self.catalogue,patch_index,other_params)
-
-                ##### M200 and scale radius, wrt critical density, everything in h units
-                mArr = x1*h # mass in msun/h
-                zcluster = other_params['zc']
-                m200c = other_params['cosmology'].get_m500c_to_m200c_at_z_and_M(zcluster,mArr)
-                r200c = (3.*m200c/4./np.pi/200./rho_c_hunits)**(1./3.)
-                c200c = other_params['cosmology'].get_c200c_at_m_and_z(m200c,zcluster)
-
-                self.delta_c = 200./3. * c200c**3. / (np.log(1.+c200c) - c200c/(1.+c200c))
-                self.rs = r200c/c200c
-
-                Sigma_c = 1.6624541593797974e+18/Dl/self.beta_avg
-
-                ##### dimensionless radial distance [Radius][Mass]
-                self.x_2d = self.catalogue.catalogue['WLdata'][patch_index]['r_deg'][:,None] * Dl * np.pi/180. / self.rs[None,:]
-
-                # gamma_t [Radius][Mass]
-                gamma_2d = self.get_Delta_Sigma() / Sigma_c
-
-                # kappa [Radius][Mass]
-                kappa_2d = self.get_Sigma() / Sigma_c
-
-                # Reduced shear g_t [Radius][Mass]
-                g_2d = gamma_2d/(1-kappa_2d) * (1 + kappa_2d*(self.beta2_avg/self.beta_avg**2-1))
-
-                # Keep all radial bins (make cut in data)
-                rInclude = range(len(self.catalogue.catalogue['WLdata'][patch_index]['r_deg']))
-                self.rInclude = rInclude
-
-                #x1 = g_2d[rInclude[-1]:,:]
-                x1 = g_2d[rInclude,:]
-                # if (self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'] == 'SPT-CLJ2355-5055'): -- spt debug
-                #     print(self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'])
-                #     print('MC SPT-CLJ2355-5055')
-                #     print('Dl',Dl)
-                #     print(">>>>>>>>>>>>>>>>>>>>>>>> h:",h)
-                #     np.savetxt('/Users/boris/Desktop/SPT-CLJ2355-5055_cnc.txt',
-                #         np.c_[mArr,m200c,c200c,gamma_2d[5],kappa_2d[5],g_2d[5]])
-                #     # print('rPhysRef',rPhysRef)
-                #     print('file saved',self.rInclude)
-                #     print('Sigma_c = %.8e'%Sigma_c)
-                    # exit(0)
-                # exit(0)
-                #x1[rInclude[-1]:,:] = 0.
-
-
-        # SPT case
-        if observable == 'WLHST':
-
-            if layer == 0:
-
-                #x0 is ln M_500
-                M_500 = np.exp(x0) #### Msun
-                x1 = M_500*self.params['bWL_HST']
-                x1 = np.log(x1)
-
-
-            elif layer == 1:
-
-                x1 = np.exp(x0)
-
-            elif layer == 2:
-                # x0 is lnMwl
-                # x1 = np.exp(x0)*1e14
-                x1 = x0*1e14
-                h = other_params["H0"]/100.
-                rho_c_hunits = other_params['rho_c']/h**2
-                self.rho_c_z =  rho_c_hunits
-                Dl = other_params['D_A']*h
-
-                self.get_beta(self.catalogue,patch_index,other_params)
-
-
-                ##### M200 and scale radius, wrt critical density, everything in h units
-                mArr = x1*h # mass in msun/h
-
-                zcluster = other_params['zc']
-
-                m200c = other_params['cosmology'].get_m500c_to_m200c_at_z_and_M(zcluster,mArr)
-
-                r200c = (3.*m200c/4./np.pi/200./rho_c_hunits)**(1./3.)
-
-                c200c = other_params['cosmology'].get_c200c_at_m_and_z(m200c,zcluster)
-
-                self.delta_c = 200./3. * c200c**3. / (np.log(1.+c200c) - c200c/(1.+c200c))
-                self.rs = r200c/c200c
-
-
-                ##### dimensionless radial distance [Radius][Mass]
-                self.x_2d = self.catalogue.catalogue['WLdata'][patch_index]['r_deg'][:,None] * Dl * np.pi/180. / self.rs[None,:]
-
-                # Sigma_crit, with c^2/4piG [h Msun/Mpc^2] [Radius]
-                rangeR = range(len(self.catalogue.catalogue['WLdata'][patch_index]['r_deg']))
-                betaR = np.array([self.beta_avg[self.catalogue.catalogue['WLdata'][patch_index]['magbinids'][i]] for i in rangeR])
-                beta2R = np.array([self.beta2_avg[self.catalogue.catalogue['WLdata'][patch_index]['magbinids'][i]] for i in rangeR])
-                Sigma_c = 1.6624541593797974e+18/Dl/betaR
-
-
-                # gamma_t [Radius][Mass]
-                gamma_2d = self.get_Delta_Sigma() / Sigma_c[:,None]
-
-                # kappa [Radius][Mass]
-                kappa_2d = self.get_Sigma() / Sigma_c[:,None]
-
-                # [Radius][Mass]
-                mu0_2d = 1./((1.-kappa_2d)**2 - gamma_2d**2)
-                kappaFake = (mu0_2d-1)/2.
-
-                # Magnification correction [Radius][Mass]
-                mykappa = kappaFake * 0.3/betaR[:,None]
-
-                magcorr = [np.interp(mykappa[i],
-                                     self.catalogue.catalogue['WLdata'][patch_index]['magcorr'][self.catalogue.catalogue['WLdata'][patch_index]['magbinids'][i]][0],
-                                     self.catalogue.catalogue['WLdata'][patch_index]['magcorr'][self.catalogue.catalogue['WLdata'][patch_index]['magbinids'][i]][1]) for i in rangeR]
-
-                # Beta correction [Radius][Mass]
-                betaratio = beta2R/betaR**2
-                betaCorr = (1 + kappa_2d*(betaratio[:,None]-1))
-
-                # Reduced shear g_t [Radius][Mass]
-                g_2d = np.array(magcorr) * gamma_2d/(1-kappa_2d) * betaCorr
-
-
-                # Only consider 500<r/kpc/1500 in reference cosmology
-                cosmoRef = self.spt_cosmoRef
-                ### HST cosmoRef
-                DlRef = np.exp(np.interp(np.log(1.+zcluster),
-                                         self.spt_ln1pzs,
-                                         self.spt_lndas_hmpc))
-                rPhysRef = self.catalogue.catalogue['WLdata'][patch_index]['r_deg'] * DlRef * np.pi/180. /cosmoRef['h']
-                rInclude = np.where((rPhysRef>.5)&(rPhysRef<1.5))[0]
-
-
-                self.rInclude = rInclude
-                x1 = g_2d[rInclude,:]
-                #x1 = g_2d
-                #x1[rInclude[-1]:,:] = 0.
-                # if (self.catalogue.catalogue['WLdata'][patch_index]['SPT_ID'] == 'SPT-CLJ2355-5055'): #---- debug spt
-                #     print('HST SPT-CLJ2355-5055')
-                #     print('DlRef',DlRef)
-                #     exit(0)
-
 
         if observable == "shear_des_y3":
 
@@ -1011,7 +818,146 @@ class scaling_relations:
 
 
 
-        if observable == "q_act":
+        if observable == 'WLMegacam':
+
+            if layer == 0:
+
+                #x0 is ln M_500
+                M_500 = np.exp(x0) #### Msun
+                x1 = M_500*self.params['bWL_Megacam'] # eq. 3 in 1812.01679 (Bocquet et al)
+                x1 = np.log(x1)
+
+            elif layer == 1:
+
+                # x0 is lnMwl
+
+                x1 = np.exp(x0)*1e14
+                h = other_params["H0"]/100.
+                rho_c_hunits = other_params['rho_c']/h**2
+                self.rho_c_z =  rho_c_hunits
+                Dl = other_params['D_A']*h
+
+                self.get_beta(self.catalogue,patch_index,other_params)
+
+                ##### M200 and scale radius, wrt critical density, everything in h units
+                mArr = x1*h # mass in msun/h
+                zcluster = other_params['zc']
+                m200c = other_params['cosmology'].get_m500c_to_m200c_at_z_and_M(zcluster,mArr)
+                r200c = (3.*m200c/4./np.pi/200./rho_c_hunits)**(1./3.)
+                c200c = other_params['cosmology'].get_c200c_at_m_and_z(m200c,zcluster)
+
+                self.delta_c = 200./3. * c200c**3. / (np.log(1.+c200c) - c200c/(1.+c200c))
+                self.rs = r200c/c200c
+
+                Sigma_c = 1.6624541593797974e+18/Dl/self.beta_avg
+
+                ##### dimensionless radial distance [Radius][Mass]
+                self.x_2d = self.catalogue.catalogue['WLdata'][patch_index]['r_deg'][:,None] * Dl * np.pi/180. / self.rs[None,:]
+
+                # gamma_t [Radius][Mass]
+                gamma_2d = self.get_Delta_Sigma() / Sigma_c
+
+                # kappa [Radius][Mass]
+                kappa_2d = self.get_Sigma() / Sigma_c
+
+                # Reduced shear g_t [Radius][Mass]
+                g_2d = gamma_2d/(1-kappa_2d) * (1 + kappa_2d*(self.beta2_avg/self.beta_avg**2-1))
+
+                # Keep all radial bins (make cut in data)
+                rInclude = range(len(self.catalogue.catalogue['WLdata'][patch_index]['r_deg']))
+                self.rInclude = rInclude
+
+                #x1 = g_2d[rInclude[-1]:,:]
+                x1 = g_2d[rInclude,:]
+                #x1[rInclude[-1]:,:] = 0.
+
+
+        if observable == 'WLHST':
+
+            if layer == 0:
+
+                #x0 is ln M_500
+                M_500 = np.exp(x0) #### Msun
+                x1 = M_500*self.params['bWL_HST']
+                x1 = np.log(x1)
+
+            elif layer == 1:
+                # x0 is lnMwl
+                x1 = np.exp(x0)*1e14
+                h = other_params["H0"]/100.
+                rho_c_hunits = other_params['rho_c']/h**2
+                self.rho_c_z =  rho_c_hunits
+                Dl = other_params['D_A']*h
+
+                self.get_beta(self.catalogue,patch_index,other_params)
+
+
+                ##### M200 and scale radius, wrt critical density, everything in h units
+                mArr = x1*h # mass in msun/h
+
+                zcluster = other_params['zc']
+
+                m200c = other_params['cosmology'].get_m500c_to_m200c_at_z_and_M(zcluster,mArr)
+
+                r200c = (3.*m200c/4./np.pi/200./rho_c_hunits)**(1./3.)
+
+                c200c = other_params['cosmology'].get_c200c_at_m_and_z(m200c,zcluster)
+
+                self.delta_c = 200./3. * c200c**3. / (np.log(1.+c200c) - c200c/(1.+c200c))
+                self.rs = r200c/c200c
+
+
+                ##### dimensionless radial distance [Radius][Mass]
+                self.x_2d = self.catalogue.catalogue['WLdata'][patch_index]['r_deg'][:,None] * Dl * np.pi/180. / self.rs[None,:]
+
+                # Sigma_crit, with c^2/4piG [h Msun/Mpc^2] [Radius]
+                rangeR = range(len(self.catalogue.catalogue['WLdata'][patch_index]['r_deg']))
+                betaR = np.array([self.beta_avg[self.catalogue.catalogue['WLdata'][patch_index]['magbinids'][i]] for i in rangeR])
+                beta2R = np.array([self.beta2_avg[self.catalogue.catalogue['WLdata'][patch_index]['magbinids'][i]] for i in rangeR])
+                Sigma_c = 1.6624541593797974e+18/Dl/betaR
+
+
+                # gamma_t [Radius][Mass]
+                gamma_2d = self.get_Delta_Sigma() / Sigma_c[:,None]
+
+                # kappa [Radius][Mass]
+                kappa_2d = self.get_Sigma() / Sigma_c[:,None]
+
+                # [Radius][Mass]
+                mu0_2d = 1./((1.-kappa_2d)**2 - gamma_2d**2)
+                kappaFake = (mu0_2d-1)/2.
+
+                # Magnification correction [Radius][Mass]
+                mykappa = kappaFake * 0.3/betaR[:,None]
+
+                magcorr = [np.interp(mykappa[i],
+                                     self.catalogue.catalogue['WLdata'][patch_index]['magcorr'][self.catalogue.catalogue['WLdata'][patch_index]['magbinids'][i]][0],
+                                     self.catalogue.catalogue['WLdata'][patch_index]['magcorr'][self.catalogue.catalogue['WLdata'][patch_index]['magbinids'][i]][1]) for i in rangeR]
+
+                # Beta correction [Radius][Mass]
+                betaratio = beta2R/betaR**2
+                betaCorr = (1 + kappa_2d*(betaratio[:,None]-1))
+
+                # Reduced shear g_t [Radius][Mass]
+                g_2d = np.array(magcorr) * gamma_2d/(1-kappa_2d) * betaCorr
+
+
+                # Only consider 500<r/kpc/1500 in reference cosmology
+                cosmoRef = self.spt_cosmoRef
+
+                DlRef = np.exp(np.interp(np.log(1.+zcluster),
+                                         self.spt_ln1pzs,
+                                         self.spt_lndas_hmpc))
+                rPhysRef = self.catalogue.catalogue['WLdata'][patch_index]['r_deg'] * DlRef * np.pi/180. /cosmoRef['h']
+                rInclude = np.where((rPhysRef>.5)&(rPhysRef<1.5))[0]
+
+
+                self.rInclude = rInclude
+                x1 = g_2d[rInclude,:]
+                #x1 = g_2d
+                #x1[rInclude[-1]:,:] = 0.
+
+        if observable == "q_act_dr5_sim":
 
             if layer == 0:
 
@@ -1051,34 +997,16 @@ class scaling_relations:
                 bias = self.params["bias_sz"]
                 Mpivot = self.params['SZmPivot']/1e14
 
-                # print('params',self.params)
-                # sys.exit('exiting')
                 mb = self.M_200*bias
                 y0 = 10.**A0*(Ez**2.)*(mb/Mpivot)**(1.+B0) #tau shape correction is not implemented
 
                 y0[y0 <= 0] = 1e-9
-                # print('y0: ',y0)
 
                 sigma_vec = self.sigma_matrix[:,patch_index]
-                # print('sigma_vec: ',sigma_vec)
-                # sigma = np.interp(self.theta_500,
-                #                   self.theta_500_vec,
-                #                   sigma_vec,
-                #                   left=1e100,
-                #                   right=1e100)
-
-                # Create the interpolation function with linear extrapolation
-                interp_function = interpolate.interp1d(self.theta_500_vec, sigma_vec, kind='linear', fill_value='extrapolate')
-
-                # Use the interpolation function to get the value at theta_500
-                sigma = interp_function(self.theta_500)
-
+                sigma = np.interp(self.theta_500,self.theta_500_vec,sigma_vec,left=0.,right=0.)
                 x1 = np.log(y0/sigma)
 
             if layer == 1:
-
-                # self.logger.debug(x0)
-                # self.logger.debug(self.params["dof"])
 
                 x1 = np.sqrt(np.exp(x0)**2+self.params["dof"])
 
@@ -1171,7 +1099,7 @@ class scaling_relations:
 
                     dx1_dx0 = np.exp(x0)
 
-            if observable == "q_act":
+            if observable == "q_act_dr5_sim":
 
                 if layer == 0:
 
@@ -1246,6 +1174,7 @@ class scaling_relations:
                 sigma_vec = self.sigma_matrix[patch_index,:]
                 sigma = interpolate_deep(theta_500,self.theta_500_vec,sigma_vec)
 
+                print("bias_sz",self.params["bias_sz"])
 
                 x1 = np.log(y0/sigma)
 
@@ -1394,23 +1323,13 @@ class scaling_relations:
 
     def get_cutoff(self,layer=0):
 
-        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi"or self.observable == "q_szifi_val"  or self.observable == "q_so_sim" or self.observable == "q_so_goal3yr_sim" or self.observable == "q_act":
+        if self.observable == "q_mmf3" or self.observable == "q_mmf3_mean" or self.observable == "q_szifi"or self.observable == "q_szifi_val" or self.observable == "xi" or self.observable == "q_so_sim" or self.observable == "q_so_goal3yr_sim" or self.observable == "q_act_dr5_sim":
 
             if layer == 0:
 
                 cutoff = -np.inf
 
             elif layer == 1:
-
-                cutoff = self.params["q_cutoff"]
-
-        if self.observable == "xi":
-
-            if layer == 0 or layer == 1:
-
-                cutoff = -np.inf
-
-            elif layer == 2:
 
                 cutoff = self.params["q_cutoff"]
 
@@ -1443,14 +1362,13 @@ class scaling_relations:
                 self.beta_avg[i] = np.sum(self.catalogue.catalogue['WLdata'][patch_index]['pzs'][i]*betaArr)/self.catalogue.catalogue['WLdata'][patch_index]['Ntot'][i]
                 self.beta2_avg[i] = np.sum(self.catalogue.catalogue['WLdata'][patch_index]['pzs'][i]*betaArr**2)/self.catalogue.catalogue['WLdata'][patch_index]['Ntot'][i]
 
-
-
-
     ########################################
     ##### Delta Sigma[Radius][Mass]
     # originally by Joerg Dietrich
     # adapted from Bocquet's code
+
     def get_Delta_Sigma(self):
+
         fac = 2 * self.rs * self.rho_c_z * self.delta_c
         val1 = 1. / (1 - self.x_2d**2)
         num = ((3 * self.x_2d**2) - 2) * self.arcsec(self.x_2d)
@@ -1465,6 +1383,7 @@ class scaling_relations:
     # by Joerg Dietrich
     #from Bocquet's code
     def get_Sigma(self):
+
         val1 = 1. / (self.x_2d**2 - 1)
         val2 = (self.arcsec(self.x_2d) / (np.emath.sqrt(self.x_2d**2 - 1))**3).real
 
@@ -1490,6 +1409,7 @@ class covariance_matrix:
         self.layer = layer
         self.cov = []
         self.inv_cov = []
+        self.other_params = other_params
 
         for k in range(0,len(self.layer)):
 
@@ -1501,7 +1421,8 @@ class covariance_matrix:
 
                     cov_matrix[i,j] = scatter.get_cov(observable1=observables[i],
                     observable2=observables[j],patch1=observable_patches[observables[i]],
-                    patch2=observable_patches[observables[j]],layer=self.layer[k],other_params=other_params)
+                    patch2=observable_patches[observables[j]],layer=self.layer[k],
+                    other_params=self.other_params)
 
             self.cov.append(cov_matrix)
 
@@ -1716,7 +1637,6 @@ class scatter:
                 cov = 0.
 
         return cov
-
 
 #Custom functions here:
 
