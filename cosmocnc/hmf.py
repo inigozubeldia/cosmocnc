@@ -325,7 +325,7 @@ class hmf_params:
 
                 ret = np.interp(np.log10(Delta),self.params["Delta"],self.params[param])
 
-            if self.other_params["interp_tinker"] == "linear":
+            elif self.other_params["interp_tinker"] == "linear":
 
                 ret = np.interp(Delta,self.params["Delta"],self.params[param])
 

@@ -60,7 +60,7 @@ cnc_params_default = {
     "cosmology_tool": "classy_sz", #"astropy" or "classy_sz"
     "M_min": 5e13,
     "M_max": 5e15,
-    "hmf_calc": "classy_sz", #"cnc", "hmf", "MiraTitan", or "classy_sz"
+    "hmf_calc": "cnc", #"cnc", "hmf", "MiraTitan", or "classy_sz"
     "hmf_type": "Tinker08",
     "mass_definition": "500c",
     "hmf_type_deriv": "numerical", #"analytical" or "numerical"
@@ -70,7 +70,7 @@ cnc_params_default = {
     "cosmo_param_density": "critical", #"physical" or "critical"
     "scalrel_type_deriv": "analytical", #"analytical" or "numerical"
     "sigma_scatter_min": 1e-5,
-    "interp_tinker": "linear", #"linear" or "log" 
+    "interp_tinker": "linear", #"linear" or "log"
 
 
     "cosmo_model": "lcdm", # redundancy taken care of in cosmo.py
@@ -235,6 +235,12 @@ scaling_relation_params_default = {
 "B0": 0.08,
 "C0": 0.,
 "sigma_lnq_act": 0.2,
+
+#Planck DES Y3:
+
+"lnb_wl_sigma": 0., #prior: unit standard deviation, mean 0
+"b_wl_m": 1.029,
+"s_wl_m": -0.226,
 }
 
 cosmo_params_default = {

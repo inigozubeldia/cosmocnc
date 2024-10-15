@@ -578,7 +578,9 @@ class cluster_number_counts:
                         "D_CMB":self.cosmology.D_CMB,
                         "E_z0p6" : self.E_z0p6,
                         "zc":redshift_eval,
-                        "cosmology":self.cosmology}
+                        "cosmology":self.cosmology,
+                        "cluster_index": cluster_index,
+                        }
 
                         t0 = time.time()
 
@@ -723,7 +725,7 @@ class cluster_number_counts:
                                 x_obs = np.array(x_obs)
 
                                 covariance = covariance_matrix(self.scatter,observable_set,
-                                observable_patches,layer=layers)
+                                observable_patches,layer=layers,other_params=other_params)
 
                                 n_obs = len(observable_set)
 
@@ -801,15 +803,18 @@ class cluster_number_counts:
 
                                                     std = self.catalogue.catalogue[observable_set[j] + "_std"][cluster_index]
 
-                                                    rInclude = self.scaling_relations[observable_set[j]].rInclude
+                                                    #rInclude = self.scaling_relations[observable_set[j]].rInclude
+                                                    #dxwl = xx - x_obs_j#[rInclude,None]
+                                                    #dxwl_std = std#[rInclude,None]
+                                                    #x1[j,:] = np.sqrt(np.sum((dxwl/dxwl_std)**2,axis=0))
+                                                    #print("g_obs",x_obs_j)
 
-                                                    dxwl = xx - x_obs_j[rInclude,None]
-                                                    dxwl_std = std[rInclude,None]
+                                                    x_obs_j = x_obs_j[:,None]
+                                                    std = std[:,None]
 
-                                                    x1[j,:] = np.sqrt(np.sum((dxwl/dxwl_std)**2,axis=0))
+                                                    x1[j,:] = np.sqrt(np.sum(((xx-x_obs_j)/std)**2,axis=0))
 
                                             tt3 = time.time()
-
                                             x_mesh = get_mesh(x1)
 
                                             cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
@@ -1105,7 +1110,9 @@ class cluster_number_counts:
                     "D_CMB":self.cosmology.D_CMB,
                     "E_z0p6" : self.E_z0p6,
                     "zc":redshift_eval,
-                    "cosmology":self.cosmology}
+                    "cosmology":self.cosmology,
+                    "cluster_index": cluster_index,
+                    }
 
                     self.scaling_relations[stacked_observable].precompute_scaling_relation(params=self.scal_rel_params,
                     other_params=other_params,patch_index=cluster_patch)
