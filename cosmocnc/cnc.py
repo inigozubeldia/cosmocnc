@@ -12,7 +12,8 @@ from .params import *
 from .utils import *
 import time
 from copy import deepcopy
-
+import importlib.util
+import sys
 
 class cluster_number_counts:
 
@@ -32,19 +33,27 @@ class cluster_number_counts:
 
         self.hmf_extra_params = {}
 
-
-
-
-
-
     #Loads data (catalogue and scaling relation data)
-
 
 
     def initialise(self):
 
+        #Verbosity
+
         set_verbosity(self.cnc_params["cosmocnc_verbose"])
         self.logger = logging.getLogger(__name__)
+
+        # Load the survey data
+
+        path_to_survey = self.cnc_params["survey_sr"]
+        spec = importlib.util.spec_from_file_location("scaling_relations_module",path_to_survey)
+        self.survey_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.survey_module)
+
+        self.scaling_relations_survey = self.survey_module.scaling_relations
+        self.scatter_survey = self.survey_module.scatter
+
+        #Set cosmology
 
         self.cosmology = cosmology_model(cosmo_params=self.cosmo_params,
                                          cosmology_tool = self.cnc_params["cosmology_tool"],
@@ -56,7 +65,7 @@ class cluster_number_counts:
 
         if self.cnc_params["load_catalogue"] == True:
 
-            self.logger.debug("loading catalogue")
+            self.logger.debug("Loading catalogue")
             self.logger.debug(self.cnc_params["cluster_catalogue"])
 
             self.catalogue = cluster_catalogue(catalogue_name=self.cnc_params["cluster_catalogue"],
@@ -78,7 +87,7 @@ class cluster_number_counts:
 
             for observable in observable_set:
 
-                self.scaling_relations[observable] = scaling_relations(observable=observable,cnc_params=self.cnc_params,catalogue=self.catalogue)
+                self.scaling_relations[observable] = self.scaling_relations_survey(observable=observable,cnc_params=self.cnc_params,catalogue=self.catalogue)
                 self.scaling_relations[observable].initialise_scaling_relation()
 
         if self.cnc_params["stacked_likelihood"] == True:
@@ -91,11 +100,12 @@ class cluster_number_counts:
 
                 if observable not in self.cnc_params["observables"]:
 
-                    self.scaling_relations[observable] = scaling_relations(observable=observable,cnc_params=self.cnc_params,catalogue=self.catalogue)
+                    self.scaling_relations[observable] = self.scaling_relations_survey(observable=observable,cnc_params=self.cnc_params,catalogue=self.catalogue)
                     self.scaling_relations[observable].initialise_scaling_relation()
 
-        self.scatter = scatter(params=self.scal_rel_params,catalogue=self.catalogue)
-        self.scatter_ref = deepcopy(self.scatter)
+        self.scatter = self.scatter_survey(params=self.scal_rel_params,catalogue=self.catalogue)
+        self.scatter_ref = self.scatter_survey(params=self.scal_rel_params,catalogue=self.catalogue)
+
         # self.priors = priors(prior_params={"cosmology":self.cosmology,"theta_mc_prior":self.cnc_params["theta_mc_prior"]})
 
         if self.cnc_params["hmf_calc"] == "MiraTitan":
@@ -125,7 +135,17 @@ class cluster_number_counts:
 
             self.scal_rel_params[key] = scal_rel_params[key]
 
-        self.scatter = scatter(params=self.scal_rel_params,catalogue=self.catalogue)
+        #scatter_survey = self.survey_module.scaling_relations
+
+        # path_to_survey = self.cnc_params["survey_sr"]
+        # spec = importlib.util.spec_from_file_location("scaling_relations_module",path_to_survey)
+        # self.survey_module = importlib.util.module_from_spec(spec)
+        # spec.loader.exec_module(self.survey_module)
+        #
+        # scaling_relations_survey = self.survey_module.scaling_relations
+        # scatter_survey = self.survey_module.scatter
+
+        self.scatter = self.scatter_survey(params=self.scal_rel_params,catalogue=self.catalogue)
 
         self.abundance_matrix = None
         self.n_obs_matrix = None
@@ -203,13 +223,13 @@ class cluster_number_counts:
 
         elif self.cnc_params["hmf_calc"] == "classy_sz":
 
-            self.logger.info('collecting hmf')
+            self.logger.info('Collecting hmf')
 
 
             self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=True)
 
 
-            self.logger.debug('collecting hmf done')
+            self.logger.debug('Collecting hmf done')
 
 
 
@@ -1228,7 +1248,7 @@ class cluster_number_counts:
         self.n_obs = np.sum(self.n_obs_matrix,axis=0)
         self.n_tot = np.sum(self.n_tot_vec)
 
-        self.logger.info("Total clusters: %.5e",self.n_tot)
+        self.logger.info("Total clusters: %.5f",self.n_tot)
 
         if self.cnc_params["non_validated_clusters"] == True:
 
@@ -1304,9 +1324,9 @@ class cluster_number_counts:
 
         self.t_total = time.time()-t0
 
-        self.logger.info("Time: %.5e",self.t_total)
+        self.logger.info("Time: %.5f",self.t_total)
 
-        self.logger.info("log_lik: %.5e",log_lik)
+        self.logger.info("log_lik: %.5f",log_lik)
 
         if np.isnan(log_lik) == True:
 
