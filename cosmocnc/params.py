@@ -31,15 +31,9 @@ cnc_params_default = {
 
     "load_catalogue": True,
     "likelihood_type": "unbinned", #"unbinned", "binned", or "extreme_value"
-    #"obs_select": "q_mmf3_mean", #"q_mmf3_mean",
-    "obs_select": "q_mmf3", #"q_mmf3_mean",
-
-#    "observables": [["q_mmf3_mean","p_zc19"]],
-    "observables": [["q_mmf3","p_zc19"]],
-#    "observables": [["q_mmf3_mean"]],
-    #"cluster_catalogue":"zc19_simulated_12",#"0.0119647",#
-    "cluster_catalogue":"Planck_MMF3_cosmo",#"Planck_MMF3_cosmo",
-    #"cluster_catalogue":"q_mlens_simulated",
+    "obs_select": "q_so_sim", #"q_mmf3_mean",
+    "observables": [["q_so_sim"],["p_so_sim"]],
+    "cluster_catalogue":"SO_sim_0",#"Planck_MMF3_cosmo",
     "data_lik_from_abundance":True, #if True, and if the only observable is the selection observable,
     "data_lik_type":"backward_convolutional", #"backward_convolutional" or "direct_integral". Note that "direct_integral" only works with one correlation set
     "abundance_integral_type":"fft", #"fft" or "direct"
