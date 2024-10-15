@@ -14,7 +14,16 @@ tutorials/.ipynb_checkpoints/cosmocnc_so_benchmark_class_sz-checkpoint.ipynb
 cosmocnc.egg-info/SOURCES.txt
 tutorials/.ipynb_checkpoints*
 *.ipynb_checkpoints*
+
 tutorials/test_files/test_outputs/cat1.csv
 tutorials/test_files/catalogue_test.py
 tutorials/test_files/test_dndzdq.py
 tutorials/test_files/test_inigo.py
+tutorials/20240912_catNq_sim1.npy
+tutorials/20240912_catNz_sim1.npy
+tutorials/20240912_Nq_sim1.npy
+tutorials/20240912_Nz_sim1.npy
+tutorials/act_benchmark_110124.ipynb
+tutorials/figures
+
+tutorials/test_archive
