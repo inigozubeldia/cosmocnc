@@ -10,3 +10,12 @@ mcmcs/cobaya/chains
 data/*
 data/spt/*
 data/spt/.DS_Store
+tests/
+tests/.DS_Store
+tutorials/.DS_Store
+tutorials/.ipynb_checkpoints
+tutorials/figures
+
+tutorials/test_archive
+*.egg-info
+tutorials/test_files
