@@ -36,6 +36,6 @@ Dependencies: [astropy](https://www.astropy.org) (optional), [class_sz](https://
 
 The main computational capabilities of cosmocnc are illustrated in [this](https://github.com/inigozubeldia/cosmocnc/blob/main/tutorials/cosmocnc_tutorial.ipynb) Jupyter notebook. In [this other one](https://github.com/inigozubeldia/cosmocnc/blob/main/tutorials/cosmocnc_so_benchmark_class_sz.ipynb), the code is benchmarked against class_sz.
 
-## 15/10/2024: Upgrade
+## 15/10/2024: Code upgrade
 
 The code was significantly upgraded on 15/10/2024. In particular, the way the survey data (cluster catalogue and observable scaling relations) enter the code was modified, with the goal of making it easier and cleaner to add a new survey. Each survey now comes with two files, a catalogue file and a scaling relations file, where the survey details are specified and the data is formatted so that cosmocnc can process it. An example of these two files for the SO-like catalogue analysed in [Zubeldia & Bolliet (2024)](https://arxiv.org/abs/2403.09589) can be found in cosmocnc/surveys.
