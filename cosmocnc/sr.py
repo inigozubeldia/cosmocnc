@@ -405,19 +405,20 @@ class scaling_relations:
         # if observable == "q_act_dr5_sim":
         if observable == "q_act":
 
-            path = "/rds-d4/user/iz221/hpc-work/data_nemo/"
+            # path = "/rds-d4/user/iz221/hpc-work/data_nemo/"
+            path = "/Users/boris/Work/CLASS-SZ/SO-SZ/cosmocnc/data/act_dr6_benchmark/"
             # sim_id = self.cnc_params["catalogue_params"]["sim_id"] + 1
             #### update here
             # f = open(root_path + "data/selection_files_act_feb2624/nemo_sim_thetas_19jul24_100bins_sim1" + str(sim_id) + ".txt","r")
-            f = open(path + "nemo_sim_thetas_141024_49bins" + ".txt","r")
+            f = open(path + "nemo_sim_thetas_151024_49bins" + ".txt","r")
             self.theta_500_vec = np.array(f.readlines()).astype(np.float64)
             f.close()
             # f = open(root_path + "data/selection_files_act_feb2624/nemo_sim_ylims_19jul24_100bins_sim1" + str(sim_id) + ".txt","r")
-            f = open(path + "nemo_sim_ylims_141024_49bins" + ".txt","r")
+            f = open(path + "nemo_sim_ylims_151024_49bins" + ".txt","r")
             sigma_matrix_flat = np.array(f.readlines()).astype(np.float64)
             f.close()
             # f = open(root_path + "data/selection_files_act_feb2624/nemo_sim_skyfracs_19jul24_100bins_sim1" + str(sim_id) + ".txt","r")
-            f = open(path + "nemo_sim_skyfracs_141024_49bins" + ".txt","r")
+            f = open(path + "nemo_sim_skyfracs_151024_49bins" + ".txt","r")
             self.skyfracs = np.array(f.readlines()).astype(np.float64)
             f.close()
             self.sigma_matrix = sigma_matrix_flat.reshape((len(self.theta_500_vec),len(self.skyfracs)))

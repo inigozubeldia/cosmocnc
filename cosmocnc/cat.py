@@ -639,11 +639,12 @@ class cluster_catalogue:
 
             threshold = 5.
 
-            path = "/rds-d4/user/iz221/hpc-work/data_nemo/"
+            # path = "/rds-d4/user/iz221/hpc-work/data_nemo/"
+            path = "/Users/boris/Work/CLASS-SZ/SO-SZ/cosmocnc/data/act_dr6_benchmark/"
 
 
             # act_cat = np.loadtxt(root_path + "data/act_dr5/SZ_cat_nemosimkit_130923.txt").transpose()
-            act_cat = np.loadtxt(path + "SZ_cat_nemosimkit_141024.txt").transpose()
+            act_cat = np.loadtxt(path + "SZ_cat_nemosimkit_151024.txt").transpose()
             data_act = {}
             data_act["SNR"] = act_cat[2]
             data_act["z"] = act_cat[0]
@@ -676,7 +677,7 @@ class cluster_catalogue:
             if self.obs_select == "q_act":
 
                 # patch_index_vec = np.load(root_path + "data/act_dr5/SZ_cat_nemosimkit_cluster_patch_indices.npy")
-                patch_index_vec = np.load(root_path + "SZ_cat_nemosimkit_cluster_patch_indices.npy")
+                patch_index_vec = np.load(path + "SZ_cat_nemosimkit_cluster_patch_indices.npy")
                 patch_index_vec = patch_index_vec[indices_act]
                 self.catalogue_patch[observable][indices_z] = patch_index_vec[indices_z]
 
