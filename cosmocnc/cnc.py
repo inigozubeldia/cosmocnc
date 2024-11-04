@@ -48,7 +48,12 @@ class cluster_number_counts:
         path_to_survey = self.cnc_params["survey_sr"]
         spec = importlib.util.spec_from_file_location("scaling_relations_module",path_to_survey)
         self.survey_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(self.survey_module)
+        try:
+            spec.loader.exec_module(self.survey_module)
+        except Exception as e:
+            print(f"Error loading survey module: {e}")
+            print("Path to survey: ", path_to_survey)
+            print("check file exists if you need that.")
 
         self.scaling_relations_survey = self.survey_module.scaling_relations
         self.scatter_survey = self.survey_module.scatter
