@@ -27,3 +27,4 @@ tutorials/act_benchmark_110124.ipynb
 tutorials/figures
 
 tutorials/test_archive
+# *.egg-info*
