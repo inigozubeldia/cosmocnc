@@ -98,8 +98,8 @@ class cosmology_model:
                           'cosmo_model': self.cosmo_model_dict[self.cnc_params['class_sz_cosmo_model']],
                           'mass_function' : self.cnc_params["class_sz_hmf"],
 
-                          'use_m500c_in_ym_relation' : 1,
-                          'use_m200c_in_ym_relation' : 0,
+                          'use_m500c_in_ym_relation' : self.cnc_params["class_sz_use_m500c_in_ym_relation"],
+                          'use_m200c_in_ym_relation' : self.cnc_params["class_sz_use_m200c_in_ym_relation"],
 
                           })
 
@@ -228,8 +228,8 @@ class cosmology_model:
                           'mass_function' : self.cnc_params["class_sz_hmf"],
 
                         #   'classy_sz_verbose': 'none',
-                          'use_m500c_in_ym_relation' : 1,
-                          'use_m200c_in_ym_relation' : 0,
+                          'use_m500c_in_ym_relation' : self.cnc_params["class_sz_use_m500c_in_ym_relation"],
+                          'use_m200c_in_ym_relation' : self.cnc_params["class_sz_use_m200c_in_ym_relation"],
 
                           }
 

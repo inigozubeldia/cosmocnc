@@ -75,7 +75,9 @@ cnc_params_default = {
     "class_sz_ndim_masses" : 100,  # when using emulators this is automatically fixed.
     "class_sz_concentration_parameter" : "B13",
     "class_sz_output": 'mPk,m500c_to_m200c,m200c_to_m500c',
-    "class_sz_hmf": "T08M500c", # M500 or T08M500c for Tinker et al 208 HMF defined at m500 critical.
+    "class_sz_hmf": "T08M500c", # M500 or T08M500c for Tinker et al 2008 HMF defined at m500 critical.
+    "class_sz_use_m500c_in_ym_relation": 1,
+    "class_sz_use_m200c_in_ym_relation": 0,
 
     #Redshift errors parameters
 
