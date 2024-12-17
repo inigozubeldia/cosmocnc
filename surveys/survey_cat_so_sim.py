@@ -13,7 +13,7 @@ class cluster_catalogue_survey:
 
         if self.catalogue_name[0:7] == "SO_sim_":
 
-            catalogue = np.load(root_path + "data/catalogues_sim/catalogue_so_simulated_" + str(self.catalogue_name[7:]) + "_simple.npy",allow_pickle=True)[0]
+            catalogue = np.load(root_path + "data/catalogues_sim/catalogue_so_simulated_" + str(self.catalogue_name[7:]) + ".npy",allow_pickle=True)[0]
 
             self.catalogue = {}
             self.catalogue["q_so_sim"] = catalogue["q_so_sim"]
