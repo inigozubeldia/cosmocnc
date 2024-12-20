@@ -6,8 +6,8 @@ from .hmf import *
 
 cnc_params_default = {
 
-    "survey_sr": f"{path_to_cosmocnc}/surveys/survey_sr_so_sim.py", #File where the survey scaling relations are defined
-    "survey_cat": f"{path_to_cosmocnc}/surveys/survey_cat_so_sim.py", #File where the survey catalogue(s) are defined
+    "survey_sr": "/home/iz221/cnc/surveys/survey_sr_so_sim.py", #File where the survey scaling relations are defined
+    "survey_cat": "/home/iz221/cnc/surveys/survey_cat_so_sim.py", #File where the survey catalogue(s) are defined
 
     #Number of cores
 
@@ -25,7 +25,6 @@ cnc_params_default = {
     "n_points_data_lik": 128, #number of points for the computation of the cluster data part of the likelihood
     "sigma_mass_prior": 5.,
     "downsample_hmf_bc": 1,
-
 
     #Observables and catalogue
 
@@ -67,15 +66,13 @@ cnc_params_default = {
     "sigma_scatter_min": 1e-5,
     "interp_tinker": "linear", #"linear" or "log"
 
+    "cosmo_model": "lcdm",
+    #"class_sz_cosmo_model": "lcdm", # lcdm, mnu, neff, wcdm, ede
 
-    "cosmo_model": "lcdm", # redundancy taken care of in cosmo.py
-    "class_sz_cosmo_model": "lcdm", # lcdm, mnu, neff, wcdm, ede
-
-    "class_sz_ndim_redshifts" : 100,
     "class_sz_ndim_masses" : 100,  # when using emulators this is automatically fixed.
     "class_sz_concentration_parameter" : "B13",
     "class_sz_output": 'mPk,m500c_to_m200c,m200c_to_m500c',
-    "class_sz_hmf": "T08M500c", # M500 or T08M500c for Tinker et al 2008 HMF defined at m500 critical.
+    "class_sz_hmf": "T08M500c", # M500 or T08M500c for Tinker et al 208 HMF defined at m500 critical.
     "class_sz_use_m500c_in_ym_relation": 1,
     "class_sz_use_m200c_in_ym_relation": 0,
 

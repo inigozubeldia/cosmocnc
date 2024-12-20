@@ -3,7 +3,6 @@ import pylab as pl
 import scipy.integrate as integrate
 import scipy.interpolate as interpolate
 import scipy.stats as stats
-from numba import jit
 from .cosmo import *
 from .hmf import *
 from .sr import *
@@ -11,7 +10,6 @@ from .cat import *
 from .params import *
 from .utils import *
 import time
-from copy import deepcopy
 import importlib.util
 import sys
 
@@ -48,12 +46,7 @@ class cluster_number_counts:
         path_to_survey = self.cnc_params["survey_sr"]
         spec = importlib.util.spec_from_file_location("scaling_relations_module",path_to_survey)
         self.survey_module = importlib.util.module_from_spec(spec)
-        try:
-            spec.loader.exec_module(self.survey_module)
-        except Exception as e:
-            print(f"Error loading survey module: {e}")
-            print("Path to survey: ", path_to_survey)
-            print("check file exists if you need that.")
+        spec.loader.exec_module(self.survey_module)
 
         self.scaling_relations_survey = self.survey_module.scaling_relations
         self.scatter_survey = self.survey_module.scatter
@@ -161,7 +154,7 @@ class cluster_number_counts:
 
     #Computes the hmf as a function of redshift
 
-    def get_hmf(self):
+    def get_hmf(self,volume_element=True):
 
         self.const = constants()
 
@@ -200,7 +193,7 @@ class cluster_number_counts:
 
                 for i in range(0,len(indices_split[rank])):
 
-                    ln_M,hmf_eval = self.halo_mass_function.eval_hmf(self.redshift_vec[indices_split[rank][i]],log=True,volume_element=True)
+                    ln_M,hmf_eval = self.halo_mass_function.eval_hmf(self.redshift_vec[indices_split[rank][i]],log=True,volume_element=volume_element)
 
                     return_dict[str(indices_split[rank][i])] = hmf_eval
                     return_dict["ln_M"] = ln_M
@@ -223,7 +216,7 @@ class cluster_number_counts:
 
         elif self.cnc_params["hmf_calc"] == "MiraTitan":
 
-            self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=True)
+            self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=volume_element)
 
 
         elif self.cnc_params["hmf_calc"] == "classy_sz":
@@ -231,7 +224,7 @@ class cluster_number_counts:
             self.logger.info('Collecting hmf')
 
 
-            self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=True)
+            self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=volume_element)
 
 
             self.logger.debug('Collecting hmf done')
@@ -930,6 +923,8 @@ class cluster_number_counts:
 
                             lik_cluster_vec[redshift_error_id] = integrate.simpson(cpdf_product_with_hmf,x=lnM)
 
+                            print("lik cluster",lik_cluster_vec[redshift_error_id])
+                            quit()
                             self.t_99 = self.t_99 + time.time() - tt9
 
                         elif self.cnc_params["data_lik_type"] == "direct_integral":
@@ -1517,7 +1512,40 @@ class cluster_number_counts:
     #Calculates derivative of log likelihood with respect to parameter param on param_vec
     #param_vec must be even in size
 
-    def get_log_lik_derivative(self,param,param_vec,param_type=None):
+    def get_log_lik_derivative_jax(self,param,param_vec=0,param_type=None):
+
+        if param_type == "cosmo":
+
+            param_value = self.cosmo_params[param]
+
+        elif param_type == "scal_rel":
+
+            param_value = self.scal_rel_params[param]
+
+        def f(param_value):
+
+            if param_type == "cosmo":
+
+                self.cosmo_params[param] = param_value
+
+            elif param_type == "scal_rel":
+
+                self.scal_rel_params[param] = param_value
+
+            self.update_params(self.cosmo_params,self.scal_rel_params)
+
+            return self.get_log_lik()
+
+        import jax.numpy as jnp
+        from jax import grad
+
+        gradient_f = grad(f)
+
+        x = jnp.array(param_value)
+        print("Gradient",gradient_f(x))
+
+
+    def get_log_lik_derivative(self,param,param_vec=None,param_type=None):
 
         log_lik_vec = np.zeros(len(param_vec))
 
@@ -1556,112 +1584,3 @@ class cluster_number_counts:
         self.update_params(self.cosmo_params,self.scal_rel_params)
 
         return log_lik_derivative
-
-    def get_log_lik_second_derivative(self,params,param_vecs,param_types):
-
-        param0 = params[0]
-        param1 = params[1]
-
-        param0_vec = param_vecs[param0]
-        param1_vec = param_vecs[param1]
-
-        param0_type = param_types[param0]
-        param1_type = param_types[param1]
-
-        if param0_type == "cosmo":
-
-            param0_0 = self.cosmo_params[param0]
-
-        elif param0_type == "scal_rel":
-
-            param0_0 = self.scal_rel_params[param0]
-
-        if param1_type == "cosmo":
-
-            param1_0 = self.cosmo_params[param1]
-
-        elif param1_type == "scal_rel":
-
-            param1_0 = self.scal_rel_params[param1]
-
-        if param0 == param1:
-
-            log_lik_vec = np.zeros(len(param0_vec))
-
-            for i in range(0,len(param0_vec)):
-
-                if param0_type == "cosmo":
-
-                    self.cosmo_params[param0] = param0_vec[i]
-
-                elif param0_type == "scal_rel":
-
-                    self.scal_rel_params[param0] = param0_vec[i]
-
-                self.update_params(self.cosmo_params,self.scal_rel_params)
-
-                log_lik_vec[i] = self.get_log_lik()
-
-            log_lik_derivative_vec = np.gradient(log_lik_vec,param0_vec)
-            log_lik_second_derivative_vec = np.gradient(log_lik_derivative_vec,param0_vec)
-            index_extract_0 = (len(param0_vec)-1)//2
-            log_lik_second_derivative = log_lik_second_derivative_vec[index_extract_0]
-
-        else:
-
-            log_lik_matrix = np.zeros((len(param0_vec),len(param1_vec)))
-
-            for i in range(0,len(param0_vec)):
-
-                for j in range(0,len(param1_vec)):
-
-                    if param0_type == "cosmo":
-
-                        self.cosmo_params[param0] = param0_vec[i]
-
-                    elif param0_type == "scal_rel":
-
-                        self.scal_rel_params[param0] = param0_vec[i]
-
-                    if param1_type == "cosmo":
-
-                        self.cosmo_params[param1] = param1_vec[j]
-
-                    elif param1_type == "scal_rel":
-
-                        self.scal_rel_params[param1] = param1_vec[j]
-
-                    self.update_params(self.cosmo_params,self.scal_rel_params)
-
-                    log_lik_matrix[i,j] = self.get_log_lik()
-
-            der_x = np.gradient(log_lik_matrix,param0_vec,axis=0)
-            der_y = np.gradient(log_lik_matrix,param1_vec,axis=1)
-
-            index_extract_0 = (len(param0_vec)-1)//2
-            index_extract_1 = (len(param1_vec)-1)//2
-
-            #der_xx = np.gradient(der_x,param0_vec,axis=0)[index_extract_0,index_extract_1]
-            der_xy = np.gradient(der_x,param1_vec,axis=1)[index_extract_0,index_extract_1]
-            der_yx = np.gradient(der_y,param0_vec,axis=0)[index_extract_0,index_extract_1]
-            #der_yy = np.gradient(der_y,param1_vec,axis=1)[index_extract_0,index_extract_1]
-
-            log_lik_second_derivative = 0.5*(der_xy+der_yx)
-
-        if param0_type == "cosmo":
-
-            self.cosmo_params[param0] = param0_0
-
-        elif param0_type == "scal_rel":
-
-            self.scal_rel_params[param0] = param0_0
-
-        if param1_type == "cosmo":
-
-            self.cosmo_params[param1] = param1_0
-
-        elif param1_type == "scal_rel":
-
-            self.scal_rel_params[param1] = param1_0
-
-        return log_lik_second_derivative

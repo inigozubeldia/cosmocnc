@@ -123,7 +123,7 @@ class halo_mass_function:
 
                 if self.mass_definition[-1] == "c":
 
-                    if self.cosmology.cnc_params["cosmology_tool"] == "classy_sz":
+                    if "cosmology_tool" == "classy_sz":
 
                         rescale = 1./self.cosmology.get_delta_mean_from_delta_crit_at_z(1.,redshift) # this is omega_m(z) without neutrinos computed by class_sz
 
