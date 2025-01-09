@@ -67,6 +67,7 @@ class cnc(classy):
     power_spectrum_type : Optional[str] =  "cosmopower"
     cosmo_amplitude_parameter : Optional[str] =  "sigma_8" #"sigma_8" or "A_s"
     scalrel_type_deriv : Optional[str] =  "analytical" #"analytical" or "numerical"
+    interp_tinker : Optional[str] =  "linear" #"analytical" or "numerical"
 
     #Stacked parameters
 
@@ -104,11 +105,12 @@ class cnc(classy):
     q_cutoff: Optional[str] = 0
 
     # class_sz parameters
-    class_sz_cosmo_model: Optional[str] = "lcdm"
+    cosmo_model: Optional[str] = "lcdm"
     class_sz_ndim_redshifts: Optional[str] = 500
     class_sz_ndim_masses: Optional[str] = 100
     class_sz_concentration_parameter: Optional[str] = "B13"
     class_sz_hmf: Optional[str] = "T08M500c"
+    class_sz_output: Optional[str] = "m500c_to_m200c"
 
 
     # verbose parameter
@@ -144,8 +146,9 @@ class cnc(classy):
         self.cnc.cnc_params["n_points_data_lik"] = int(self.n_points_data_lik) # 128, #number of points for the computation of the cluster data part of the likelihood
         self.cnc.cnc_params["sigma_mass_prior"] = self.sigma_mass_prior # 5.,
 
-        self.cnc.cnc_params["cosmo_model"] = self.class_sz_cosmo_model
+        self.cnc.cnc_params["cosmo_model"] = self.cosmo_model
         self.cnc.cnc_params["cosmo_param_density"] = self.cosmo_param_density
+        self.cnc.cnc_params["interp_tinker"] = self.interp_tinker
 
         #Observables and catalogue
 
@@ -221,8 +224,9 @@ class cnc(classy):
         self.cnc.cnc_params["class_sz_ndim_masses"] = self.class_sz_ndim_masses
         self.cnc.cnc_params["class_sz_concentration_parameter"] = self.class_sz_concentration_parameter
         self.cnc.cnc_params["class_sz_hmf"] = self.class_sz_hmf
-        self.cnc.cnc_params["class_sz_cosmo_model"] = self.class_sz_cosmo_model
+    #    self.cnc.cnc_params["class_sz_cosmo_model"] = self.class_sz_cosmo_model
 
+        self.cnc.cnc_params["class_sz_output"] = self.class_sz_output
 
         # verbose paramater
         self.cnc.cnc_params["cosmocnc_verbose"] = self.cosmocnc_verbose

@@ -1,14 +1,9 @@
 import numpy as np
 import pylab as pl
-import sys
-import scipy.integrate as integrate
-from astropy.io import fits
-from astropy.table import Table
 from .config import *
 from .sr import *
 from .utils import *
 from .params import *
-import pickle
 import importlib.util
 
 class cluster_catalogue:
