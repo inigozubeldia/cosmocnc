@@ -87,7 +87,7 @@ class cosmology_model:
                           'HMF_prescription_NCDM': 1,
                           'no_spline_in_tinker': 1,
 
-                          'M_min' : self.cnc_params["M_min"]*0.1, #This is in units M_Sun/h
+                          'M_min' : self.cnc_params["M_min"]*0.5, #This is in units M_Sun/h
                           'M_max' : self.cnc_params["M_max"]*1.2,
                           'z_min' : self.cnc_params["z_min"]*0.8,
                           'z_max' : self.cnc_params["z_max"]*1.2,
