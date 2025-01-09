@@ -6,8 +6,8 @@ from .hmf import *
 
 cnc_params_default = {
 
-    "survey_sr": "/home/iz221/cnc/surveys/survey_sr_so_sim.py", #File where the survey scaling relations are defined
-    "survey_cat": "/home/iz221/cnc/surveys/survey_cat_so_sim.py", #File where the survey catalogue(s) are defined
+    "survey_sr": f"{path_to_cosmocnc}/surveys/survey_sr_so_sim.py", #File where the survey scaling relations are defined
+    "survey_cat": f"{path_to_cosmocnc}/surveys/survey_cat_so_sim.py", #File where the survey catalogue(s) are defined
 
     #Number of cores
 
