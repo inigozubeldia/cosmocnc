@@ -929,8 +929,6 @@ class cluster_number_counts:
 
                             lik_cluster_vec[redshift_error_id] = integrate.simpson(cpdf_product_with_hmf,x=lnM)
 
-                            print("lik cluster",lik_cluster_vec[redshift_error_id])
-                            quit()
                             self.t_99 = self.t_99 + time.time() - tt9
 
                         elif self.cnc_params["data_lik_type"] == "direct_integral":
