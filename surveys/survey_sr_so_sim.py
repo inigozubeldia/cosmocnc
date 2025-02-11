@@ -28,7 +28,7 @@ class scaling_relations:
 
         return n_layers
 
-    def initialise_scaling_relation(self):
+    def initialise_scaling_relation(self,cosmology=None):
 
         observable = self.observable
         self.const = cosmocnc.constants()
