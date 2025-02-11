@@ -374,7 +374,6 @@ class classy_sz:
         self.k_arr = np.geomspace(1e-4,50.,5000)[::ndspl] # fixed by cosmopower -- dont change !
 
         self.classy = classy
-        self.h = self.classy.h()*100.
 
     def get_linear_power_spectrum(self,redshift):
 

@@ -46,10 +46,13 @@ class cluster_number_counts:
         path_to_survey = self.cnc_params["survey_sr"]
         spec = importlib.util.spec_from_file_location("scaling_relations_module",path_to_survey)
         self.survey_module = importlib.util.module_from_spec(spec)
-        
+
         try:
+
             spec.loader.exec_module(self.survey_module)
+            
         except Exception as e:
+
             print(f"Error loading survey module: {e}")
             print("Path to survey: ", path_to_survey)
             print("check file exists if you need that.")
@@ -92,7 +95,7 @@ class cluster_number_counts:
             for observable in observable_set:
 
                 self.scaling_relations[observable] = self.scaling_relations_survey(observable=observable,cnc_params=self.cnc_params,catalogue=self.catalogue)
-                self.scaling_relations[observable].initialise_scaling_relation()
+                self.scaling_relations[observable].initialise_scaling_relation(cosmology=self.cosmology)
 
         if self.cnc_params["stacked_likelihood"] == True:
 
@@ -105,7 +108,7 @@ class cluster_number_counts:
                 if observable not in self.cnc_params["observables"]:
 
                     self.scaling_relations[observable] = self.scaling_relations_survey(observable=observable,cnc_params=self.cnc_params,catalogue=self.catalogue)
-                    self.scaling_relations[observable].initialise_scaling_relation()
+                    self.scaling_relations[observable].initialise_scaling_relation(cosmology=self.cosmology)
 
         self.scatter = self.scatter_survey(params=self.scal_rel_params,catalogue=self.catalogue)
         self.scatter_ref = self.scatter_survey(params=self.scal_rel_params,catalogue=self.catalogue)
@@ -335,15 +338,11 @@ class cluster_number_counts:
 
                             # Check if 0 or NaN is in dx1_dx0 and print the arrays if the condition is met
                             if 0 in dx1_dx0 or np.isnan(dx1_dx0).any():
-                                # print('x0:', x0)
-                                # print('x1:', x1)
-                                # print('layer:', k)
-                                # print('dx1_dx0:', dx1_dx0)
-                                # print('dx1_dx0 shape:', dx1_dx0.shape)
-                                # print('dn_dx0 shape:', dn_dx0.shape)
-                                # sys.exit("Exiting because 0 or NaN found in dx1_dx0")
+
                                 dn_dx1 = 0.*dn_dx0
+
                             else:
+
                                 dn_dx1 = dn_dx0/dx1_dx0
 
                             x1_interp = np.linspace(np.min(x1),np.max(x1),self.cnc_params["n_points"])
@@ -352,13 +351,15 @@ class cluster_number_counts:
                             sigma_scatter = np.sqrt(self.scatter.get_cov(observable1=self.cnc_params["obs_select"],
                                                                          observable2=self.cnc_params["obs_select"],
                                                                          layer=k,patch1=patch_index,patch2=patch_index))
+                            
+                            if self.cnc_params["apply_obs_cutoff"] != False:
 
-                            if self.cnc_params["apply_obs_cutoff"] == True:
+                                if self.cnc_params["apply_obs_cutoff"][str([self.cnc_params["obs_select"]])] == True:
 
-                                cutoff = self.scal_rel_selection.get_cutoff(layer=k)
+                                    cutoff = self.scal_rel_selection.get_cutoff(layer=k)
 
-                                indices = np.where(x1_interp < cutoff)
-                                dn_dx1[indices] = 0.
+                                    indices = np.where(x1_interp < cutoff)
+                                    dn_dx1[indices] = 0.
 
                             dn_dx1 = convolve_1d(x1_interp,dn_dx1,
                                                  sigma=sigma_scatter,
@@ -746,7 +747,7 @@ class cluster_number_counts:
 
                                     x_obs.append(self.catalogue.catalogue[observable][cluster_index])
 
-                                x_obs = np.array(x_obs)
+                                #x_obs = np.array(x_obs)
 
                                 covariance = covariance_matrix(self.scatter,observable_set,
                                 observable_patches,layer=layers,other_params=other_params)
@@ -831,7 +832,6 @@ class cluster_number_counts:
                                                     #dxwl = xx - x_obs_j#[rInclude,None]
                                                     #dxwl_std = std#[rInclude,None]
                                                     #x1[j,:] = np.sqrt(np.sum((dxwl/dxwl_std)**2,axis=0))
-                                                    #print("g_obs",x_obs_j)
 
                                                     x_obs_j = x_obs_j[:,None]
                                                     std = std[:,None]
@@ -840,14 +840,25 @@ class cluster_number_counts:
 
                                             tt3 = time.time()
                                             x_mesh = get_mesh(x1)
-
                                             cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
 
-                                            if self.cnc_params["apply_obs_cutoff"] == True:
+                                            if self.cnc_params["apply_obs_cutoff"] != False:
 
-                                                indices = np.where(x_mesh[0,:]+x_obs_j < self.scal_rel_params["q_cutoff"])[0]
-                                                cpdf[indices] = 0
+                                                if self.cnc_params["apply_obs_cutoff"][str(observable_set)] == True:
 
+                                                    # indices = np.where(x_mesh[0,:]+x_obs[0] < self.scal_rel_params["q_cutoff"])[0]
+                                                    # cpdf[indices] = 0
+                                                    mask = x_mesh[0, :] + x_obs[0] < self.scal_rel_params["q_cutoff"]
+
+                                                    # Ensure mask is boolean:
+                                                    mask = np.array(mask, dtype=bool)
+
+                                                    cpdf[np.transpose(mask)] = 0
+
+                                                    # pl.imshow(np.log(cpdf))
+                                                    # pl.savefig("figures/test_cpdf_cutoff.pdf")
+                                                    # pl.show()
+                                                    # quit()
 
                                         else:
 
@@ -918,6 +929,7 @@ class cluster_number_counts:
 
                                 cpdf_product = cpdf_product*cpdf
 
+
                             patch_select = int(observable_patches[self.cnc_params["obs_select"]])
 
                             cpdf_product_with_hmf = cpdf_product*halo_mass_function_z*4.*np.pi*self.scal_rel_selection.skyfracs[patch_select]
@@ -928,6 +940,7 @@ class cluster_number_counts:
                             tt9 = time.time()
 
                             lik_cluster_vec[redshift_error_id] = integrate.simpson(cpdf_product_with_hmf,x=lnM)
+
 
                             self.t_99 = self.t_99 + time.time() - tt9
 
@@ -948,7 +961,7 @@ class cluster_number_counts:
                             covariance = covariance_matrix(self.scatter,observable_set,
                             observable_patches,layer=layers)
 
-                            x_obs = np.array(x_obs)
+                            #x_obs = np.array(x_obs)
                             n_obs = len(x_obs)
 
                             #hmf_cluster = np.interp(lnM,lnM0,halo_mass_function_z)
@@ -1515,39 +1528,6 @@ class cluster_number_counts:
 
     #Calculates derivative of log likelihood with respect to parameter param on param_vec
     #param_vec must be even in size
-
-    def get_log_lik_derivative_jax(self,param,param_vec=0,param_type=None):
-
-        if param_type == "cosmo":
-
-            param_value = self.cosmo_params[param]
-
-        elif param_type == "scal_rel":
-
-            param_value = self.scal_rel_params[param]
-
-        def f(param_value):
-
-            if param_type == "cosmo":
-
-                self.cosmo_params[param] = param_value
-
-            elif param_type == "scal_rel":
-
-                self.scal_rel_params[param] = param_value
-
-            self.update_params(self.cosmo_params,self.scal_rel_params)
-
-            return self.get_log_lik()
-
-        import jax.numpy as jnp
-        from jax import grad
-
-        gradient_f = grad(f)
-
-        x = jnp.array(param_value)
-        print("Gradient",gradient_f(x))
-
 
     def get_log_lik_derivative(self,param,param_vec=None,param_type=None):
 
