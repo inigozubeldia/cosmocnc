@@ -163,6 +163,110 @@ class cluster_number_counts:
 
     #Computes the hmf as a function of redshift
 
+    def get_hmf_bias_weighted(self,volume_element=True):
+
+        self.const = constants()
+
+        #Define redshift and observable ranges
+
+        self.redshift_vec = np.linspace(self.cnc_params["z_min"],self.cnc_params["z_max"],self.cnc_params["n_z"])
+        self.obs_select_vec = np.linspace(self.cnc_params["obs_select_min"],self.cnc_params["obs_select_max"],self.cnc_params["n_points"])
+
+        #Evaluate some useful quantities (to be potentially passed to scaling relations)
+
+        self.D_A = self.cosmology.background_cosmology.angular_diameter_distance(self.redshift_vec).value
+        self.E_z = self.cosmology.background_cosmology.H(self.redshift_vec).value/(self.cosmology.cosmo_params["h"]*100.)
+        self.D_l_CMB = self.cosmology.background_cosmology.angular_diameter_distance_z1z2(self.redshift_vec,self.cosmology.z_CMB).value
+        self.rho_c = self.cosmology.background_cosmology.critical_density(self.redshift_vec).value*1000.*self.const.mpc**3/self.const.solar
+        self.E_z0p6 = self.cosmology.background_cosmology.H(0.6).value/(self.cosmology.cosmo_params["h"]*100.)
+
+        #Evaluate the halo mass function
+
+        self.halo_mass_function = halo_mass_function(cosmology=self.cosmology,hmf_type=self.cnc_params["hmf_type"],
+        mass_definition=self.cnc_params["mass_definition"],M_min=self.cnc_params["M_min"],
+        M_max=self.cnc_params["M_max"],n_points=self.cnc_params["n_points"],type_deriv=self.cnc_params["hmf_type_deriv"],
+        hmf_calc=self.cnc_params["hmf_calc"],extra_params=self.hmf_extra_params,logger = self.logger,interp_tinker=self.cnc_params["interp_tinker"])
+
+        n_cores = self.cnc_params["number_cores_hmf"]
+        indices_split = np.array_split(np.arange(self.cnc_params["n_z"]),n_cores)
+
+        t0 = time.time()
+
+        if self.cnc_params["hmf_calc"] == "cnc" or self.cnc_params["hmf_calc"] == "hmf":
+
+            self.hmf_matrix_bias_weighted = np.zeros((self.cnc_params["n_z"],self.cnc_params["n_points"]))
+
+            def f_mp(rank,out_q):
+
+                return_dict = {}
+
+                for i in range(0,len(indices_split[rank])):
+
+                    ln_M,hmf_eval = self.halo_mass_function.eval_hmf(self.redshift_vec[indices_split[rank][i]],log=True,volume_element=volume_element) #SUBSTITUTE THIS FOR HMF X BIAS, ln_M here is natural logarithm of mass in 1e14 M_Sun
+
+                    return_dict[str(indices_split[rank][i])] = hmf_eval
+                    return_dict["ln_M"] = ln_M
+
+                if n_cores > 1:
+
+                    out_q.put(return_dict)
+
+                else:
+
+                    return return_dict
+
+            return_dict = launch_multiprocessing(f_mp,n_cores)
+
+            self.ln_M = return_dict["ln_M"]
+
+            for i in range(0,len(self.redshift_vec)):
+
+                self.hmf_matrix_bias_weighted[i] = return_dict[str(i)]
+
+        elif self.cnc_params["hmf_calc"] == "MiraTitan":
+
+            self.ln_M,self.hmf_matrix_bias_weighted = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=volume_element)
+
+
+        elif self.cnc_params["hmf_calc"] == "classy_sz":
+
+            self.logger.info('Collecting hmf')
+
+
+            self.ln_M,self.hmf_matrix_bias_weighted = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=volume_element) 
+
+            #BIAS CORRECTION HERE. #ln_M here is natural logarithm of mass in 1e14 M_Sun
+
+            def bias_function(M,z):
+
+                return 1.
+
+            self.hmf_matrix_bias_weighted = self.hmf_matrix_bias_weighted*bias_function(self.ln_M,self.redshift_vec)
+
+            self.logger.debug('Collecting hmf done')
+
+
+        t1 = time.time()
+
+        self.t_hmf = t1-t0
+
+        self.time_back = 0.
+        self.time_hmf2 = 0.
+        self.time_select = 0.
+        self.time_mass_range = 0.
+        self.t_00 = 0.
+        self.t_11 = 0.
+        self.t_22 = 0.
+        self.t_33 = 0.
+        self.t_44 = 0.
+        self.t_55 = 0.
+        self.t_66 = 0.
+        self.t_77 = 0.
+        self.t_88 = 0.
+        self.t_99 = 0.
+
+    #Computes the hmf as a function of redshift
+
     def get_hmf(self,volume_element=True):
 
         self.const = constants()
@@ -237,7 +341,6 @@ class cluster_number_counts:
 
 
             self.logger.debug('Collecting hmf done')
-
 
 
         t1 = time.time()
@@ -403,6 +506,144 @@ class cluster_number_counts:
         if self.cnc_params["compute_abundance_matrix"] == True:
 
             self.get_abundance_matrix()
+
+    def get_bias_weighted_cluster_abundance(self):
+
+        if self.hmf_matrix_bias_weighted is None:
+
+            self.get_hmf_bias_weighted()
+
+        self.scal_rel_selection = self.scaling_relations[self.cnc_params["obs_select"]]
+
+        skyfracs = self.scal_rel_selection.skyfracs
+        self.n_patches = len(skyfracs)
+
+        n_cores = self.cnc_params["number_cores_abundance"]
+
+        if self.cnc_params["parallelise_type"] == "patch":
+
+            indices_split_patches = np.array_split(np.arange(self.n_patches),n_cores)
+            indices_split_redshift = [np.arange(len(self.redshift_vec)) for i in range(0,n_cores)]
+
+        elif self.cnc_params["parallelise_type"] == "redshift":
+
+            indices_split_patches = [np.arange(self.n_patches) for i in range(0,n_cores)]
+            indices_split_redshift = np.array_split(np.arange(len(self.redshift_vec)),n_cores)
+
+        self.abundance_tensor_bias_weighted = np.zeros((self.n_patches,self.cnc_params["n_z"],self.cnc_params["n_points"]))
+        self.n_obs_matrix_bias_weighted = np.zeros((self.n_patches,self.cnc_params["n_points"]))
+        self.n_tot_vec_bias_weighted = np.zeros(self.n_patches)
+
+        def f_mp(rank,out_q):
+
+            return_dict = {}
+
+            for i in range(0,len(indices_split_patches[rank])):
+
+                abundance_matrix = np.zeros((self.cnc_params["n_z"],self.cnc_params["n_points"]))
+                patch_index = int(indices_split_patches[rank][i])
+
+                for j in range(0,len(indices_split_redshift[rank])):
+
+                    redshift_index = indices_split_redshift[rank][j]
+
+                    if skyfracs[patch_index] < 1e-8:
+
+                        abundance = np.zeros(len(self.ln_M))
+
+                    else:
+
+                        other_params = {"D_A": self.D_A[redshift_index],
+                                        "E_z": self.E_z[redshift_index],
+                                        "H0": self.cosmology.background_cosmology.H0.value,
+                                        "E_z0p6" : self.E_z0p6,
+                                        "zc":self.redshift_vec[redshift_index],
+                                        "cosmology":self.cosmology,
+                                        }
+
+                        dn_dx0 = self.hmf_matrix_bias_weighted[redshift_index,:]
+                        x0 = self.ln_M
+
+                        t0 = time.time()
+
+                        self.scal_rel_selection.precompute_scaling_relation(params=self.scal_rel_params,
+                                                                            other_params=other_params,
+                                                                            patch_index=patch_index)
+
+                        for k in range(0,self.scal_rel_selection.get_n_layers()):
+
+                            x1 = self.scal_rel_selection.eval_scaling_relation(x0,
+                                                         layer=k,
+                                                         other_params=other_params,
+                                                         patch_index=patch_index)
+
+                            dx1_dx0 = self.scal_rel_selection.eval_derivative_scaling_relation(x0,
+                                                                                               layer=k,
+                                                                                               patch_index=patch_index,
+                                                                                               scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
+                            
+
+                            # Check if 0 or NaN is in dx1_dx0 and print the arrays if the condition is met
+                            if 0 in dx1_dx0 or np.isnan(dx1_dx0).any():
+
+                                dn_dx1 = 0.*dn_dx0
+
+                            else:
+
+                                dn_dx1 = dn_dx0/dx1_dx0
+
+                            x1_interp = np.linspace(np.min(x1),np.max(x1),self.cnc_params["n_points"])
+                            dn_dx1 = np.interp(x1_interp,x1,dn_dx1)
+
+                            sigma_scatter = np.sqrt(self.scatter.get_cov(observable1=self.cnc_params["obs_select"],
+                                                                         observable2=self.cnc_params["obs_select"],
+                                                                         layer=k,patch1=patch_index,patch2=patch_index))
+                            
+                            if self.cnc_params["apply_obs_cutoff"] != False:
+
+                                if self.cnc_params["apply_obs_cutoff"][str([self.cnc_params["obs_select"]])] == True:
+
+                                    cutoff = self.scal_rel_selection.get_cutoff(layer=k)
+
+                                    indices = np.where(x1_interp < cutoff)
+                                    dn_dx1[indices] = 0.
+
+                            dn_dx1 = convolve_1d(x1_interp,dn_dx1,
+                                                 sigma=sigma_scatter,
+                                                 type=self.cnc_params["abundance_integral_type"],
+                                                 sigma_min=self.cnc_params["sigma_scatter_min"])
+
+                            # pass to next layer
+                            x0 = x1_interp
+                            dn_dx0 = dn_dx1
+
+                        dn_dx1_interp = np.interp(self.obs_select_vec,x0,dn_dx0)
+
+                        abundance = dn_dx1_interp*4.*np.pi*skyfracs[patch_index] #number counts per patch
+
+                    return_dict[str(patch_index) + "_" + str(redshift_index)] = abundance  #number counts per patch
+
+
+            if n_cores > 1:
+
+                out_q.put(return_dict)
+
+            else:
+
+                return return_dict
+
+        return_dict = launch_multiprocessing(f_mp,n_cores)
+
+        for i in range(0,self.n_patches):
+
+            for j in range(0,len(self.redshift_vec)):
+
+                self.abundance_tensor_bias_weighted[i,j,:] = return_dict[str(i) + "_" + str(j)]
+
+            self.n_obs_matrix_bias_weighted[i,:] = integrate.simpson(self.abundance_tensor_bias_weighted[i,:,:],x=self.redshift_vec,axis=0)
+            self.n_tot_vec_bias_weighted[i] = integrate.simpson(self.n_obs_matrix_bias_weighted[i,:],x=self.obs_select_vec,axis=0)
+        
+        self.n_tot_bias_weighted = np.sum(self.n_tot_vec_bias_weighted)
 
     #Computes the data part of the unbinned likelihood
 
