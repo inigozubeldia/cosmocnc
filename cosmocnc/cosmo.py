@@ -145,6 +145,8 @@ class cosmology_model:
             self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
             self.get_dndlnM_at_z_and_M = np.vectorize(self.classy.get_dndlnM_at_z_and_M)
             self.get_delta_mean_from_delta_crit_at_z = np.vectorize(self.classy.get_delta_mean_from_delta_crit_at_z)
+            self.get_first_order_bias_at_z_and_nu = np.vectorize(self.classy.get_first_order_bias_at_z_and_nu)
+            self.get_nu_at_z_and_m = np.vectorize(self.classy.get_nu_at_z_and_m)
 
             # self.logger.debug(f'collected hmf')
 

@@ -28,6 +28,7 @@ class cluster_number_counts:
         self.n_binned = None
         self.abundance_tensor = None
         self.n_obs_false = 0.
+        self.hmf_matrix_bias_weighted = None
 
         self.hmf_extra_params = {}
 
@@ -161,6 +162,21 @@ class cluster_number_counts:
         self.abundance_tensor = None
         self.n_obs_matrix_fd = None
 
+    # Tinker 2010 bias #ln_M here is natural logarithm of mass in 1e14 M_Sun
+
+    def bias_function(self, lnM, z):
+
+        if self.cnc_params["hmf_calc"] == "classy_sz":
+
+            Mh = np.exp(lnM)*1e14*self.cosmology.cosmo_params["h"]
+            bh = np.array([self.cosmology.get_first_order_bias_at_z_and_nu(zi, \
+                            self.cosmology.get_nu_at_z_and_m(zi, Mh)) for zi in z])
+
+        else:
+            raise NotImplementedError('Bias not implemented for hmc_calc = {}.'.format(self.cnc_params["hmf_calc"]))
+        
+        return bh
+
     #Computes the hmf as a function of redshift
 
     def get_hmf_bias_weighted(self,volume_element=True):
@@ -232,16 +248,9 @@ class cluster_number_counts:
 
             self.logger.info('Collecting hmf')
 
-
             self.ln_M,self.hmf_matrix_bias_weighted = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=volume_element) 
 
-            #BIAS CORRECTION HERE. #ln_M here is natural logarithm of mass in 1e14 M_Sun
-
-            def bias_function(M,z):
-
-                return 1.
-
-            self.hmf_matrix_bias_weighted = self.hmf_matrix_bias_weighted*bias_function(self.ln_M,self.redshift_vec)
+            self.hmf_matrix_bias_weighted = self.hmf_matrix_bias_weighted*self.bias_function(self.ln_M,self.redshift_vec)
 
             self.logger.debug('Collecting hmf done')
 
