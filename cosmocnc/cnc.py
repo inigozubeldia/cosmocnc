@@ -132,16 +132,28 @@ class cluster_number_counts:
         self.hmf_matrix = None
         self.n_tot = None
         self.abundance_tensor = None
+        self.hmf_matrix_bias_weighted = None
 
-    def update_params(self,cosmo_params,scal_rel_params):
+    def update_params(self,cosmo_params,scal_rel_params, cnc_params):
 
         self.cosmo_params = cosmo_params
-        self.cosmology.update_cosmology(cosmo_params,cosmology_tool=self.cnc_params["cosmology_tool"])
-        self.scal_rel_params = {}
-
+        self.cosmology = cosmology_model(cosmo_params=cosmo_params,
+                                         cosmology_tool = cnc_params["cosmology_tool"],
+                                         power_spectrum_type=cnc_params["power_spectrum_type"],
+                                         amplitude_parameter=cnc_params["cosmo_amplitude_parameter"],
+                                         cnc_params = cnc_params,
+                                         logger = self.logger
+                                         )
+        
+        # self.scal_rel_params = {}
         for key in scal_rel_params.keys():
 
             self.scal_rel_params[key] = scal_rel_params[key]
+
+        # self.cnc_params = {}
+        for key in cnc_params.keys():
+
+            self.cnc_params[key] = cnc_params[key]
 
         #scatter_survey = self.survey_module.scaling_relations
 
@@ -158,9 +170,10 @@ class cluster_number_counts:
         self.abundance_matrix = None
         self.n_obs_matrix = None
         self.hmf_matrix = None
-        self.n_tot = None
+        # self.n_tot = None
         self.abundance_tensor = None
         self.n_obs_matrix_fd = None
+        self.hmf_matrix_bias_weighted = None
 
     # Tinker 2010 bias #ln_M here is natural logarithm of mass in 1e14 M_Sun
 
@@ -1801,7 +1814,7 @@ class cluster_number_counts:
 
                 self.scal_rel_params[param] = param_vec[i]
 
-            self.update_params(self.cosmo_params,self.scal_rel_params)
+            self.update_params(self.cosmo_params,self.scal_rel_params, self.cnc_params)
             log_lik_vec[i] = self.get_log_lik()
 
         log_lik_derivative_vec = np.gradient(log_lik_vec,param_vec)
@@ -1815,6 +1828,6 @@ class cluster_number_counts:
 
             self.scal_rel_params[param] = param_0
 
-        self.update_params(self.cosmo_params,self.scal_rel_params)
+        self.update_params(self.cosmo_params,self.scal_rel_params, self.cnc_params)
 
         return log_lik_derivative
