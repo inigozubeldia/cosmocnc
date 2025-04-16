@@ -1,0 +1,149 @@
+output: '/lustre/scratch/data/anicola_hpc-ACT_clustering/output/mcmc/cnc_act_bias_classy_sz_test/cnc_act_bias_classy_sz_test'
+
+likelihood:
+  cosmocnc.cnc_cobaya_bias_likelihood.cnc_bias_likelihood:
+    filename_bias_vec: "/lustre/scratch/data/anicola_hpc-ACT_clustering/data/bias_DESxACT_vec.txt"
+    filename_bias_cov: "/lustre/scratch/data/anicola_hpc-ACT_clustering/data/bias_DESxACT_cov.txt"
+
+theory:
+  cosmocnc.cnc_cobaya_bias_theory.cnc:
+    survey_sr: "/home/anicola_hpc/projects/ACT_clustering/scripts/survey_sr_act_DES.py"
+    survey_cat: None
+
+    load_catalogue: False
+
+    cluster_catalogue: "act"
+    observables:  [["q_act"]]
+    obs_select: "q_act"
+
+    data_lik_from_abundance: True
+    compute_abundance_matrix: True
+
+    obs_select_min: 5.
+    obs_select_max: 200.
+    M_min: 5e13
+    M_max: 1e16
+    z_min: 0.2
+    z_max: 0.85
+
+    n_points: 16384
+    n_z: 100
+
+    scalrel_type_deriv: "numerical"
+    abundance_integral_type: "fft"
+    apply_obs_cutoff: False
+
+    cosmology_tool: "classy_sz"
+    hmf_calc: "classy_sz"
+    class_sz_hmf: "T08M200c"
+    mass_definition: "200c"
+    hmf_type_deriv: "numerical"
+    # number_counts.cnc_params["interp_tinker"] = "linear"
+
+    number_cores_hmf: 1
+    number_cores_abundance: 8
+    number_cores_data: 1 # 8
+    parallelise_type: "patch" 
+
+    cosmo_amplitude_parameter: "sigma_8"
+    Hubble_parameter: "H0"
+    cosmo_param_density: "physical"
+    cosmo_model: "lcdm"
+
+    #    "class_sz_cosmo_model": "lcdm", # lcdm, mnu, neff, wcdm, ede
+
+    cosmocnc_verbose: "minimal"
+
+    likelihood_type: "binned"
+
+    q_cutoff: 0.
+
+    bins_edges_obs_select: 
+      - 5.
+      - 6.99216747
+      - 9.77808119
+      - 13.67399625
+      - 19.12217436
+      - 26.74108912
+      - 37.3956347
+      - 52.29530811
+      - 73.13151047
+      - 102.26955374
+      - 143.01716942
+      - 200.  
+
+    zc_edges: 
+      - 0.2
+      - 0.4
+      - 0.55
+      - 0.7
+      - 0.85
+
+
+params:
+  A0:
+    prior:
+      min: -5.0
+      max: -4.25
+    ref: -4.66
+    proposal: 0.06
+    latex: A_0
+
+  B0:
+    prior:
+      min: 0.01
+      max: 0.15
+    ref: 0.08
+    proposal: 0.02
+    latex: B_0
+
+  sigma_lnq_act:
+    prior:
+      min: 0.1
+      max: 0.5
+    ref: 0.2
+    proposal: 0.01
+    latex: \sigma_{\ln q}
+
+  SZmPivot: 
+    value: 4.25e14 #in Msun
+
+  bias_sz:
+    value: 1.
+
+  C0: 
+    value: 2.
+
+  dof:
+    value: 0.
+
+  # Ob0h2:
+  #   value: 0.0022383
+
+  # Oc0h2:
+  #   value: 0.12011
+
+  # h: 
+  #   value: 0.6745
+
+  # n_s: 
+  #   value: 0.965
+
+  # A_s:
+  #   value: 2.1005829e-09
+
+# prior:
+#   bias_cmblens_prior: 'lambda bias_cmblens: stats.norm.logpdf(bias_cmblens, loc=0.93, scale=0.05)'
+#   sigma_lnp_prior: 'lambda sigma_lnp: stats.norm.logpdf(sigma_lnp, loc=0.22, scale=0.05)'
+#   corr_lnq_lnp_prior: 'lambda corr_lnq_lnp: stats.norm.logpdf(corr_lnq_lnp, loc=0.77, scale=0.1)'
+#   alpha_prior: 'lambda alpha: stats.norm.logpdf(alpha, loc=1.79, scale=0.08)'
+#   log10_Y_star_prior: 'lambda log10_Y_star: stats.norm.logpdf(log10_Y_star, loc=-0.19, scale=0.02)'
+#   n_s_prior: 'lambda n_s: stats.norm.logpdf(n_s, loc=0.96, scale=0.0042)'
+#   sigma_lnq_prior: 'lambda sigma_lnq: stats.norm.logpdf(sigma_lnq, loc=0.173, scale=0.023)'
+#   bias_sz_prior: 'lambda bias_sz: stats.norm.logpdf(bias_sz, loc=0.62, scale=0.08)'
+#   Ob0h2_prior: 'lambda Ob0,H0: stats.norm.logpdf(Ob0*H0**2/10000, loc=0.022245895, scale=0.00015)'
+
+#   theta_mc_prior: 'lambda theta_mc: stats.norm.logpdf(theta_mc, loc=0.0104199189394683, scale=0.0000030)'
+sampler:
+  mcmc:
+
