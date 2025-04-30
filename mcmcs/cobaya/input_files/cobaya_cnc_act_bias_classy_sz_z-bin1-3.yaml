@@ -1,4 +1,4 @@
-output: '/lustre/scratch/data/anicola_hpc-ACT_clustering/output/mcmc/cnc_act_bias_classy_sz_test/cnc_act_bias_classy_sz_test'
+output: '/lustre/scratch/data/anicola_hpc-ACT_clustering/output/mcmc/cnc_act_bias_classy_sz_z-bin1-3_test/cnc_act_bias_classy_sz_z-bin1-3_test'
 
 likelihood:
   cosmocnc.cnc_cobaya_bias_likelihood.cnc_bias_likelihood:
@@ -35,8 +35,8 @@ theory:
 
     cosmology_tool: "classy_sz"
     hmf_calc: "classy_sz"
-    class_sz_hmf: "T08M200c"
-    mass_definition: "200c"
+    class_sz_hmf: "T08M500c"
+    mass_definition: "500c"
     hmf_type_deriv: "numerical"
     # number_counts.cnc_params["interp_tinker"] = "linear"
 
@@ -77,14 +77,13 @@ theory:
       - 0.4
       - 0.55
       - 0.7
-      - 0.85
 
 
 params:
   A0:
     prior:
       min: -5.0
-      max: -4.25
+      max: -3.0
     ref: -4.66
     proposal: 0.06
     latex: A_0
@@ -106,7 +105,7 @@ params:
     latex: \sigma_{\ln q}
 
   SZmPivot: 
-    value: 4.25e14 #in Msun
+    value: 3e14 #in Msun
 
   bias_sz:
     value: 1.
