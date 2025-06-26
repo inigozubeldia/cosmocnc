@@ -57,6 +57,9 @@ class cosmology_model:
                 self.cosmo_params["Ob0h2"] = self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2
                 self.cosmo_params["Oc0h2"] = (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2
 
+            #This needs to be updated
+            #Om0 = Oc0 + Ob0 + cosmo_params['N_ncdm']*cosmo_params['m_ncdm']/93.14/h()**2
+
             elif self.cnc_params["cosmo_param_density"] == "physical":
 
                 self.classy.set({'omega_b': self.cosmo_params["Ob0h2"],
@@ -65,7 +68,14 @@ class cosmology_model:
                 self.cosmo_params["Ob0"] = self.cosmo_params["Ob0h2"]/self.cosmo_params["h"]**2
                 self.cosmo_params["Om0"] = (self.cosmo_params["Oc0h2"]+self.cosmo_params["Ob0h2"])/self.cosmo_params["h"]**2
 
+            if self.cnc_params["cosmo_param_density"] == "mixed":
 
+                self.cosmo_params["Ob0"] = self.cosmo_params["Ob0h2"]/self.cosmo_params["h"]**2
+                self.cosmo_params["Oc0h2"] = (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2
+
+                self.classy.set({'omega_b': self.cosmo_params["Ob0h2"],
+                           'omega_cdm': self.cosmo_params["Oc0h2"]})
+                
             self.cosmo_model_dict = {'lcdm' : 0,
                                      'mnu'  : 1,
                                      'neff' : 2,
@@ -267,6 +277,15 @@ class cosmology_model:
                 self.cosmo_params["Ob0"] = self.cosmo_params["Ob0h2"]/self.cosmo_params["h"]**2
                 self.cosmo_params["Om0"] = (self.cosmo_params["Oc0h2"]+self.cosmo_params["Ob0h2"])/self.cosmo_params["h"]**2
 
+
+            if self.cnc_params["cosmo_param_density"] == "mixed":
+
+                classy_params['omega_b'] = self.cosmo_params["Ob0h2"]
+                self.cosmo_params["Ob0"] = self.cosmo_params["Ob0h2"]/self.cosmo_params["h"]**2
+
+                classy_params['omega_cdm'] = (self.cosmo_params["Om0"]-self.cosmo_params["Ob0"])*self.cosmo_params["h"]**2
+                self.cosmo_params["Oc0h2"] = classy_params['omega_cdm']
+
             self.classy.set(classy_params)
 
             self.classy.compute_class_szfast()
@@ -323,8 +342,6 @@ class cosmology_model:
 
                     self.sigma_8 = self.power_spectrum.get_sigma_8()
                     self.cosmo_params["sigma_8"] = self.sigma_8
-
-                    print("sigma_8",self.sigma_8)
 
         theta_mc = self.get_theta_mc()
 

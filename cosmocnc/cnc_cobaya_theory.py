@@ -9,6 +9,8 @@ from .utils import *
 
 class cnc(classy):
 
+    survey_sr : Optional[str] =  "none"
+    survey_cat: Optional[str] =  "none"
     number_cores_hmf : Optional[str] = 8
     number_cores_abundance : Optional[str] = 8
     number_cores_data : Optional[str] = 8
@@ -68,6 +70,7 @@ class cnc(classy):
     cosmo_amplitude_parameter : Optional[str] =  "sigma_8" #"sigma_8" or "A_s"
     scalrel_type_deriv : Optional[str] =  "analytical" #"analytical" or "numerical"
     interp_tinker : Optional[str] =  "linear" #"analytical" or "numerical"
+    padding_fraction : Optional[str] =  0. 
 
     #Stacked parameters
 
@@ -106,7 +109,7 @@ class cnc(classy):
 
     # class_sz parameters
     cosmo_model: Optional[str] = "lcdm"
-    class_sz_ndim_redshifts: Optional[str] = 500
+   # class_sz_ndim_redshifts: Optional[str] = 500
     class_sz_ndim_masses: Optional[str] = 100
     class_sz_concentration_parameter: Optional[str] = "B13"
     class_sz_hmf: Optional[str] = "T08M500c"
@@ -135,6 +138,8 @@ class cnc(classy):
         self.cnc.cnc_params["number_cores_data"] = self.number_cores_data
         self.cnc.cnc_params["number_cores_stacked"] = self.number_cores_stacked
         self.cnc.cnc_params["parallelise_type"] = self.parallelise_type # "redshift", #"patch" or "redshift"
+        self.cnc.cnc_params["survey_sr"] = self.survey_sr
+        self.cnc.cnc_params["survey_cat"] = self.survey_cat
 
         #Precision parameters
 
@@ -165,6 +170,7 @@ class cnc(classy):
         self.cnc.cnc_params["data_lik_type"] = self.data_lik_type
         self.cnc.cnc_params["abundance_integral_type"] = self.abundance_integral_type
         self.cnc.cnc_params["delta_m_with_ref"] = self.delta_m_with_ref
+        self.cnc.cnc_params["padding_fraction"] = self.padding_fraction
 
         #Range of abundance observables
 
@@ -220,7 +226,7 @@ class cnc(classy):
 
 
         # class_sz parameters
-        self.cnc.cnc_params["class_sz_ndim_redshifts"] = self.class_sz_ndim_redshifts
+       # self.cnc.cnc_params["class_sz_ndim_redshifts"] = self.class_sz_ndim_redshifts
         self.cnc.cnc_params["class_sz_ndim_masses"] = self.class_sz_ndim_masses
         self.cnc.cnc_params["class_sz_concentration_parameter"] = self.class_sz_concentration_parameter
         self.cnc.cnc_params["class_sz_hmf"] = self.class_sz_hmf
@@ -417,6 +423,7 @@ def assign_parameter_value(lik_dict,cobaya_dict,parameter):
     if parameter == 'h' and 'H0' in cobaya_dict.keys():
         # print('cobaya dict:',cobaya_dict.keys())
         lik_dict[parameter] = cobaya_dict['H0']/100.
+
 
     if parameter == 'h' and 'H0' in cobaya_dict.keys():
         # print('cobaya dict:',cobaya_dict.keys())

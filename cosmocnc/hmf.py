@@ -181,14 +181,14 @@ class halo_mass_function:
                 "h": self.h,
                 "Ommh2": self.cosmology.cosmo_params["Om0"]*self.h**2,
                 "Ombh2": self.cosmology.cosmo_params["Ob0"]*self.h**2,
-                "Omnuh2": self.cosmology.background_cosmology.Onu0*self.h**2,
+                "Omnuh2": self.cosmology.Omega_nu*self.h**2,
                 "sigma_8": self.cosmology.cosmo_params["sigma_8"],
                 "n_s": self.cosmology.cosmo_params["n_s"],
                 "w_0": -1.,
                 "w_a": 0.
                 }
 
-                hmf = np.array(MT_emulator.predict(cosmology_emulator,redshift,M_vec*self.h))[0,:,:]*self.h**3/np.log(10.)
+                hmf = np.array(MT_emulator.predict(cosmology_emulator,redshift,M_vec*self.h))[0,:,:]*self.h**3
                 M_eval = np.log(M_vec/1e14)
 
                 if volume_element == True:
