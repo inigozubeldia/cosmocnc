@@ -1258,17 +1258,22 @@ class cluster_number_counts:
                     stacked_var_vec = stacked_var_vec + return_dict[stacked_data_label + "_" + str(int(stacked_cluster_indices[i])) + "_var"]
 
             stacked_model_vec = stacked_model_vec/float(len(stacked_cluster_indices))
+            stacked_var_vec = stacked_var_vec/float(len(stacked_cluster_indices))**2
 
             if self.cnc_params["compute_stacked_cov"] == True:
 
-                stacked_var_vec = np.diag(stacked_var_vec/float(len(stacked_cluster_indices))**2)
-                stacked_inv_cov = np.linalg.inv(stacked_var_vec)
+                if isinstance(stacked_var_vec,float):
+
+                    stacked_inv_cov = np.array([1./stacked_var_vec])
+
+                else:
+
+                    stacked_inv_cov = np.linalg.inv(np.diag(stacked_var_vec))
 
             res = np.array(stacked_obs_vec-stacked_model_vec)
-            stacked_inv_cov = np.array(stacked_inv_cov)
 
             self.stacked_model[stacked_data_label] = stacked_model_vec
-            self.stacked_variance[stacked_data_label] = np.diag(stacked_var_vec)
+            self.stacked_variance[stacked_data_label] = stacked_var_vec
 
             log_lik = log_lik - 0.5*np.dot(res,np.dot(stacked_inv_cov,res))
 
