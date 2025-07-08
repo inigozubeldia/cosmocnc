@@ -192,14 +192,19 @@ class catalogue_generator:
                     observable = self.params_cnc["observables"][0][j]
                     scal_rel = self.scaling_relations[observable]
 
-                    if self.params_cnc["observable_vectorised"][observable] is True or self.params_cnc["observable_vectorised"] is True:
+                    vec = self.params_cnc["observable_vectorised"]
+
+                    #if self.params_cnc["observable_vectorised"][observable] is True or self.params_cnc["observable_vectorised"] is True:
+
+                    if (isinstance(vec, dict) and vec.get(observable, True)) or (isinstance(vec, bool) and vec):
 
                         x1[observable] = scal_rel.eval_scaling_relation_no_precompute(x0[observable],
                         layer=i,patch_index=observable_patches[observable],
                         params=self.number_counts.scal_rel_params,
                         other_params=other_params)
 
-                    elif self.params_cnc["observable_vectorised"][observable] is False:
+                    #elif self.params_cnc["observable_vectorised"][observable] is False:
+                    elif (isinstance(vec, dict) and not vec.get(observable, True)) or (isinstance(vec, bool) and not vec):
 
                         x1[observable] = []
 
@@ -233,9 +238,9 @@ class catalogue_generator:
 
                     noise = np.transpose(np.random.multivariate_normal(np.zeros(n_observables),cov,size=n_clusters))
 
-                    for observable in self.params_cnc["observables"][0]:
+                    for ll in range(0,len(self.params_cnc["observables"][0])):
 
-                        x1[observable] = x1[observable] + noise
+                        x1[self.params_cnc["observables"][0][ll]] = x1[self.params_cnc["observables"][0][ll]] + noise[i,:]
 
                 #Different covariance
 
@@ -298,6 +303,8 @@ class catalogue_generator:
 
                 x0 = x1
 
+            print(x1[self.params_cnc["obs_select"]].shape)
+
             indices_select = np.where(np.array(x1[self.params_cnc["obs_select"]]) > self.params_cnc["obs_select_min"])[0]
             
             z_samples_select = z_samples[indices_select]
@@ -305,20 +312,34 @@ class catalogue_generator:
 
             catalogue["z"] = z_samples_select
             catalogue["M"] = np.exp(ln_M_samples_select)
-            catalogue["lon"] = lon[indices_select]
-            catalogue["lat"] = lat[indices_select]
+
+            if self.get_sky_coords == True:
+
+                catalogue["lon"] = lon[indices_select]
+                catalogue["lat"] = lat[indices_select]
 
             for k in range(0,len(self.params_cnc["observables"][0])):
 
                 observable = self.params_cnc["observables"][0][k]
 
-                catalogue[self.params_cnc["observables"][0][k]] = []
+                if isinstance(vec, bool) and vec:
 
-                for kk in range(0,len(catalogue["M"])):
+                    print(k,observable,"hereeee")
 
-                    catalogue[self.params_cnc["observables"][0][k]].append(x1[observable][indices_select[kk]])
-                
+                    catalogue[self.params_cnc["observables"][0][k]] = x1[observable][indices_select]
+
+                else:
+
+                    catalogue[self.params_cnc["observables"][0][k]] = []
+
+                    for kk in range(0,len(catalogue["M"])):
+
+                        catalogue[self.params_cnc["observables"][0][k]].append(x1[observable][indices_select[kk]])
+                                        
+
                 catalogue[observable + "_patch"] = observable_patches[observable][indices_select]
+
+
 
             self.catalogue_list.append(catalogue)
 
