@@ -8,3 +8,4 @@ from .hmf import *
 from .sim import *
 from .params import *
 from .utils import *
+from .cosmocnc_cobaya import *
