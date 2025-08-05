@@ -1501,11 +1501,15 @@ class cluster_number_counts:
             n_bins_redshift = int(len(self.redshift_vec)/(len(self.bins_centres_z)-1))
             n_bins_obs_select = int(len(self.obs_select_vec)/(len(self.bins_centres_obs)-1))
 
+            n_observed = 0.
+
             for i in range(0,len(self.cnc_params["bins_edges_z"])-1):
 
                 for j in range(0,len(self.cnc_params["bins_edges_obs_select"])-1):
 
-                    n_observed = self.catalogue.number_counts[i,j]
+                    if self.cnc_params["load_catalogue"] is True:
+
+                        n_observed = self.catalogue.number_counts[i,j]
 
                     redshift_vec_interp = np.linspace(self.cnc_params["bins_edges_z"][i],self.cnc_params["bins_edges_z"][i+1],n_bins_redshift)
                     obs_select_vec_interp = np.linspace(self.cnc_params["bins_edges_obs_select"][j],self.cnc_params["bins_edges_obs_select"][j+1],n_bins_obs_select)
@@ -1527,6 +1531,8 @@ class cluster_number_counts:
             self.bins_centres = (self.cnc_params["bins_edges_obs_select"][1:] + self.cnc_params["bins_edges_obs_select"][0:-1])*0.5
             n_bins_obs_select = int(len(self.obs_select_vec)/(len(self.bins_centres)-1))
 
+            n_observed = 0.
+
             for i in range(0,len(self.cnc_params["bins_edges_obs_select"])-1):
 
                 n_obs = self.n_obs
@@ -1539,7 +1545,11 @@ class cluster_number_counts:
                 n_interp = np.interp(obs_select_vec_interp,self.obs_select_vec,n_obs)
 
                 n_theory = integrate.simpson(n_interp,x=obs_select_vec_interp)
-                n_observed = self.catalogue.number_counts[i]
+
+                if self.cnc_params["load_catalogue"] is True:
+
+                    n_observed = self.catalogue.number_counts[i]
+
                 self.n_binned_obs[i] = n_observed
                 self.n_binned[i] = n_theory
 
@@ -1558,13 +1568,19 @@ class cluster_number_counts:
 
             self.logger.debug("n int: %d",n_bins_redshift)
 
+            n_observed = 0.
+
             for i in range(0,len(self.cnc_params["bins_edges_z"])-1):
 
                 redshift_vec_interp = np.linspace(self.cnc_params["bins_edges_z"][i],self.cnc_params["bins_edges_z"][i+1],n_bins_redshift)
                 n_interp = np.interp(redshift_vec_interp,self.redshift_vec,self.n_z)
 
                 n_theory = integrate.simpson(n_interp,x=redshift_vec_interp)
-                n_observed = self.catalogue.number_counts[i]
+
+                if self.cnc_params["load_catalogue"] is True:
+
+                    n_observed = self.catalogue.number_counts[i]
+                    
                 self.n_binned_obs[i] = n_observed
                 self.n_binned[i] = n_theory
 
