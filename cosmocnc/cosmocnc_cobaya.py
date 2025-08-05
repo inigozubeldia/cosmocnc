@@ -58,6 +58,7 @@ class CNCLike(InstallableLikelihood):
     cosmology_tool: Optional[str] = "cobaya" #"astropy", "classy_sz", or "cobaya"
     M_min: Optional[float] = 5e13
     M_max: Optional[float] = 5e15
+    M_min_extended: Optional[float] = None
     hmf_calc:  Optional[str] = "cnc" #"cnc", "hmf", "MiraTitan", or "classy_sz"
     hmf_type: Optional[str] = "Tinker08"
     mass_definition: Optional[str] = "500c"
@@ -70,7 +71,7 @@ class CNCLike(InstallableLikelihood):
     interp_tinker: Optional[str] = "linear" #"linear" or "log", only if "hmf_calc"=="cnc"
 
     #Not needed if cosmology_tool = "cobaya"
-    
+
     cosmo_model: Optional[str] = "lcdm" 
     class_sz_ndim_masses : Optional[int] = 100  # when using emulators this is automatically fixed.
     class_sz_concentration_parameter : Optional[str] = "B13"

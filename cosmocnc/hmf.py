@@ -1,6 +1,4 @@
 import numpy as np
-import pylab as pl
-import copy
 from mcfit import TophatVar
 import time
 import logging
@@ -12,6 +10,7 @@ class halo_mass_function:
                  hmf_type="Tinker08",
                  mass_definition="500c",
                  M_min=1e13,M_max=1e16,
+                 M_min_cutoff=None,
                  n_points=1000,
                  type_deriv="numerical",
                  hmf_calc="cnc",
@@ -26,6 +25,7 @@ class halo_mass_function:
 
         self.M_min = M_min
         self.M_max = M_max
+        self.M_min_cutoff = M_min_cutoff
         self.n_points = n_points
         self.type_deriv = type_deriv
         self.hmf_calc = hmf_calc
@@ -127,6 +127,10 @@ class halo_mass_function:
 
                         rescale = 1./self.cosmology.get_delta_mean_from_delta_crit_at_z(1.,redshift) # this is omega_m(z) without neutrinos computed by class_sz
 
+                    elif self.cosmology.cnc_params["cosmology_tool"] == "cobaya_cosmo":
+
+                        rescale = self.cosmology.Om(redshift)/(self.cosmology.H(redshift)/100.)**2 #Om does not include neutrinos
+
                     else:
 
                         rescale = self.cosmology.cosmo_params["Om0"]*(1.+redshift)**3/(self.cosmology.background_cosmology.H(redshift).value/(self.cosmology.cosmo_params["h"]*100.))**2
@@ -197,8 +201,8 @@ class halo_mass_function:
 
                         hmf[i,:] = hmf[i,:]*self.cosmology.background_cosmology.differential_comoving_volume(redshift[i]).value
 
-
         elif self.hmf_calc == "classy_sz":
+
             self.logger.debug(f'hmf_calc: {self.hmf_calc}')
             self.logger.debug(f'testing to evaluate hmf {self.cosmology.get_dndlnM_at_z_and_M(0.6,5e14)}')
 
@@ -229,6 +233,10 @@ class halo_mass_function:
         if volume_element == True and self.hmf_calc != "MiraTitan" and self.hmf_calc != "classy_sz":
 
             hmf = hmf*self.cosmology.background_cosmology.differential_comoving_volume(redshift).value
+
+        if self.M_min_cutoff is not None:
+
+            hmf[:,np.where(M_vec < self.M_min_cutoff)[0]] = 0.
 
         return M_eval,hmf
 

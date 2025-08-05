@@ -31,6 +31,13 @@ class cluster_number_counts:
 
         self.hmf_extra_params = {}
 
+        self.cnc_params["M_min_cutoff"] = None
+
+        if self.cnc_params["M_min_extended"] is not None:
+                
+                self.cnc_params["M_min_cutoff"] = self.cnc_params["M_min"] 
+                self.cnc_params["M_min"] =  self.cnc_params["M_min_extended"]
+
     #Loads data (catalogue and scaling relation data)
 
 
@@ -168,12 +175,11 @@ class cluster_number_counts:
         self.E_z = self.cosmology.background_cosmology.H(self.redshift_vec).value/(self.cosmology.cosmo_params["h"]*100.)
         self.D_l_CMB = self.cosmology.background_cosmology.angular_diameter_distance_z1z2(self.redshift_vec,self.cosmology.z_CMB).value
         self.rho_c = self.cosmology.background_cosmology.critical_density(self.redshift_vec).value*1000.*self.const.mpc**3/self.const.solar
-        self.E_z0p6 = self.cosmology.background_cosmology.H(0.6).value/(self.cosmology.cosmo_params["h"]*100.)
 
         #Evaluate the halo mass function
 
         self.halo_mass_function = halo_mass_function(cosmology=self.cosmology,hmf_type=self.cnc_params["hmf_type"],
-        mass_definition=self.cnc_params["mass_definition"],M_min=self.cnc_params["M_min"],
+        mass_definition=self.cnc_params["mass_definition"],M_min=self.cnc_params["M_min"],M_min_cutoff=self.cnc_params["M_min_cutoff"],
         M_max=self.cnc_params["M_max"],n_points=self.cnc_params["n_points"],type_deriv=self.cnc_params["hmf_type_deriv"],
         hmf_calc=self.cnc_params["hmf_calc"],extra_params=self.hmf_extra_params,logger = self.logger,interp_tinker=self.cnc_params["interp_tinker"])
 
@@ -298,7 +304,6 @@ class cluster_number_counts:
                         other_params = {"D_A": self.D_A[redshift_index],
                                         "E_z": self.E_z[redshift_index],
                                         "H0": self.cosmology.background_cosmology.H0.value,
-                                        "E_z0p6" : self.E_z0p6,
                                         "zc":self.redshift_vec[redshift_index],
                                         "cosmology":self.cosmology,
                                         }
@@ -358,9 +363,10 @@ class cluster_number_counts:
                             x0 = x1_interp
                             dn_dx0 = dn_dx1
 
-                        dn_dx1_interp = np.interp(self.obs_select_vec,x0,dn_dx0)
+                        dn_dx1_interp = np.interp(self.obs_select_vec,x0,dn_dx0,left=0)
 
                         abundance = dn_dx1_interp*4.*np.pi*skyfracs[patch_index] #number counts per patch
+
 
                     return_dict[str(patch_index) + "_" + str(redshift_index)] = abundance  #number counts per patch
 
@@ -589,7 +595,6 @@ class cluster_number_counts:
                         "D_l_CMB":D_l_CMB,
                         "rho_c":rho_c,
                         "D_CMB":self.cosmology.D_CMB,
-                        "E_z0p6" : self.E_z0p6,
                         "zc":redshift_eval,
                         "cosmology":self.cosmology,
                         "cluster_index": cluster_index,
@@ -1140,7 +1145,6 @@ class cluster_number_counts:
                     "D_l_CMB":D_l_CMB,
                     "rho_c":rho_c,
                     "D_CMB":self.cosmology.D_CMB,
-                    "E_z0p6" : self.E_z0p6,
                     "zc":redshift_eval,
                     "cosmology":self.cosmology,
                     "cluster_index": cluster_index,
@@ -1320,6 +1324,7 @@ class cluster_number_counts:
         self.n_tot = np.sum(self.n_tot_vec)
 
         self.logger.info("Total clusters: %.5f",self.n_tot)
+        print("Total clusters: %.5f",self.n_tot)
 
         if self.cnc_params["non_validated_clusters"] == True:
 
