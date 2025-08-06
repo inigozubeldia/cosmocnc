@@ -108,6 +108,7 @@ class cluster_catalogue:
                         self.number_counts[i,j] = len(indices)
 
 
+
     def get_precompute_cnc_quantities(self):
 
         self.indices_no_z = np.argwhere(np.isnan(self.catalogue["z"]))[:,0]

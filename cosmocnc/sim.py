@@ -2,13 +2,12 @@ import numpy as np
 import pylab as pl
 from .cnc import *
 from .sr import *
-import numba
-import time
 
 class catalogue_generator:
 
     def __init__(self,number_counts=None,n_catalogues=1,seed=None
-    ,get_sky_coords=False,sky_frac=None,get_theta=False):
+    ,get_sky_coords=False,sky_frac=None,get_theta=False,std_vec_dict=None,
+    patches_from_coord=False):
 
         self.n_catalogues = n_catalogues
         self.get_sky_coords = get_sky_coords
@@ -16,6 +15,8 @@ class catalogue_generator:
         self.number_counts = number_counts
         self.params_cnc = self.number_counts.cnc_params
         self.get_theta = get_theta
+        self.std_vec_dict = std_vec_dict
+        self.patches_from_coord = patches_from_coord
 
         if seed is not None:
 
@@ -47,7 +48,7 @@ class catalogue_generator:
 
         self.n_tot_obs = np.random.poisson(lam=self.n_tot,size=self.n_catalogues)
 
-    def get_sky_patches(self):
+    def get_sky_patches_multinomial(self):
 
         self.sky_patches = {}
         p = self.skyfracs/np.sum(self.skyfracs)
@@ -56,6 +57,26 @@ class catalogue_generator:
 
             patches = np.random.multinomial(self.n_tot_obs[i],p)
             self.sky_patches[i] = np.repeat(np.arange(len(patches)),patches)
+
+
+    def get_sky_patches_from_coord(self,observables,n_clusters):
+
+        self.sky_patches = {}
+
+        lon,lat = sample_lonlat(int(np.round(n_clusters/np.sum(self.skyfracs)*1.2)))
+
+        patches = self.scaling_relations[self.params_cnc["obs_select"]].get_patch(lon,lat).astype(int)
+        indices_select = np.where(patches > -0.5)[0][0:n_clusters]
+        
+        self.sky_patches[self.params_cnc["obs_select"]] = patches[indices_select]
+        lon = lon[indices_select]
+        lat = lat[indices_select]
+
+        for observable in observables[1:]:
+
+            self.sky_patches[observable] = self.scaling_relations[observable].get_patch(lon,lat).astype(int)
+
+        return lon,lat
 
     def generate_catalogues_hmf(self):
 
@@ -106,87 +127,219 @@ class catalogue_generator:
 
         self.get_total_number_clusters()
         self.sample_total_number_clusters()
-        self.get_sky_patches()
+
+        if self.patches_from_coord == False:
+
+            self.get_sky_patches_multinomial()
 
         self.catalogue_list = []
 
         for i in range(0,self.n_catalogues):
 
+            catalogue = {}
             n_clusters = int(self.n_tot_obs[i])
+
+            if self.get_sky_coords == True and self.patches_from_coord == False:
+
+                lon,lat = sample_lonlat(n_clusters)
+
+            if self.patches_from_coord == True:
+
+                lon,lat = self.get_sky_patches_from_coord(self.params_cnc["observables"][0],n_clusters)
 
             z_samples,ln_M_samples = get_samples_pdf_2d(n_clusters,self.redshift_vec,self.ln_M,self.hmf_matrix)
 
             n_observables = len(self.params_cnc["observables"][0])
-            x0 = np.empty((n_observables,n_clusters))
-
-            for j in range(0,n_observables):
-
-                x0[j,:] = ln_M_samples
 
             D_A = np.interp(z_samples,self.redshift_vec,self.number_counts.D_A)
             E_z = np.interp(z_samples,self.redshift_vec,self.number_counts.E_z)
             D_l_CMB = np.interp(z_samples,self.redshift_vec,self.number_counts.D_l_CMB)
             rho_c = np.interp(z_samples,self.redshift_vec,self.number_counts.rho_c)
 
-            other_params = {"D_A": D_A,"E_z": E_z,
-            "H0": self.number_counts.cosmology.background_cosmology.H0.value,
-            "D_l_CMB":D_l_CMB,"rho_c":rho_c,"D_CMB":self.number_counts.cosmology.D_CMB}
+            other_params = {"D_A": D_A,
+                            "E_z": E_z,
+                            "H0": self.number_counts.cosmology.background_cosmology.H0.value,
+                            "D_l_CMB":D_l_CMB,
+                            "rho_c":rho_c,
+                            "D_CMB":self.number_counts.cosmology.D_CMB,
+                            "zc":z_samples,
+                            "cosmology":self.number_counts.cosmology}
 
             n_layers = self.scaling_relations[self.params_cnc["obs_select"]].get_n_layers()
 
-            patch_indices = self.sky_patches[i]
-
             observable_patches = {}
+            x0 = {}
 
             for observable in self.params_cnc["observables"][0]:
 
-                observable_patches[observable] = np.zeros(n_clusters,dtype=np.int8)
+                x0[observable] = ln_M_samples
 
-            observable_patches[self.params_cnc["obs_select"]] = patch_indices
+                if self.patches_from_coord == False:
+               
+                    observable_patches[observable] = np.zeros(n_clusters,dtype=np.int8)
+                    observable_patches[self.params_cnc["obs_select"]] = self.sky_patches[i]
+
+                elif self.patches_from_coord == True:
+
+                    observable_patches[observable] = self.sky_patches[observable]
 
             for i in range(0,n_layers):
 
-                x1 = np.zeros((n_observables,n_clusters))
+                x1 = {}
 
                 for j in range(0,n_observables):
 
                     observable = self.params_cnc["observables"][0][j]
-
                     scal_rel = self.scaling_relations[observable]
 
-                    x1[j,:] = scal_rel.eval_scaling_relation_no_precompute(x0[j,:],
-                    layer=i,patch_index=observable_patches[observable],
-                    params=self.number_counts.scal_rel_params,
-                    other_params=other_params)
+                    vec = self.params_cnc["observable_vectorised"]
 
-                covariance = covariance_matrix(self.scatter,self.params_cnc["observables"][0],
-                observable_patches=observable_patches,layer=np.arange(n_layers))
-                cov = covariance.cov[i]
+                    #if self.params_cnc["observable_vectorised"][observable] is True or self.params_cnc["observable_vectorised"] is True:
 
-                noise = np.transpose(np.random.multivariate_normal(np.zeros(n_observables),cov,size=n_clusters))
-                x1 = x1 + noise
+                    if (isinstance(vec, dict) and vec.get(observable, True)) or (isinstance(vec, bool) and vec):
+
+                        x1[observable] = scal_rel.eval_scaling_relation_no_precompute(x0[observable],
+                        layer=i,patch_index=observable_patches[observable],
+                        params=self.number_counts.scal_rel_params,
+                        other_params=other_params)
+
+                    #elif self.params_cnc["observable_vectorised"][observable] is False:
+                    elif (isinstance(vec, dict) and not vec.get(observable, True)) or (isinstance(vec, bool) and not vec):
+
+                        x1[observable] = []
+
+                        for k in range(0,n_clusters):
+
+                            other_params_cluster = {}
+
+                            for key in other_params.keys():
+                                
+                                if isinstance(other_params[key],float) or key == "cosmology":
+
+                                    other_params_cluster[key] = other_params[key]                                
+
+                                else:  
+
+                                    other_params_cluster[key] = other_params[key][k]
+
+                            a = scal_rel.eval_scaling_relation_no_precompute(np.array([x0[observable][k]]),
+                            layer=i,patch_index=observable_patches[observable][k],
+                            params=self.number_counts.scal_rel_params,
+                            other_params=other_params_cluster)[0]
+                            x1[observable].append(a)                        
+
+                #Same covariance for all clusters 
+
+                if self.params_cnc["cov_constant"][str(i)] is True:
+
+                    covariance = covariance_matrix(self.scatter,self.params_cnc["observables"][0],
+                    observable_patches=observable_patches,layer=np.arange(n_layers),other_params=other_params)
+                    cov = covariance.cov[i]
+
+                    noise = np.transpose(np.random.multivariate_normal(np.zeros(n_observables),cov,size=n_clusters))
+
+                    for ll in range(0,len(self.params_cnc["observables"][0])):
+
+                        x1[self.params_cnc["observables"][0][ll]] = x1[self.params_cnc["observables"][0][ll]] + noise[i,:]
+
+                #Different covariance
+
+                elif self.params_cnc["cov_constant"][str(i)] is False:
+
+                    for k in range(0,n_clusters):
+
+                        observable_patches_cluster = {}
+                        other_params_cluster = {}
+
+                        for key in observable_patches.keys():
+
+                            observable_patches_cluster[key] = observable_patches[key][k]
+
+                        for key in other_params.keys():
+
+                            if isinstance(other_params[key],float) or key == "cosmology":
+
+                                other_params_cluster[key] = other_params[key]
+
+                            else:  
+
+                                other_params_cluster[key] = other_params[key][k]
+
+                        if i < n_layers-1:
+
+                            covariance = covariance_matrix(self.scatter,self.params_cnc["observables"][0],
+                            observable_patches=observable_patches_cluster,layer=np.arange(n_layers),other_params=other_params_cluster)
+                            cov = covariance.cov[i]
+
+                            noise = np.transpose(np.random.multivariate_normal(np.zeros(n_observables),cov,size=1))
+
+                            kk = 0 
+
+                            for observable in self.params_cnc["observables"][0]:
+
+                                x1[observable][k] = x1[observable][k] + noise[kk,0]  
+                                kk = kk + 1  
+
+                        elif i == n_layers-1:
+
+                            if  any(self.params_cnc["observable_vector"].values()) is True:
+
+                                for observable in self.params_cnc["observables"][0]:
+
+                                    if self.params_cnc["observable_vector"][observable] is False:
+
+                                        covariance = covariance_matrix(self.scatter,[observable],
+                                        observable_patches=observable_patches_cluster,layer=np.arange(n_layers),other_params=other_params_cluster)
+                                        cov = covariance.cov[i]
+
+                                        noise = np.transpose(np.random.multivariate_normal([0.],cov,size=1))
+                                        x1[observable][k] = x1[observable][k] + noise[0][0]  
+
+                                    elif self.params_cnc["observable_vector"][observable] is True:
+
+                                        std = self.std_vec_dict[observable]
+                                        noise = np.random.normal(loc=0.0,scale=1.0,size=len(std))*std
+                                        x1[observable][k] = x1[observable][k] + noise
+
                 x0 = x1
 
-            catalogue = {}
+            print(x1[self.params_cnc["obs_select"]].shape)
 
-            indices_select = np.where(x1[0,:] > self.params_cnc["obs_select_min"])[0]
+            indices_select = np.where(np.array(x1[self.params_cnc["obs_select"]]) > self.params_cnc["obs_select_min"])[0]
+            
             z_samples_select = z_samples[indices_select]
             ln_M_samples_select = ln_M_samples[indices_select]
-            x1_select = x1[:,indices_select]
 
             catalogue["z"] = z_samples_select
             catalogue["M"] = np.exp(ln_M_samples_select)
 
-            for k in range(0,len(self.params_cnc["observables"][0])):
-
-                catalogue[self.params_cnc["observables"][0][k]] = x1_select[k,:]
-                catalogue[self.params_cnc["observables"][0][k] + "_patch"] = observable_patches[observable][indices_select]
-
             if self.get_sky_coords == True:
 
-                lon,lat = sample_lonlat(n_clusters)
-                catalogue["lon"] = lon
-                catalogue["lat"] = lat
+                catalogue["lon"] = lon[indices_select]
+                catalogue["lat"] = lat[indices_select]
+
+            for k in range(0,len(self.params_cnc["observables"][0])):
+
+                observable = self.params_cnc["observables"][0][k]
+
+                if isinstance(vec, bool) and vec:
+
+                    print(k,observable,"hereeee")
+
+                    catalogue[self.params_cnc["observables"][0][k]] = x1[observable][indices_select]
+
+                else:
+
+                    catalogue[self.params_cnc["observables"][0][k]] = []
+
+                    for kk in range(0,len(catalogue["M"])):
+
+                        catalogue[self.params_cnc["observables"][0][k]].append(x1[observable][indices_select[kk]])
+                                        
+
+                catalogue[observable + "_patch"] = observable_patches[observable][indices_select]
+
+
 
             self.catalogue_list.append(catalogue)
 
@@ -198,6 +351,8 @@ def get_samples_pdf(n_samples,x,cpdf):
     x_samples = np.interp(cpdf_samples,cpdf,x)
 
     return x_samples
+
+
 
 def get_samples_pdf_2d(n_samples,x,y,pdf):
 
@@ -233,3 +388,4 @@ def sample_lonlat(n_clusters):
     lat = np.arccos(2.*np.random.rand(n_clusters)-1.)
 
     return lon,lat
+

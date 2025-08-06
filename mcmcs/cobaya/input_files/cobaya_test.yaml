@@ -1,0 +1,72 @@
+theory:
+  camb:
+    extra_args:
+      AccuracyBoost: 1
+      # IntkAccuracyBoost: 2
+      # TransferkBoost: 2
+
+
+debug: False
+
+likelihood:
+
+  CNCLike:
+
+    class: cosmocnc.CNCLike
+
+    survey_sr: /home/iz221/cnc/surveys/survey_sr_so_sim.py 
+    survey_cat: /home/iz221/cnc/surveys/survey_cat_so_sim.py 
+    observables: [["q_so_sim"]]
+    data_lik_from_abundance: True
+    n_points: 16384
+    n_z: 100
+    z_min: 0.01
+    z_max: 3.
+    M_min: 5e13
+    M_max: 1e16
+    obs_select_max: 200.
+    obs_select_min: 5.
+
+params:
+
+  #Cosmology
+
+  ombh2:
+    value: 0.0224
+  omch2:
+    value: 0.12
+  H0:
+    value: 67.0
+  logA:
+    value: 3.05
+  As:
+    value: 'lambda logA: 1e-10*np.exp(logA)'
+  ns:
+    value: 0.965
+  tau:
+    value: 0.054
+
+  #Scaling relation
+
+  A_szifi:
+    value: -4.3054
+  alpha_szifi: 
+    value: 1.12
+  sigma_lnq_szifi: 
+    value: 0.173
+  bias_sz: 
+    value: 0.8
+  dof:
+    value: 0.
+  bias_cmblens:
+    value: 0.92
+  sigma_lnp:
+    value: 0.22
+
+  
+
+sampler:
+
+  evaluate:
+
+output: /home/iz221/rds/rds-dirac-dp002/iz221/chains/cosmocnc_test

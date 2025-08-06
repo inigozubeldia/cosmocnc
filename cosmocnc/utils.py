@@ -8,6 +8,7 @@ import math
 import time
 import sys
 import pylab as pl
+from scipy import ndimage
 
 
 
@@ -25,7 +26,7 @@ def set_verbosity(verbosity):
         'minimal': logging.INFO,
         'extensive': logging.DEBUG
     }
-    # print(f'Setting verbosity to {verbosity}')
+
     level = levels.get(verbosity, logging.INFO)
     configure_logging(level)
 
@@ -44,6 +45,8 @@ def convolve_1d(x,dn_dx,sigma=None,type="fft",kernel=None,sigma_min=0):
 def convolve_nd(distribution,kernel):
 
     convolved = signal.convolve(distribution,kernel,mode="same")/np.sum(kernel)
+
+    #convolved = ndimage.convolve(distribution,kernel,mode="nearest")/np.sum(kernel)
 
     return convolved
 
@@ -80,11 +83,7 @@ def get_mesh(x):
 
     if x.shape[0] == 1:
 
-    #    x_mesh = np.array(np.meshgrid(x[0,:]))
-
         x_mesh = x
-
-    #    print("shape mesh",x_mesh.shape)
 
     elif x.shape[0] == 2:
 

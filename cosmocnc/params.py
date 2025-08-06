@@ -25,10 +25,12 @@ cnc_params_default = {
     "n_points_data_lik": 128, #number of points for the computation of the cluster data part of the likelihood
     "sigma_mass_prior": 5.,
     "downsample_hmf_bc": 1,
+    "padding_fraction": 0.,
 
     #Observables and catalogue
 
     "load_catalogue": True,
+    "precompute_cnc_quantities_catalogue": True,
     "likelihood_type": "unbinned", #"unbinned", "binned", or "extreme_value"
     "obs_select": "q_so_sim", #"q_mmf3_mean",
     "observables": [["q_so_sim"],["p_so_sim"]],
@@ -54,17 +56,17 @@ cnc_params_default = {
     "cosmology_tool": "classy_sz", #"astropy" or "classy_sz"
     "M_min": 5e13,
     "M_max": 5e15,
+    "M_min_extended": None,
     "hmf_calc": "cnc", #"cnc", "hmf", "MiraTitan", or "classy_sz"
     "hmf_type": "Tinker08",
     "mass_definition": "500c",
     "hmf_type_deriv": "numerical", #"analytical" or "numerical"
     "power_spectrum_type": "cosmopower",
     "cosmo_amplitude_parameter": "sigma_8", #"sigma_8" or "A_s"
-    "Hubble_parameter": "h", # "H0" or "h"
     "cosmo_param_density": "critical", #"physical" or "critical"
     "scalrel_type_deriv": "analytical", #"analytical" or "numerical"
     "sigma_scatter_min": 1e-5,
-    "interp_tinker": "linear", #"linear" or "log"
+    "interp_tinker": "linear", #"linear" or "log", only if "hmf_calc"=="cnc"
 
     "cosmo_model": "lcdm",
     #"class_sz_cosmo_model": "lcdm", # lcdm, mnu, neff, wcdm, ede
@@ -102,6 +104,13 @@ cnc_params_default = {
     "stacked_likelihood": False,
     "stacked_data": ["p_zc19_stacked"], #list of stacked data
     "compute_stacked_cov": True,
+
+    #Only for simulator
+
+    "cov_constant": {"0": True, "1": True},
+    "observable_vectorised": True,
+    "observable_vector": False,
+
 
     #Priors
 

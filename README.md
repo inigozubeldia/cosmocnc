@@ -1,8 +1,8 @@
 # cosmocnc
 
-cosmocnc is a Python package for evaluating the number count likelihood of galaxy cluster catalogues in a fast, flexible and accurate way. It is based on the use of Fast Fourier Transform (FFT) convolutions in order to evaluate some of the likelihood integrals. The code was introduced in [Zubeldia & Bolliet (2024)](https://arxiv.org/abs/2403.09589), where the likelihood formalism and   implementation are described in detail. If you use the code, please cite the paper.
+cosmocnc is a Python package for evaluating the number count likelihood of galaxy cluster catalogues in a fast, flexible and accurate way. It is based on the use of Fast Fourier Transform (FFT) convolutions in order to evaluate some of the likelihood integrals. The code was introduced in [Zubeldia & Bolliet (2024)](https://iopscience.iop.org/article/10.1088/1475-7516/2024/11/018), where the likelihood formalism and   implementation are described in detail. If you use the code, please cite the paper.
 
-If you have any questions or comments, please write Íñigo Zubeldia at inigo.zubeldia at ast cam ac uk.
+If you have any questions or comments, please write to Íñigo Zubeldia at inigo.zubeldia at ast cam ac uk.
 
 ## Main features of the code
 
@@ -10,7 +10,7 @@ The main features of the code are the following:
 
 - It supports three types of likelihoods: an unbinned likelihood, a binned likelihood, and an extreme value likelihood.
 - It also supports the addition of stacked cluster data (e.g., stacked lensing profiles), which is modelled in a consistent way with the cluster catalogue.
-- It links the cluster mass observables (also known as mass proxies, e.g., tSZ signal-to-noise, richness, lensing mass estimate, or X-ray flux) to the cluster mass and redshift through a hierarchical model with an arbitrary number of layers, allowing for correlated scatter between the different mass observables. In each layer, the mass--observable scaling relations and the scatter covariance matrix can be easily defined in a custom way, and can depend on sky location and redshift.
+- It links the cluster mass observables (also known as mass proxies, e.g., tSZ signal-to-noise, richness, lensing mass estimate, or X-ray flux) to the cluster mass and redshift through a hierarchical model with an arbitrary number of layers, allowing for correlated scatter between the different mass observables. In each layer, the mass-observable scaling relations and the scatter covariance matrix can be easily defined in a custom way, and can depend on sky location and redshift.
 - It incorporates several widely-used halo mass functions.
 - The unbinned likelihood is the most general and flexible of the three. It supports an arbitrary number of cluster mass observables for each cluster in the sample and it allows for the set of mass observables to vary from cluster to cluster. It also allows for redshift measurement uncertainties. If some mass observables have completely uncorrelated scatter, cosmocnc takes advantage of this fact, boosting its computational performance significantly.
 - The binned and extreme value likelihoods, on the other hand, consider the cluster abundance only across one mass observable and/or redshift, and do not allow for redshift measurement uncertainties.
