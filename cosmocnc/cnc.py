@@ -232,8 +232,6 @@ class cluster_number_counts:
             self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=volume_element)
             self.logger.debug('Collecting hmf done')
 
-
-
         t1 = time.time()
 
         self.t_hmf = t1-t0
@@ -329,6 +327,24 @@ class cluster_number_counts:
                                                                                                patch_index=patch_index,
                                                                                                scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
 
+
+                            # if redshift_index == 20:
+
+                            #     pl.figure()
+                            #     pl.plot(x0,x1)
+                            #     pl.savefig("/home/iz221/cfc_inigo/figures/SNRm.pdf")
+                            #     pl.show()
+
+                            #     pl.figure()
+                            #     pl.plot(x0,dn_dx0)
+                            #     pl.savefig("/home/iz221/cfc_inigo/figures/dndm.pdf")
+                            #     pl.show()
+
+                            #     pl.figure()
+                            #     pl.plot(x0,dx1_dx0)
+                            #     pl.savefig("/home/iz221/cfc_inigo/figures/dSNRdm.pdf")
+                            #     pl.show()
+
                             # Check if 0 or NaN is in dx1_dx0 and print the arrays if the condition is met
                             if 0 in dx1_dx0 or np.isnan(dx1_dx0).any():
 
@@ -354,10 +370,24 @@ class cluster_number_counts:
                                     indices = np.where(x1_interp < cutoff)
                                     dn_dx1[indices] = 0.
 
+                            # if redshift_index == 20:
+
+                            #     pl.figure()
+                            #     pl.semilogx(x1_interp,dn_dx1)
+                            #     pl.savefig("/home/iz221/cfc_inigo/figures/dndq_before.pdf")
+                            #     pl.show()                                
+
                             dn_dx1 = convolve_1d(x1_interp,dn_dx1,
                                                  sigma=sigma_scatter,
                                                  type=self.cnc_params["abundance_integral_type"],
                                                  sigma_min=self.cnc_params["sigma_scatter_min"])
+
+                            # if redshift_index == 20:
+
+                            #     pl.figure()
+                            #     pl.semilogx(x1_interp,dn_dx1)
+                            #     pl.savefig("/home/iz221/cfc_inigo/figures/dndq_after.pdf")
+                            #     pl.show()
 
                             # pass to next layer
                             x0 = x1_interp
@@ -397,6 +427,11 @@ class cluster_number_counts:
         if self.cnc_params["compute_abundance_matrix"] == True:
 
             self.get_abundance_matrix()
+
+        self.dndz_hmf = integrate.simpson(self.hmf_matrix*4.*np.pi*np.sum(skyfracs), x=self.ln_M,axis=1)
+        self.n_tot_hmf = integrate.simpson(self.dndz_hmf, x=self.redshift_vec)
+
+        print("N tot hmf",self.n_tot_hmf)
 
     #Computes the data part of the unbinned likelihood
 
@@ -618,9 +653,6 @@ class cluster_number_counts:
                             for observable in observable_set:
 
                                 observable_patches[observable] = self.catalogue.catalogue_patch[observable][cluster_index]
-
-                                layers = np.arange(self.scaling_relations[observable].get_n_layers())
-
                                 self.scaling_relations[observable].precompute_scaling_relation(params=self.scal_rel_params,
                                 other_params=other_params,patch_index=observable_patches[observable])
 
@@ -651,12 +683,14 @@ class cluster_number_counts:
                             self.scatter_range = self.scatter
 
                         obs_mass_def = self.cnc_params["obs_select"]
+                        layers_obs_select = np.arange(self.scaling_relations_range[obs_mass_def].get_n_layers())
+                        
 
                         lnM = np.linspace(np.log(self.cnc_params["M_min"]/1e14),np.log(self.cnc_params["M_max"]/1e14),self.cnc_params["n_points_data_lik"])
 
                         x0 = lnM
 
-                        for i in layers:
+                        for i in layers_obs_select:
 
                             x1 = self.scaling_relations_range[obs_mass_def].eval_scaling_relation(x0,
                             layer=i,
@@ -672,7 +706,7 @@ class cluster_number_counts:
                         x_centre_list = []
                         derivative_list = []
 
-                        for i in layers:
+                        for i in layers_obs_select:
 
                             if self.cnc_params["scalrel_type_deriv"] == "analytical":
 
@@ -694,7 +728,7 @@ class cluster_number_counts:
 
                         DlnM = 0.
 
-                        for i in np.flip(layers):
+                        for i in np.flip(layers_obs_select):
 
                             sigma = np.sqrt(self.scatter_range.get_cov(observable1=obs_mass_def,observable2=obs_mass_def,
                             layer=i,patch1=observable_patches[obs_mass_def],patch2=observable_patches[obs_mass_def]))
@@ -742,7 +776,7 @@ class cluster_number_counts:
                                 for observable in observable_set:
 
                                     x_obs.append(self.catalogue.catalogue[observable][cluster_index])
-
+                                    layers = np.arange(self.scaling_relations[observable].get_n_layers())
                                 #x_obs = np.array(x_obs)
 
                                 covariance = covariance_matrix(self.scatter,observable_set,
@@ -1580,7 +1614,7 @@ class cluster_number_counts:
                 if self.cnc_params["load_catalogue"] is True:
 
                     n_observed = self.catalogue.number_counts[i]
-                    
+
                 self.n_binned_obs[i] = n_observed
                 self.n_binned[i] = n_theory
 
