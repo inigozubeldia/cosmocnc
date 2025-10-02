@@ -40,7 +40,6 @@ class cluster_number_counts:
 
     #Loads data (catalogue and scaling relation data)
 
-
     def initialise(self):
 
         #Verbosity
@@ -430,8 +429,6 @@ class cluster_number_counts:
 
         self.dndz_hmf = integrate.simpson(self.hmf_matrix*4.*np.pi*np.sum(skyfracs), x=self.ln_M,axis=1)
         self.n_tot_hmf = integrate.simpson(self.dndz_hmf, x=self.redshift_vec)
-
-        print("N tot hmf",self.n_tot_hmf)
 
     #Computes the data part of the unbinned likelihood
 
@@ -1460,6 +1457,8 @@ class cluster_number_counts:
 
         self.time_hmf = t1-t0
 
+        #print("Time hmf",self.time_hmf)
+
         if self.n_tot is None:
 
             self.get_number_counts()
@@ -1484,11 +1483,15 @@ class cluster_number_counts:
 
         self.t_abundance = t2-t1
 
+        # abundance",self.t_abundance)
+
         #Cluster data term
 
         log_lik = log_lik + self.get_log_lik_data()
 
         self.t_data = time.time()-t2
+
+        #print("Time data",self.t_data)
 
         #Stacked_term
 

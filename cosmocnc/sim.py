@@ -44,6 +44,8 @@ class catalogue_generator:
         self.dndln_M = integrate.simpson(self.hmf_matrix, x=self.redshift_vec,axis=0)
         self.n_tot = integrate.simpson(self.dndz, x=self.redshift_vec)
 
+        print("Total mean number of clusters",self.n_tot)
+
     def sample_total_number_clusters(self):
 
         self.n_tot_obs = np.random.poisson(lam=self.n_tot,size=self.n_catalogues)

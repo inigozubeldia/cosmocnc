@@ -19,10 +19,9 @@ class cosmology_model:
 
         self.logger = logging.getLogger(__name__)
 
+        # if cosmo_params is None:
 
-        if cosmo_params is None:
-
-            cosmo_params = cosmo_params_default
+        #     cosmo_params = cosmo_params_default
 
         self.cosmo_params = cosmo_params
         self.amplitude_parameter = amplitude_parameter
@@ -32,8 +31,6 @@ class cosmology_model:
         #     self.logger.warning(f'Cosmology model in cosmocnc params and classy_sz params do not match. Using classy_sz params.')
         #     self.cnc_params["class_sz_cosmo_model"] = self.cnc_params["cosmo_model"]
         #
-
-
 
         if cosmology_tool == "classy_sz":
 
@@ -158,7 +155,7 @@ class cosmology_model:
 
             # self.logger.debug(f'collected hmf')
 
-        if cosmology_tool == "astropy":
+        elif cosmology_tool == "astropy":
 
             import astropy.cosmology as cp
 
@@ -203,6 +200,30 @@ class cosmology_model:
 
                     self.sigma_8 = self.power_spectrum.get_sigma_8()
                     self.cosmo_params["sigma_8"] = self.sigma_8
+
+        elif cosmology_tool == "cobaya":
+
+            cobaya_cosmology = cobaya_cosmo(self.cnc_params)
+
+            self.power_spectrum = cobaya_cosmology
+            self.background_cosmology = cobaya_cosmology
+            self.background_cosmology.H0.value = cobaya_cosmology.H(0).value
+            h = self.background_cosmology.H0.value/100.
+
+            self.cosmo_params["Om0"] = cobaya_cosmology.Om(0.)
+            self.cosmo_params["Ob0"] = cobaya_cosmology.Ob(0.)
+            self.cosmo_params["sigma_8"] = cobaya_cosmology.sigma8(0.)
+            self.cosmo_params["Onu0"] = cobaya_cosmology.Omega_nu_massive(0.)
+            self.cosmo_params["n_s"] = cobaya_cosmology.ns
+            self.cosmo_params["h"] = h
+
+
+            self.z_CMB = cobaya_cosmology.z_cmb
+            self.D_CMB = self.background_cosmology.angular_diameter_distance(self.z_CMB).value
+
+
+        print("cosmo params",self.cosmo_params)
+
 
     def update_cosmology(self,cosmo_params_new,cosmology_tool = "astropy"):
 
@@ -309,7 +330,7 @@ class cosmology_model:
             self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
             self.get_dndlnM_at_z_and_M = np.vectorize(self.classy.get_dndlnM_at_z_and_M)
 
-        if cosmology_tool == "astropy":
+        elif cosmology_tool == "astropy":
 
             self.background_cosmology = self.cosmology_tool.FlatLambdaCDM(self.cosmo_params["h"]*100.,
                                                                           self.cosmo_params["Om0"],
@@ -342,6 +363,25 @@ class cosmology_model:
 
                     self.sigma_8 = self.power_spectrum.get_sigma_8()
                     self.cosmo_params["sigma_8"] = self.sigma_8
+
+        elif cosmology_tool == "cobaya":
+
+            cobaya_cosmology = cobaya_cosmo(self.cnc_params)
+
+            self.power_spectrum = cobaya_cosmology
+            self.background_cosmology = cobaya_cosmology
+            self.background_cosmology.H0.value = cobaya_cosmology.H(0).value
+            h = self.background_cosmology.H0.value/100.
+
+            self.cosmo_params["Om0"] = cobaya_cosmology.Om(0.)
+            self.cosmo_params["Ob0"] = cobaya_cosmology.Ob(0.)
+            self.cosmo_params["sigma_8"] = cobaya_cosmology.sigma8(0.)
+            self.cosmo_params["Onu0"] = cobaya_cosmology.Omega_nu_massive(0.)
+            self.cosmo_params["n_s"] = cobaya_cosmology.ns
+            self.cosmo_params["h"] = h
+
+            self.z_CMB = cobaya_cosmology.z_cmb
+            self.D_CMB = self.background_cosmology.angular_diameter_distance(self.z_CMB).value
 
         theta_mc = self.get_theta_mc()
 
@@ -378,7 +418,6 @@ class cosmology_model:
     def get_Omega_nu(self):
 
         return self.Omega_nu
-
 
 
 class classy_sz:
@@ -447,3 +486,109 @@ class classy_sz:
         value = 0
         # return {'hubble':np.vectorize(self.classy.Hubble)(z)}
         # return result
+
+
+class cobaya_cosmo:
+
+    def __init__(self,cnc_params):
+
+        self.cnc_params = cnc_params
+        self.const = constants()
+        self.k_arr = np.geomspace(1e-4,50.,500) # same as in cosmopower, in Mpc-1
+        self.provider = self.cnc_params["cobaya_provider"]
+        self.cnc_params = cnc_params
+        self.z_vec =  np.linspace(self.cnc_params["z_min"],self.cnc_params["z_max"],self.cnc_params["n_z"])
+        self.z_vec = np.concatenate([[0.],self.z_vec])
+        self.ns = self.provider.get_param("ns")
+        self.z_cmb = 1100.
+
+    def get_linear_power_spectrum(self,redshift):
+
+       # ps = self.provider.get_Pk_interpolator(nonlinear=False)(redshift,self.k_arr)[0,:]
+
+        (k, z, ps) = self.provider.get_Pk_grid(nonlinear=False)
+        index = np.abs(z-redshift).argmin()
+        ps = np.interp(self.k_arr,k,ps[index,:])
+
+        return (self.k_arr,ps)
+
+    def critical_density(self,z):
+
+        class result:
+
+            conv_fac = self.const.solar/(1000.*self.const.mpc**3)
+            Hz = self.H(z).value
+            G = 4.301e-9  # Mpc M_sun^-1 (km/s)^2
+            rho_crit = 3*Hz**2/(8*np.pi*G)
+    
+            value = rho_crit*conv_fac
+
+        return result
+
+    def differential_comoving_volume(self,z):
+
+        class result:
+
+            Hz = self.H(z).value  # km/s/Mpc
+            DM = self.provider.get_comoving_radial_distance(z)  # Mpc
+            c = 299792.458  # km/s
+            value = c / Hz * DM**2 
+
+        return result
+
+    def angular_diameter_distance(self,z):
+        
+        class result:
+
+            value = self.provider.get_angular_diameter_distance(z)
+
+        return result
+
+    def angular_diameter_distance_z1z2(self,z1,z2):
+
+        z_pairs = [(z, z2) for z in z1]
+
+        class result:
+
+            value = self.provider.get_angular_diameter_distance_2(z_pairs)
+
+        return result
+
+    def H(self,z):
+
+        class result:
+
+            value =  self.provider.get_Hubble(z)
+        return result
+
+    class H0:
+        # def __init__(self):
+            # conv_fac = 299792.458
+            # class result:
+        value = 0
+        # return {'hubble':np.vectorize(self.classy.Hubble)(z)}
+        # return result
+
+    def Oc(self,z):
+
+        #return np.interp(z,self.z_vec,self.provider.get_Omega_cdm())
+        return self.provider.get_Omega_cdm(z)
+
+    def Ob(self,z):
+
+        #return np.interp(z,self.z_vec,self.provider.get_Omega_b())
+        return self.provider.get_Omega_b(z)
+
+    def Om(self,z):
+
+        return self.Oc(z)+self.Ob(z)
+
+    def Omega_nu_massive(self,z):
+
+        #return np.interp(z,self.z_vec,self.provider.get_Omega_nu_massive())       
+        return self.provider.get_Omega_nu_massive(z)    
+
+    def sigma8(self,z):
+
+        #return np.interp(z,self.z_vec,self.provider.sigma8_z())       
+        return self.provider.get_sigma8_z(z)     
