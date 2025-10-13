@@ -170,6 +170,7 @@ class cluster_number_counts:
         #Define redshift and observable ranges
 
         self.redshift_vec = np.linspace(self.cnc_params["z_min"],self.cnc_params["z_max"],self.cnc_params["n_z"])
+        #self.redshift_vec = np.exp(np.linspace(np.log(self.cnc_params["z_min"]),np.log(self.cnc_params["z_max"]),self.cnc_params["n_z"]))
         self.obs_select_vec = np.linspace(self.cnc_params["obs_select_min"],self.cnc_params["obs_select_max"],self.cnc_params["n_points"])
 
         #Evaluate some useful quantities (to be potentially passed to scaling relations)
@@ -234,6 +235,7 @@ class cluster_number_counts:
 
 
             self.ln_M,self.hmf_matrix = self.halo_mass_function.eval_hmf(self.redshift_vec,log=True,volume_element=volume_element)
+            # print("HMF matrix at cnc.py is", self.hmf_matrix)
 
 
             self.logger.debug('Collecting hmf done')

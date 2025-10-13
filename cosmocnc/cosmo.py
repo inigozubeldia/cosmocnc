@@ -49,6 +49,10 @@ class cosmology_model:
 
                 self.classy.set({"ln10^{10}A_s": np.log(self.cosmo_params["A_s"]*1e10)})
 
+            elif self.amplitude_parameter == "logA":
+
+                self.classy.set({"ln10^{10}A_s": self.cosmo_params["logA"]})
+
             if self.cnc_params["cosmo_param_density"] == "critical":
 
                 self.classy.set({'omega_b': self.cosmo_params["Ob0"]*self.cosmo_params["h"]**2,
@@ -119,7 +123,7 @@ class cosmology_model:
             self.logger.info('computing class_szfast')
 
             self.classy.compute_class_szfast()
-
+            
             self.logger.info('computing class_szfast done')
 
             self.T_CMB_0 = self.classy.T_cmb()
@@ -232,6 +236,7 @@ class cosmology_model:
                           'use_m200c_in_ym_relation' : self.cnc_params["class_sz_use_m200c_in_ym_relation"],
 
                           }
+            # print(classy_params)
 
             if  self.cnc_params['cosmo_model'] == "wcdm":
 
@@ -252,6 +257,9 @@ class cosmology_model:
             elif self.amplitude_parameter == "A_s":
 
                 classy_params['ln10^{10}A_s'] = np.log(self.cosmo_params["A_s"]*1e10)
+
+            elif self.amplitude_parameter == "logA":
+                classy_params['ln10^{10}A_s'] = self.cosmo_params["logA"]
 
             if self.cnc_params["cosmo_param_density"] == "critical":
 
@@ -289,6 +297,7 @@ class cosmology_model:
             self.get_m500c_to_m200c_at_z_and_M = np.vectorize(self.classy.get_m500c_to_m200c_at_z_and_M)
             self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
             self.get_dndlnM_at_z_and_M = np.vectorize(self.classy.get_dndlnM_at_z_and_M)
+            # print(self.classy.get_dndlnM_at_z_and_M(0.5,1e14))
 
         if cosmology_tool == "astropy":
 

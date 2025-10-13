@@ -222,7 +222,7 @@ class halo_mass_function:
                 if np.isnan(hmf).any():
                     print('nan in hmf')
                     exit(0)
-                # print('hmf',hmf)
+                # print('hmf matrix in hmf.py is',hmf)
                 # exit(0)
 
 
