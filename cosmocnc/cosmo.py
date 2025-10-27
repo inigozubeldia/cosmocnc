@@ -141,8 +141,8 @@ class cosmology_model:
             self.Omega_nu = self.classy.Omega_nu
             self.cosmo_params["Onu0"] = self.Omega_nu
 
-            self.power_spectrum = classy_sz(self.classy)
-            self.background_cosmology = classy_sz(self.classy)
+            self.power_spectrum = classy_sz(self.classy,cosmo_params=self.cosmo_params)
+            self.background_cosmology = classy_sz(self.classy,cosmo_params=self.cosmo_params)
             self.background_cosmology.H0.value = self.classy.h()*100.
 
             self.logger.debug(f'Got: {self.T_CMB_0}, {self.sigma8}')
@@ -323,8 +323,8 @@ class cosmology_model:
             self.Omega_nu = self.classy.Omega_nu
             self.cosmo_params["Onu0"] = self.Omega_nu
 
-            self.power_spectrum = classy_sz(self.classy)
-            self.background_cosmology = classy_sz(self.classy)
+            self.power_spectrum = classy_sz(self.classy,cosmo_params=self.cosmo_params)
+            self.background_cosmology = classy_sz(self.classy,cosmo_params=self.cosmo_params)
             self.background_cosmology.H0.value = self.classy.h()*100.
             self.get_m500c_to_m200c_at_z_and_M = np.vectorize(self.classy.get_m500c_to_m200c_at_z_and_M)
             self.get_c200c_at_m_and_z = np.vectorize(self.classy.get_c200c_at_m_and_z_D08)
@@ -422,7 +422,9 @@ class cosmology_model:
 
 class classy_sz:
 
-    def __init__(self,classy):
+    def __init__(self,classy,cosmo_params=None):
+
+        self.cosmo_params = cosmo_params
 
         self.const = constants()
 
@@ -431,9 +433,42 @@ class classy_sz:
 
         self.classy = classy
 
-    def get_linear_power_spectrum(self,redshift):
+    def get_linear_power_spectrum(self,redshift
+                                  ):
+        
+        pkl = np.vectorize(self.classy.pk_lin)(self.k_arr,redshift)
 
-        return (self.k_arr,np.vectorize(self.classy.pk_lin)(self.k_arr,redshift))
+        k_cutoff = self.cosmo_params["k_cutoff"]
+        ps_cutoff = self.cosmo_params["ps_cutoff"]
+                
+        if k_cutoff < 10:
+        
+            x = np.linspace(np.log10(0.1),np.log10(100.),10000)
+        
+            centre = np.log10(0.5)
+            max = 1
+            min = 0.7
+            width = (np.log10(10.)-np.log10(0.1))
+        
+            suppression = -np.tanh((x-centre)/width*4)*0.5*(max-min)+min+(max-min)*0.5
+        
+            ps_cutoff = np.interp(np.log10(self.k_arr),x+np.log10(0.677),suppression)
+        
+            # pl.figure()
+            # pl.semilogx(k_arr_re/0.677,ps_cutoff)
+            # pl.xlim([0.01,100])
+            # pl.xlabel("$k$ ($h$ Mpc)")
+            # pl.ylabel("Power spectrum suppression")
+            # pl.savefig("/home/iz221/cnc/figures/test_ps.pdf")
+            # pl.show()
+        
+        
+        # indices = np.where(k_arr_re > k_cutoff)
+        # pkl_re[indices] = pkl_re[indices]*ps_cutoff
+        
+            pkl = pkl*ps_cutoff
+
+        return (self.k_arr,pkl)
 
     def critical_density(self,z):
 
