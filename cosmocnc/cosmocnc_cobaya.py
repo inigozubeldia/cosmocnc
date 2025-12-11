@@ -189,7 +189,7 @@ class CNCLike(InstallableLikelihood):
 
         log_like = self.cnc.get_log_lik()
 
-        print("log lik",log_like)
+        #print("log lik",log_like)
 
         return log_like
 

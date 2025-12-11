@@ -44,6 +44,8 @@ class catalogue_generator:
         self.dndln_M = integrate.simpson(self.hmf_matrix, x=self.redshift_vec,axis=0)
         self.n_tot = integrate.simpson(self.dndz, x=self.redshift_vec)
 
+        print("Total mean number of clusters",self.n_tot)
+
     def sample_total_number_clusters(self):
 
         self.n_tot_obs = np.random.poisson(lam=self.n_tot,size=self.n_catalogues)
@@ -115,8 +117,8 @@ class catalogue_generator:
         D_A = self.number_counts.D_A
         E_z = self.number_counts.E_z
 
-        D_A = np.interp(M,self.number_counts.redshift_vec,D_A)
-        E_z = np.interp(M,self.number_counts.redshift_vec,E_z)
+        D_A = np.interp(z,self.number_counts.redshift_vec,D_A)
+        E_z = np.interp(z,self.number_counts.redshift_vec,E_z)
 
         prefactor_M_500_to_theta = 6.997*(H0/70.)**(-2./3.)*(bias/3.)**(1./3.)*E_z**(-2./3.)*(500./D_A)
         theta_so = prefactor_M_500_to_theta*M**(1./3.) #in arcmin
@@ -134,10 +136,10 @@ class catalogue_generator:
 
         self.catalogue_list = []
 
-        for i in range(0,self.n_catalogues):
+        for ii in range(0,self.n_catalogues):
 
             catalogue = {}
-            n_clusters = int(self.n_tot_obs[i])
+            n_clusters = int(self.n_tot_obs[ii])
 
             if self.get_sky_coords == True and self.patches_from_coord == False:
 
@@ -177,7 +179,7 @@ class catalogue_generator:
                 if self.patches_from_coord == False:
                
                     observable_patches[observable] = np.zeros(n_clusters,dtype=np.int8)
-                    observable_patches[self.params_cnc["obs_select"]] = self.sky_patches[i]
+                    observable_patches[self.params_cnc["obs_select"]] = self.sky_patches[ii]
 
                 elif self.patches_from_coord == True:
 
@@ -240,7 +242,7 @@ class catalogue_generator:
 
                     for ll in range(0,len(self.params_cnc["observables"][0])):
 
-                        x1[self.params_cnc["observables"][0][ll]] = x1[self.params_cnc["observables"][0][ll]] + noise[i,:]
+                        x1[self.params_cnc["observables"][0][ll]] = x1[self.params_cnc["observables"][0][ll]] + noise[ll,:]
 
                 #Different covariance
 

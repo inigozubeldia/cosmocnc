@@ -153,34 +153,34 @@ class cosmopower:
         k_arr_re = k_arr
         pkl_re = pkl
 
-        # k_cutoff = self.cosmo_params["k_cutoff"]
-        # ps_cutoff = self.cosmo_params["ps_cutoff"]
-        #
-        # if k_cutoff < 10:
-        #
-        #     x = np.linspace(np.log10(0.1),np.log10(10.))
-        #
-        #     centre = np.log10(0.5)
-        #     max = 1
-        #     min = 0.7
-        #     width = (np.log10(10.)-np.log10(0.1))
-        #
-        #     suppression = -np.tanh((x-centre)/width*4)*0.5*(max-min)+min+(max-min)*0.5
-        #
-        #     ps_cutoff = np.interp(np.log10(k_arr_re),x+np.log10(0.677),suppression)
-        #
-        #     # pl.figure()
-        #     # pl.semilogx(k_arr_re/0.677,ps_cutoff)
-        #     # pl.xlim([0.01,100])
-        #     # pl.xlabel("$k$ ($h$ Mpc)")
-        #     # pl.ylabel("Power spectrum suppression")
-        #     # pl.savefig("/home/iz221/cnc/figures/test_ps.pdf")
-        #     # pl.show()
-        #
-        #
-        # #indices = np.where(k_arr_re > k_cutoff)
-        # #pkl_re[indices] = pkl_re[indices]*ps_cutoff
-        #
-        # pkl_re = pkl_re*ps_cutoff
+        k_cutoff = self.cosmo_params["k_cutoff"]
+        ps_cutoff = self.cosmo_params["ps_cutoff"]
+        
+        if k_cutoff < 10:
+        
+            x = np.linspace(np.log10(0.1),np.log10(10.))
+        
+            centre = np.log10(0.5)
+            max = 1
+            min = 0.7
+            width = (np.log10(10.)-np.log10(0.1))
+        
+            suppression = -np.tanh((x-centre)/width*4)*0.5*(max-min)+min+(max-min)*0.5
+        
+            ps_cutoff = np.interp(np.log10(k_arr_re),x+np.log10(0.677),suppression)
+        
+            # pl.figure()
+            # pl.semilogx(k_arr_re/0.677,ps_cutoff)
+            # pl.xlim([0.01,100])
+            # pl.xlabel("$k$ ($h$ Mpc)")
+            # pl.ylabel("Power spectrum suppression")
+            # pl.savefig("/home/iz221/cnc/figures/test_ps.pdf")
+            # pl.show()
+        
+        
+        #indices = np.where(k_arr_re > k_cutoff)
+        #pkl_re[indices] = pkl_re[indices]*ps_cutoff
+        
+        pkl_re = pkl_re*ps_cutoff
 
         return (k_arr_re,pkl_re)
