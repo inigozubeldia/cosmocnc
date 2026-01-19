@@ -26,6 +26,7 @@ cnc_params_default = {
     "sigma_mass_prior": 5.,
     "downsample_hmf_bc": 1,
     "padding_fraction": 0.,
+    "pad_abundance": False,
 
     #Observables and catalogue
 

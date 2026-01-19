@@ -317,34 +317,15 @@ class cluster_number_counts:
                         for k in range(0,self.scal_rel_selection.get_n_layers()):
 
                             x1 = self.scal_rel_selection.eval_scaling_relation(x0,
-                                                         layer=k,
-                                                         other_params=other_params,
-                                                         patch_index=patch_index)
+                                                        layer=k,
+                                                        other_params=other_params,
+                                                        patch_index=patch_index)
 
                             dx1_dx0 = self.scal_rel_selection.eval_derivative_scaling_relation(x0,
-                                                                                               layer=k,
-                                                                                               patch_index=patch_index,
-                                                                                               scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
+                                                                                            layer=k,
+                                                                                            patch_index=patch_index,
+                                                                                            scalrel_type_deriv=self.cnc_params["scalrel_type_deriv"])
 
-
-                            # if redshift_index == 20:
-
-                            #     pl.figure()
-                            #     pl.plot(x0,x1)
-                            #     pl.savefig("/home/iz221/cfc_inigo/figures/SNRm.pdf")
-                            #     pl.show()
-
-                            #     pl.figure()
-                            #     pl.plot(x0,dn_dx0)
-                            #     pl.savefig("/home/iz221/cfc_inigo/figures/dndm.pdf")
-                            #     pl.show()
-
-                            #     pl.figure()
-                            #     pl.plot(x0,dx1_dx0)
-                            #     pl.savefig("/home/iz221/cfc_inigo/figures/dSNRdm.pdf")
-                            #     pl.show()
-
-                            # Check if 0 or NaN is in dx1_dx0 and print the arrays if the condition is met
                             if 0 in dx1_dx0 or np.isnan(dx1_dx0).any():
 
                                 dn_dx1 = 0.*dn_dx0
@@ -353,13 +334,34 @@ class cluster_number_counts:
 
                                 dn_dx1 = dn_dx0/dx1_dx0
 
-                            x1_interp = np.linspace(np.min(x1),np.max(x1),self.cnc_params["n_points"])
-                            dn_dx1 = np.interp(x1_interp,x1,dn_dx1)
-
                             sigma_scatter = np.sqrt(self.scatter.get_cov(observable1=self.cnc_params["obs_select"],
-                                                                         observable2=self.cnc_params["obs_select"],
-                                                                         layer=k,patch1=patch_index,patch2=patch_index))
-                            
+                                                                        observable2=self.cnc_params["obs_select"],
+                                                                        layer=k,patch1=patch_index,patch2=patch_index))
+
+                            x_min = np.min(x1)
+                            x_max = np.max(x1)
+                            n_interp = self.cnc_params["n_points"]
+
+                            if self.cnc_params["pad_abundance"] is True:
+
+                                dx_base = (np.max(x1) - np.min(x1)) / (self.cnc_params["n_points"] - 1)
+                                pad = 0.
+
+                                if sigma_scatter > self.cnc_params["sigma_scatter_min"]:
+
+                                    pad = 8.*sigma_scatter
+
+                                x_min = x_min - pad
+                                x_max = x_max + pad
+                                n_interp = int(np.ceil((x_max - x_min) / dx_base)) + 1
+
+                                if n_interp < self.cnc_params["n_points"]:
+
+                                    n_interp = self.cnc_params["n_points"]
+                                    
+                            x1_interp = np.linspace(x_min,x_max,n_interp)
+                            dn_dx1 = np.interp(x1_interp,x1,dn_dx1,left=0,right=0)
+
                             if self.cnc_params["apply_obs_cutoff"] != False:
 
                                 if self.cnc_params["apply_obs_cutoff"][str([self.cnc_params["obs_select"]])] == True:
@@ -369,35 +371,19 @@ class cluster_number_counts:
                                     indices = np.where(x1_interp < cutoff)
                                     dn_dx1[indices] = 0.
 
-                            # if redshift_index == 20:
-
-                            #     pl.figure()
-                            #     pl.semilogx(x1_interp,dn_dx1)
-                            #     pl.savefig("/home/iz221/cfc_inigo/figures/dndq_before.pdf")
-                            #     pl.show()                                
-
                             dn_dx1 = convolve_1d(x1_interp,dn_dx1,
-                                                 sigma=sigma_scatter,
-                                                 type=self.cnc_params["abundance_integral_type"],
-                                                 sigma_min=self.cnc_params["sigma_scatter_min"])
+                                                sigma=sigma_scatter,
+                                                type=self.cnc_params["abundance_integral_type"],
+                                                sigma_min=self.cnc_params["sigma_scatter_min"])
 
-                            # if redshift_index == 20:
-
-                            #     pl.figure()
-                            #     pl.semilogx(x1_interp,dn_dx1)
-                            #     pl.savefig("/home/iz221/cfc_inigo/figures/dndq_after.pdf")
-                            #     pl.show()
-
-                            # pass to next layer
                             x0 = x1_interp
                             dn_dx0 = dn_dx1
 
                         dn_dx1_interp = np.interp(self.obs_select_vec,x0,dn_dx0,left=0)
 
-                        abundance = dn_dx1_interp*4.*np.pi*skyfracs[patch_index] #number counts per patch
+                        abundance = dn_dx1_interp*4.*np.pi*skyfracs[patch_index]
 
-
-                    return_dict[str(patch_index) + "_" + str(redshift_index)] = abundance  #number counts per patch
+                    return_dict[str(patch_index) + "_" + str(redshift_index)] = abundance
 
 
             if n_cores > 1:
@@ -415,9 +401,6 @@ class cluster_number_counts:
             for j in range(0,len(self.redshift_vec)):
 
                 self.abundance_tensor[i,j,:] = return_dict[str(i) + "_" + str(j)]
-
-    #        self.n_obs_matrix[i,:] = integrate.simpson(self.abundance_tensor[i,:,:],x=self.redshift_vec,axis=0)
-    #        self.n_tot_vec[i] = integrate.simpson(self.n_obs_matrix[i,:],x=self.obs_select_vec,axis=0)
 
             self.n_obs_matrix[i,:] = integrate.simpson(self.abundance_tensor[i,:,:],x=self.redshift_vec,axis=0)
             self.n_tot_vec[i] = integrate.simpson(self.n_obs_matrix[i,:],x=self.obs_select_vec,axis=0)
