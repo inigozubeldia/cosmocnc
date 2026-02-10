@@ -13,7 +13,7 @@ import os
 # make a directory
 #subprocess.call(['mkdir','-p',path_to_recfast_results])
 
-root_path = os.path.dirname(os.path.abspath(__file__)) + '/../'
+root_path = os.path.dirname(os.path.abspath(__file__)) + '/'
 
 # root_path = os.path.abspath("")
 # assuming cosmopower organization codes are one level up:
