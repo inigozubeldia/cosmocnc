@@ -532,8 +532,8 @@ class cluster_number_counts:
                             obs_select_cluster = obs_select[indices_z_err][l]
                             z_std = z_std_select[indices_z_err][l]
 
-                            z_error_min = np.max([redshift-self.cnc_params["z_error_sigma_integral_range"]*z_std,self.redshift_vec[0]])
-                            z_error_max = np.min([redshift+self.cnc_params["z_error_sigma_integral_range"]*z_std,self.redshift_vec[-1]])
+                            z_error_min = np.maximum(redshift-self.cnc_params["z_error_sigma_integral_range"]*z_std, self.redshift_vec[0])
+                            z_error_max = np.minimum(redshift+self.cnc_params["z_error_sigma_integral_range"]*z_std, self.redshift_vec[-1])
                             z_eval_vec = np.linspace(z_error_min,z_error_max,self.cnc_params["n_z_error_integral"])
                             z_error_likelihood = gaussian_1d(z_eval_vec-redshift,z_std)
 
@@ -584,8 +584,8 @@ class cluster_number_counts:
                     if self.cnc_params["z_errors"] == True and self.catalogue.catalogue["z_std"][cluster_index] > self.cnc_params["z_error_min"]:
 
                         z_std = self.catalogue.catalogue["z_std"][cluster_index]
-                        z_error_min = np.max([redshift-self.cnc_params["z_error_sigma_integral_range"]*z_std,self.redshift_vec[0]])
-                        z_error_max = np.min([redshift+self.cnc_params["z_error_sigma_integral_range"]*z_std,self.redshift_vec[-1]])
+                        z_error_min = np.maximum(redshift-self.cnc_params["z_error_sigma_integral_range"]*z_std, self.redshift_vec[0])
+                        z_error_max = np.minimum(redshift+self.cnc_params["z_error_sigma_integral_range"]*z_std, self.redshift_vec[-1])
                         z_eval_vec = np.linspace(z_error_min,z_error_max,self.cnc_params["n_z_error_integral"])
                         z_error_likelihood = gaussian_1d(z_eval_vec-redshift,z_std)
 
@@ -716,8 +716,8 @@ class cluster_number_counts:
 
                         sigma_factor = self.cnc_params["sigma_mass_prior"]
 
-                        lnM_min = np.max([lnM_centre-sigma_factor*DlnM,lnM0[0]])
-                        lnM_max = np.min([lnM_centre+sigma_factor*DlnM,lnM0[-1]])
+                        lnM_min = float(np.maximum(lnM_centre-sigma_factor*DlnM, lnM0[0]))
+                        lnM_max = float(np.minimum(lnM_centre+sigma_factor*DlnM, lnM0[-1]))
 
                         # lnM_min = lnM0[0]
                         # lnM_max = lnM0[-1]
