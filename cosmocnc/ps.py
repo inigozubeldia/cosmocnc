@@ -25,8 +25,9 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 # import cosmopower
 import os
 import subprocess
-from .restore_nn import Restore_NN
-from .restore_nn import Restore_PCAplusNN
+def _get_restore_nn():
+    from .restore_nn import Restore_NN, Restore_PCAplusNN
+    return Restore_NN, Restore_PCAplusNN
 from .config import *
 import scipy.optimize as optimize
 import os
@@ -72,6 +73,8 @@ class cosmopower:
         self.mp = cosmo_model
 
         path_to_emulators = path + self.mp +'/'
+
+        Restore_NN, Restore_PCAplusNN = _get_restore_nn()
 
         self.cp_tt_nn[self.mp] = Restore_NN(restore=True,
                                  restore_filename=path_to_emulators + 'TTTEEE/' + emulator_dict[self.mp]['TT'])

@@ -28,6 +28,10 @@ class scaling_relations:
 
         return n_layers
 
+    def get_n_layers_stacked(self):
+
+        return self.get_n_layers()
+
     def initialise_scaling_relation(self,cosmology=None):
 
         observable = self.observable
@@ -157,6 +161,7 @@ class scaling_relations:
     def eval_derivative_scaling_relation(self,x0,layer=0,patch_index=0,scalrel_type_deriv="analytical"):
 
         observable = self.observable
+        dx1_dx0 = None
 
         if scalrel_type_deriv == "analytical":
 
@@ -172,7 +177,7 @@ class scaling_relations:
                     exp = np.exp(2.*x0)
                     dx1_dx0 = exp/np.sqrt(exp+dof)
 
-        elif scalrel_type_deriv == "numerical": #must always be computed strictly after executing self.eval_scaling_relation()
+        if scalrel_type_deriv == "numerical" or dx1_dx0 is None: #must always be computed strictly after executing self.eval_scaling_relation()
 
             dx1_dx0 = np.gradient(self.x1,x0)
 
@@ -243,7 +248,7 @@ class scaling_relations:
         return x1
 
 
-    def get_mean(self,x0,patch_index=0,scatter=None,compute_var=False):
+    def get_mean(self,x0,patch_index=0,scatter=None,compute_var=False,other_params=None):
 
         if self.observable == "p_so_sim":
 
