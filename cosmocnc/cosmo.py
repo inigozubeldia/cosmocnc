@@ -271,11 +271,6 @@ class cosmology_model:
                     'w0_fld' : self.cosmo_params["w0"],
                 })
 
-            if  self.cnc_params['hmf_calc'] == "classy_sz":
-                self.logger.info('adding dndlnM to class_sz output in update_cosmology')
-                self.classy.set({
-                    'output': self.cnc_params["class_sz_output"] + ",dndlnm"
-                })
             if self.amplitude_parameter == "sigma_8":
 
                 classy_params['sigma8'] = self.cosmo_params["sigma_8"]
@@ -308,6 +303,12 @@ class cosmology_model:
                 self.cosmo_params["Oc0h2"] = classy_params['omega_cdm']
 
             self.classy.set(classy_params)
+
+            if  self.cnc_params['hmf_calc'] == "classy_sz":
+                self.logger.info('adding dndlnM to class_sz output in update_cosmology')
+                self.classy.set({
+                    'output': self.cnc_params["class_sz_output"] + ",dndlnm"
+                })
 
             self.classy.compute_class_szfast()
 
@@ -433,6 +434,25 @@ class classy_sz:
 
         self.classy = classy
 
+        # Build classy-style params dict for classy_szfast methods that require it
+        if cosmo_params is not None:
+            h = cosmo_params["h"]
+            self._classy_params = {
+                'H0': h * 100.,
+                'omega_b': cosmo_params["Ob0"] * h**2,
+                'omega_cdm': (cosmo_params["Om0"] - cosmo_params["Ob0"]) * h**2,
+                'n_s': cosmo_params["n_s"],
+                'tau_reio': cosmo_params["tau_reio"],
+                'm_ncdm': cosmo_params["m_nu"],
+                'N_eff': cosmo_params["N_eff"],
+            }
+            if "sigma_8" in cosmo_params:
+                self._classy_params['sigma8'] = cosmo_params["sigma_8"]
+            if "A_s" in cosmo_params:
+                self._classy_params['ln10^{10}A_s'] = np.log(cosmo_params["A_s"] * 1e10)
+        else:
+            self._classy_params = None
+
     def get_linear_power_spectrum(self,redshift
                                   ):
         
@@ -473,18 +493,21 @@ class classy_sz:
     def critical_density(self,z):
 
         conv_fac = 1./(1000.*self.const.mpc**3/self.const.solar)
+        p = self._classy_params
 
         class result:
 
-            value = np.vectorize(self.classy.get_rho_crit_at_z)(z)*conv_fac*self.classy.h()**2
+            value = np.vectorize(lambda zi: self.classy.get_rho_crit_at_z(zi, params_values_dict=p))(z)*conv_fac*self.classy.h()**2
 
         return result
 
     def differential_comoving_volume(self,z):
 
+        p = self._classy_params
+
         class result:
 
-            value = np.vectorize(self.classy.get_volume_dVdzdOmega_at_z)(z)*self.classy.h()**-3
+            value = np.vectorize(lambda zi: self.classy.get_volume_dVdzdOmega_at_z(zi, params_values_dict=p))(z)*self.classy.h()**-3
 
         return result
 

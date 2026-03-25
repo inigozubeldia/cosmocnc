@@ -29,11 +29,11 @@ class cnc_likelihood(Likelihood):
 
     def get_requirements(self):
 
-        return {"sz_unbinned_cluster_counts": {}}
+        return {"cluster_log_lik": {}}
 
     def _get_theory(self, **params_values):
 
-        theory = self.provider.get_sz_unbinned_cluster_counts()
+        theory = self.provider.get_cluster_log_lik()
 
         return theory
 

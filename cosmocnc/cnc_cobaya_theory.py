@@ -249,27 +249,27 @@ class cnc(classy):
 
     def must_provide(self, **requirements):
 
-        if "sz_unbinned_cluster_counts" in requirements:
+        if "cluster_log_lik" in requirements:
 
             # make sure cobaya still runs as it does for standard classy
 
-            requirements.pop("sz_unbinned_cluster_counts")
+            requirements.pop("cluster_log_lik")
 
             # specify the method to collect the new observable
 
-            self.collectors["sz_unbinned_cluster_counts"] = Collector(
+            self.collectors["cluster_log_lik"] = Collector(
                     method="get_log_lik", # name of the method in classy.pyx
                     args_names=[],
                     args=[])
 
     # get the required new observable
 
-    def get_sz_unbinned_cluster_counts(self):
+    def get_cluster_log_lik(self):
 
         # thats the function passed to soliket
 
         # print('passing to cobaya lkl')
-        cls = deepcopy(self._current_state["sz_unbinned_cluster_counts"])
+        cls = deepcopy(self._current_state["cluster_log_lik"])
         # print('cls',cls)
 
         return cls
