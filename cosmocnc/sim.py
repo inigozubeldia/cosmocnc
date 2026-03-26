@@ -305,8 +305,6 @@ class catalogue_generator:
 
                 x0 = x1
 
-            print(x1[self.params_cnc["obs_select"]].shape)
-
             indices_select = np.where(np.array(x1[self.params_cnc["obs_select"]]) > self.params_cnc["obs_select_min"])[0]
             
             z_samples_select = z_samples[indices_select]
@@ -325,8 +323,6 @@ class catalogue_generator:
                 observable = self.params_cnc["observables"][0][k]
 
                 if isinstance(vec, bool) and vec:
-
-                    print(k,observable,"hereeee")
 
                     catalogue[self.params_cnc["observables"][0][k]] = x1[observable][indices_select]
 
@@ -358,6 +354,10 @@ def get_samples_pdf(n_samples,x,cpdf):
 
 def get_samples_pdf_2d(n_samples,x,y,pdf):
 
+    eps = 1e-12
+    logit = lambda u: np.log(u) - np.log1p(-u)
+    invlogit = lambda z: 1.0 / (1.0 + np.exp(-z))
+
     cpdf_xgy = np.cumsum(pdf,axis=0)*(x[1]-x[0])
 
     for i in range(0,cpdf_xgy.shape[1]):
@@ -368,17 +368,38 @@ def get_samples_pdf_2d(n_samples,x,y,pdf):
 
     y_samples = get_samples_pdf(n_samples,y,cpdf_y)
 
+    # Build logit-space grid for interpolation
+    wmin, wmax = logit(eps), logit(1.0 - eps)
+    w = np.linspace(wmin, wmax, len(x))
+    w_norm = (w - wmin) / (wmax - wmin)
+
+    # Map x to logit space
+    xmin, xmax = np.min(x), np.max(x)
+    x_unit = np.clip((x - xmin) / (xmax - xmin), eps, 1.0 - eps)
+    x_logit = logit(x_unit)
+
+    # Invert each conditional CDF column in logit-logit space
     x_matrix = np.zeros(cpdf_xgy.shape)
-    z = np.linspace(0.,1.,len(x))
 
-    for i in range(0,len(y)):
+    for i in range(len(y)):
+        u_col = np.clip(cpdf_xgy[:, i], eps, 1.0 - eps)
+        w_col = logit(u_col)
+        x_matrix[:, i] = np.interp(w, w_col, x_logit)
 
-        x_matrix[:,i] = np.interp(z,cpdf_xgy[:,i],x)
-
+    # Sample and transform to logit space
     cpdf_samples = np.random.rand(n_samples)
+    u_s = np.clip(cpdf_samples, eps, 1.0 - eps)
+    w_s_norm = (logit(u_s) - wmin) / (wmax - wmin)
 
-    interpolator = interpolate.RegularGridInterpolator((z,y),x_matrix,method='linear',bounds_error=True)
-    x_samples = interpolator((cpdf_samples,y_samples))
+    interpolator = interpolate.RegularGridInterpolator(
+        (w_norm, y), x_matrix, method='linear',
+        bounds_error=False, fill_value=x_logit[0])
+    x_logit_samp = interpolator((w_s_norm, y_samples))
+
+    # Map back from logit space
+    lo, hi = logit(eps), logit(1.0 - eps)
+    x_logit_samp = np.clip(x_logit_samp, lo, hi)
+    x_samples = xmin + invlogit(x_logit_samp) * (xmax - xmin)
 
     return (x_samples,y_samples)
 
