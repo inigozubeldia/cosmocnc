@@ -240,11 +240,21 @@ scaling_relation_params_default = {
 "C0": 0.,
 "sigma_lnq_act": 0.2,
 
-#Planck DES Y3:
+#Planck DES Y3 — 10-parameter Magneticum B13 calibration. Defaults =
+# trimmed-chain mean (see planck_cosmology/wl_prior_magneticum_4sigma_trim.npz).
+# The joint Gaussian prior replaces the previous single-nuisance
+# `lnb_wl_sigma`.
 
-"lnb_wl_sigma": 0., #prior: unit standard deviation, mean 0
-"b_wl_m": 1.029,
-"s_wl_m": -0.226,
+"b_wl_m": 1.029425,    # mass-slope α of the bias
+"s_wl_m": 0.071346,    # mass-slope α_σ of the scatter
+"b_wl_0": -0.035675,   # ln b_wl at M_pivot, z bin 0 (z=0.252)
+"b_wl_1": -0.023322,   # ln b_wl at M_pivot, z bin 1 (z=0.470)
+"b_wl_2": -0.033240,   # ln b_wl at M_pivot, z bin 2 (z=0.783)
+"b_wl_3": -0.044018,   # ln b_wl at M_pivot, z bin 3 (z=0.963)
+"s_wl_0": -3.829634,   # ln σ²_wl at M_pivot, z bin 0
+"s_wl_1": -3.433688,   # ln σ²_wl at M_pivot, z bin 1
+"s_wl_2": -3.385128,   # ln σ²_wl at M_pivot, z bin 2
+"s_wl_3": -3.076314,   # ln σ²_wl at M_pivot, z bin 3
 }
 
 cosmo_params_default = {
