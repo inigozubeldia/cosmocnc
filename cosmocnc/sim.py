@@ -353,18 +353,38 @@ def get_samples_pdf(n_samples,x,cpdf):
 
 
 def get_samples_pdf_2d(n_samples,x,y,pdf):
+    """2D inverse CDF sampling using NumPy with logit-space interpolation.
 
+    CDFs are trapezoidal cumulative integrals starting at 0:
+      cdf[0] = 0,   cdf[i] = sum_{j<i} 0.5*(pdf[j]+pdf[j+1])*dx
+    Previously `cumsum(pdf)*dx` was used, which gives `cdf[0] = pdf[0]*dx`
+    rather than 0. Combined with the logit-space inversion, that offset
+    clipped a chunk of samples to the lower grid boundary (x[0] / y[0]),
+    biasing the catalogue toward low z / low lnM. The trapezoidal CDF
+    starts at zero by construction and conserves total mass exactly.
+    """
     eps = 1e-12
     logit = lambda u: np.log(u) - np.log1p(-u)
     invlogit = lambda z: 1.0 / (1.0 + np.exp(-z))
 
-    cpdf_xgy = np.cumsum(pdf,axis=0)*(x[1]-x[0])
+    dx = x[1] - x[0]
+    dy = y[1] - y[0]
 
-    for i in range(0,cpdf_xgy.shape[1]):
+    # Conditional CDF of x given y (trapezoidal, starts at 0 per column).
+    trap_xgy = 0.5 * (pdf[:-1, :] + pdf[1:, :]) * dx            # (n_x-1, n_y)
+    cpdf_xgy = np.concatenate(
+        [np.zeros((1, pdf.shape[1]), dtype=pdf.dtype),
+         np.cumsum(trap_xgy, axis=0)],
+        axis=0)
+    col_max = np.max(cpdf_xgy, axis=0, keepdims=True)
+    cpdf_xgy = cpdf_xgy / np.where(col_max > 0., col_max, 1.)
 
-        cpdf_xgy[:,i] = cpdf_xgy[:,i]/np.max(cpdf_xgy[:,i])
-
-    cpdf_y = np.cumsum(np.sum(pdf,axis=0))*(y[1]-y[0])*(x[1]-x[0])
+    # Marginal CDF of y (= ∫dx pdf, trapezoidal in x; trapezoidal in y from 0).
+    pdf_y_marg = np.sum(trap_xgy, axis=0)                       # (n_y,)
+    trap_y = 0.5 * (pdf_y_marg[:-1] + pdf_y_marg[1:]) * dy      # (n_y-1,)
+    cpdf_y = np.concatenate(
+        [np.zeros(1, dtype=pdf.dtype), np.cumsum(trap_y)],
+        axis=0)                                                  # (n_y,)
 
     y_samples = get_samples_pdf(n_samples,y,cpdf_y)
 
