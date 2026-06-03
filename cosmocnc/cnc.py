@@ -716,8 +716,8 @@ class cluster_number_counts:
 
                         sigma_factor = self.cnc_params["sigma_mass_prior"]
 
-                        lnM_min = float(np.maximum(lnM_centre-sigma_factor*DlnM, lnM0[0]))
-                        lnM_max = float(np.minimum(lnM_centre+sigma_factor*DlnM, lnM0[-1]))
+                        lnM_min = float(np.maximum(lnM_centre-sigma_factor*DlnM, lnM0[0]).item())
+                        lnM_max = float(np.minimum(lnM_centre+sigma_factor*DlnM, lnM0[-1]).item())
 
                         # lnM_min = lnM0[0]
                         # lnM_max = lnM0[-1]
@@ -1288,12 +1288,13 @@ class cluster_number_counts:
 
                     stacked_inv_cov = np.linalg.inv(np.diag(stacked_var_vec))
 
-            res = np.array(stacked_obs_vec-stacked_model_vec)
+            res = np.atleast_1d(stacked_obs_vec-stacked_model_vec)
+            stacked_inv_cov = np.atleast_2d(stacked_inv_cov)
 
             self.stacked_model[stacked_data_label] = stacked_model_vec
             self.stacked_variance[stacked_data_label] = stacked_var_vec
 
-            log_lik = log_lik - 0.5*np.dot(res,np.dot(stacked_inv_cov,res))
+            log_lik = log_lik - 0.5*(res@stacked_inv_cov@res)
 
         return log_lik
 
