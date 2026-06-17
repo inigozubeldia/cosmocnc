@@ -398,7 +398,17 @@ class cnc(classy):
 
             if p == "Om0h2":
 
-                derived[p] = self.cnc.cosmo_params["Om0h2"]
+                # omega_m (cdm+b, no nu) = Om0 * h^2.  cosmo_params has no "Om0h2"
+                # key, so the old `cosmo_params["Om0h2"]` KeyError'd whenever Om0h2
+                # was requested as a derived output. Om0 and h are set in every
+                # density mode (physical/critical/mixed), so this is always valid.
+                derived[p] = self.cnc.cosmo_params["Om0"] * self.cnc.cosmo_params["h"]**2
+
+            if p == "Oc0h2":
+
+                # omega_cdm; resolved into cosmo_params in every density mode
+                # (sampled in "physical", derived in "critical"/"mixed").
+                derived[p] = self.cnc.cosmo_params["Oc0h2"]
 
             if p == "Ob0h2":
 
