@@ -28,3 +28,7 @@ tutorials/figures
 
 tutorials/test_archive
 # *.egg-info*
+
+# Build artifacts
+dist/
+build/
