@@ -388,20 +388,47 @@ class cosmology_model:
 
     def get_theta_mc(self):
 
-        Ogamma0 = 2.47282*10.**(-5)/self.cosmo_params["h"]**2
-        Orad0 =  4.18343*10.**(-5)/self.cosmo_params["h"]**2
-        Om0 = self.cosmo_params["Om0"]
-        Ob0 = self.cosmo_params["Ob0"]
-        OL0 = 1.-Om0-Orad0
+        # Reproduces CAMB's CAMBdata_CosmomcTheta (the CosmoMC theta_MC that Planck reports),
+        # so the Planck 100*theta_MC constraint can be used directly as a prior. Verified against
+        # camb.get_background(...).cosmomc_theta() to ~2e-6 (planck_cosmology/verify_theta_mc.py).
+        # CAMB 1.6.6 fortran/results.f90::CAMBdata_CosmomcTheta:
+        #   omdmh2 = omch2 + omnuh2;  zstar = 1048*(1+0.00124*ombh2^-0.738)*(1 + g1*(omdmh2+ombh2)^g2)
+        #   rs = Integrate(dsound_da_approx, 1e-8, astar);  DA = AngularDiameterDistance(zstar)/astar
+        #   theta_MC = rs/DA      (dsound_da_approx: cs=1/sqrt(3(1+R)), R = 3e4*a*ombh2)
 
-        a_cmb = 1./(1.+self.z_CMB)
+        h = self.cosmo_params["h"]
+        c_kms = constants().c_light/1e3
 
-        def sound_horizon_integrand(x):
+        ombh2 = self.cosmo_params["Ob0"]*h**2
+        omch2 = self.cosmo_params["Om0"]*h**2 - ombh2          # Om0 excludes neutrinos (classy_sz path)
+        omnuh2 = self.cosmo_params.get("m_nu", 0.06)/93.14     # CAMB-style massive-neutrino density
+        om_tot_h2 = omch2 + ombh2 + omnuh2                     # CAMB: (omdmh2 + ombh2) = total matter incl. nu
 
-            return 1./np.sqrt((1.+3.*Ob0*x/(4.*Ogamma0))*(OL0*x**4+Om0*x+Orad0))
+        # Hu & Sugiyama (1996) z_star, exactly as in CAMB CosmomcTheta
+        g1 = 0.0783*ombh2**(-0.238)/(1.+39.5*ombh2**0.763)
+        g2 = 0.560/(1.+21.1*ombh2**1.81)
+        z_star = 1048.*(1.+0.00124*ombh2**(-0.738))*(1.+g1*om_tot_h2**g2)
+        a_star = 1./(1.+z_star)
 
-        r_sound = integrate.quad(sound_horizon_integrand,0.,a_cmb)[0]/(self.cosmo_params["h"]*100.*np.sqrt(3.))*constants().c_light/1e3/self.z_CMB
-        theta_mc = r_sound/self.D_CMB
+        # Background H(z)/c in 1/Mpc (classy.Hubble already returns H/c; astropy/cobaya give H in km/s/Mpc)
+        if hasattr(self, "classy"):
+            H_over_c = lambda z: self.classy.Hubble(z)
+        else:
+            H_over_c = lambda z: self.background_cosmology.H(z).value/c_kms
+
+        def dsound_da_approx(a):                               # CAMB dsound_da_approx
+            R = 3.0e4*a*ombh2
+            return 1./(a**2*H_over_c(1./a-1.)*np.sqrt(3.*(1.+R)))
+
+        r_sound = integrate.quad(dsound_da_approx, 1e-8, a_star, limit=200)[0]   # comoving sound horizon [Mpc]
+
+        # Comoving (radial) distance to z_star (flat universe)
+        if hasattr(self, "classy"):
+            D_comoving = self.classy.angular_distance(z_star)*(1.+z_star)
+        else:
+            D_comoving = self.background_cosmology.angular_diameter_distance(z_star).value*(1.+z_star)
+
+        theta_mc = r_sound/D_comoving
 
         return theta_mc
 
