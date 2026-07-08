@@ -7,6 +7,40 @@ import os
 import numpy as np
 from .utils import *
 
+# ---------------------------------------------------------------------------
+# Every sampled/fixed parameter name that calculate() knows how to consume
+# (the assign_parameter_value targets, plus H0 which maps to h). Advertised
+# via get_can_support_params(): cobaya's parameter assignment routes a
+# parameter to EVERY component that supports it — but an agnostic component
+# (this class, via the classy base) only receives parameters NO other
+# component claims. A prior likelihood that claims a parameter via
+# get_requirements would otherwise silently starve this theory of it, leaving
+# it FROZEN at library defaults in the cluster likelihood while cobaya samples
+# it against the prior alone (found 2026-07-07 in cosmocnc_jax: 10 DES-WL + 3
+# CMB-lensing nuisances frozen for entire MCMC campaigns; mirrored here).
+# KEEP IN SYNC with the assign_parameter_value calls in calculate(). NB this
+# NumPy theory assigns FEWER SR params than the cosmocnc_jax one (no
+# beta_szifi / *_beta_generic / cmblensing_bias_simple) — only names its
+# calculate() actually consumes are listed, since advertising an unconsumed
+# name would route it into a silent no-op.
+# ---------------------------------------------------------------------------
+_COSMO_INPUT_PARAMS = (
+    "H0", "h", "A_s", "sigma_8", "n_s", "m_nu",
+    "Ob0", "Ob0h2", "Oc0h2", "Om0", "Onu0", "Onu0h2",
+    "tau_reio", "w0",
+)
+_SR_INPUT_PARAMS = (
+    "A_szifi", "alpha_szifi", "sigma_lnq_szifi", "bias_sz",
+    "b_wl_m", "s_wl_m", "b_wl_0", "b_wl_1", "b_wl_2", "b_wl_3",
+    "s_wl_0", "s_wl_1", "s_wl_2", "s_wl_3",
+    "alpha", "log10_Y_star", "bias_cmblens", "sigma_lnq", "sigma_lnp",
+    "corr_lnq_lnp", "a_lens",
+    "A_sz", "B_sz", "C_sz", "A_x", "B_x", "C_x", "dlnMg_dlnr",
+    "sigma_lnYx", "corr_xi_Yx", "corr_xi_WL", "corr_Yx_WL",
+    "WLbias", "WLscatter", "HSTbias", "HSTscatterLSS",
+    "MegacamBias", "MegacamScatterLSS", "SZmPivot",
+)
+
 class cnc(classy):
 
     survey_sr : Optional[str] =  "none"
@@ -246,6 +280,13 @@ class cnc(classy):
 
         self.derived_extra = []
         self.log.info("Initialized")
+
+    def get_can_support_params(self):
+        # THE ROUTING FIX (2026-07-08, mirrored from cosmocnc_jax). See the
+        # _COSMO_INPUT_PARAMS/_SR_INPUT_PARAMS comment block.
+        return list(dict.fromkeys(
+            list(super().get_can_support_params())
+            + list(_COSMO_INPUT_PARAMS) + list(_SR_INPUT_PARAMS)))
 
     def must_provide(self, **requirements):
 
