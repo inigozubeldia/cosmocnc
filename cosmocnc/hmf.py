@@ -40,7 +40,7 @@ class halo_mass_function:
 
         self.const = constants()
 
-        if self.hmf_type == "Tinker08":
+        if self.hmf_type in ("Tinker08","Tinker10","Castro23"):
 
             self.rho_c_0 = self.cosmology.background_cosmology.critical_density(0.).value*self.const.mpc**3/self.const.solar*1e3
 
@@ -91,7 +91,7 @@ class halo_mass_function:
 
         if self.hmf_calc == "cnc":
 
-            if self.hmf_type == "Tinker08":
+            if self.hmf_type in ("Tinker08","Tinker10"):
 
                 rho_m = self.rho_c_0*self.cosmology.cosmo_params["Om0"]
 
@@ -156,6 +156,102 @@ class halo_mass_function:
 
                     hmf = hmf*M_eval
                     M_eval = np.log(M_eval)
+
+            elif self.hmf_type == "Castro23":
+
+                # Castro et al. 2023 (arXiv:2208.02174) virial-mass HMF on the
+                # M_200c grid. Mirrors the cosmocnc_jax Castro23 branch:
+                # nu f(nu) at M_vir(M_200c) (BN98 virial + sigma-based B13 c_vir
+                # Newton, verbatim-mirrored in cosmocnc.mass_conversion), KS96
+                # delta_c(z), nu-free Omega_m(z), ROCKSTAR Table-4 parameters.
+                from scipy.special import gammaln
+                from .mass_conversion import (solve_M_vir_from_M_200c,
+                                              growth_factor_carroll_press_turner)
+
+                if log != True:
+
+                    raise ValueError("hmf_type='Castro23' requires log=True (log-spaced mass grid)")
+
+                rho_m = self.rho_c_0*self.cosmology.cosmo_params["Om0"]
+
+                if load_sigma_r is False:
+
+                    k,ps = self.cosmology.power_spectrum.get_linear_power_spectrum(redshift)
+                    sigma_r = sigma_R((k,ps),cosmology=self.cosmology)
+                    sigma_r.get_derivative(type_deriv=self.type_deriv)
+
+                elif load_sigma_r is True:
+
+                    z_indices_key = np.array([float(index) for index in list(self.sigma_r_dict.keys())])
+                    z_index = str(z_indices_key[np.argmin(np.abs(z_indices_key-redshift))])
+                    sigma_r = self.sigma_r_dict[z_index]
+
+                if save_sigma_r is True:
+
+                    self.sigma_r_dict[str(redshift)] = sigma_r
+
+                # nu-free Omega_m(z) (cb) for the Castro formulas
+                if self.cosmology.cnc_params["cosmology_tool"] == "classy_sz":
+
+                    Om_z_nonu = 1./self.cosmology.get_delta_mean_from_delta_crit_at_z(1.,redshift)
+
+                elif self.cosmology.cnc_params["cosmology_tool"] == "cobaya_cosmo":
+
+                    Om_z_nonu = self.cosmology.Om(redshift)/(self.cosmology.H(redshift)/100.)**2
+
+                else:
+
+                    Om_z_nonu = self.cosmology.cosmo_params["Om0"]*(1.+redshift)**3/(self.cosmology.background_cosmology.H(redshift).value/(self.cosmology.cosmo_params["h"]*100.))**2
+
+                # background quantities for the 200c->vir conversion (same
+                # conventions as the cosmocnc_jax grid method: total-matter
+                # Om(z), CPT growth, rho_crit(z))
+                Om0 = self.cosmology.cosmo_params["Om0"]
+                OL0 = 1.0 - Om0
+                D_z = growth_factor_carroll_press_turner(redshift, Om0, OL0)
+                E2 = (self.cosmology.background_cosmology.H(redshift).value
+                      /self.cosmology.background_cosmology.H0.value)**2
+                Om_z_conv = Om0*(1.+redshift)**3/E2
+                rho_c_z = self.rho_c_0*E2
+
+                # sigma on an extended lnM grid for the M_vir Newton (margin 2,
+                # n=200 — same as the JAX grid method)
+                lnM_min = np.log(M_vec[0]) - np.log(2.0)
+                lnM_max = np.log(M_vec[-1]) + np.log(2.0)
+                logM_grid_for_sigma = np.linspace(lnM_min, lnM_max, 200)
+                sigma_grid = sigma_r.get_sigma_M(np.exp(logM_grid_for_sigma), rho_m)
+
+                M_vir = solve_M_vir_from_M_200c(M_vec, rho_c_z, Om_z_conv, D_z,
+                                                logM_grid_for_sigma, sigma_grid)
+
+                dlnM = (np.log(M_vec[-1]) - np.log(M_vec[0]))/(len(M_vec) - 1)
+                jac_vir = 1.0 + np.gradient(np.log(M_vir/M_vec), dlnM)
+
+                (sigma_vir, dsigmadR_vir) = sigma_r.get_sigma_M(M_vir, rho_m, get_deriv=True)
+                R_vir = sigma_r.R_eval
+                dlns_dlnR = R_vir*dsigmadR_vir/sigma_vir
+
+                # Castro23 multiplicity (ROCKSTAR calibration; KS96 delta_c)
+                delta_c = (3.0/20.0)*(12.0*np.pi)**(2.0/3.0)*(1.0 + 0.012299*np.log10(Om_z_nonu))
+                nu = delta_c/sigma_vir
+
+                aR = 0.7962 + 0.1449*(dlns_dlnR + 0.6125)**2
+                qR = 0.3688 - 0.2804*(dlns_dlnR + 0.5)
+                a_c = aR*Om_z_nonu**(-0.0658)
+                p_c = -0.5612 - 0.4743*(dlns_dlnR + 0.5)
+                q_c = qR*Om_z_nonu**0.0251
+
+                A_pq = 1.0/(2.0**(-0.5 - p_c + q_c/2.0)/np.sqrt(np.pi)
+                            *(2.0**p_c*np.exp(gammaln(q_c/2.0)) + np.exp(gammaln(-p_c + q_c/2.0))))
+
+                nufnu = (A_pq*np.sqrt(2.0*a_c*nu**2/np.pi)*np.exp(-a_c*nu**2/2.0)
+                         *(1.0 + 1.0/(a_c*nu**2)**p_c)*(nu*np.sqrt(a_c))**(q_c - 1.0))
+
+                self.fsigma = nufnu
+
+                # dn/dln M_200c [1/Mpc^3]
+                hmf = nufnu*rho_m/M_vir*(-dlns_dlnR/3.0)*jac_vir
+                M_eval = np.log(M_vec/1e14)
 
         elif self.hmf_calc == "hmf":
 
@@ -296,6 +392,30 @@ def f_sigma(sigma,redshift=None,hmf_type="Tinker08",Delta=None,mass_definition="
 
         f = A*((sigma/b)**(-a)+1.)*np.exp(-c/sigma**2)
 
+    elif hmf_type == "Tinker10":
+
+        # Tinker et al. 2010 (ApJ 724, 878) g(sigma) = nu*f(nu), Eq. 8 + Table 4,
+        # z-evolution Eqs. 9-12 frozen at z=3; alpha = analytic normalisation
+        # (closed form of the integral constraint, as in the `hmf` package)
+        # evaluated with the z-evolved parameters. Same dn/dlnM assembly slot as
+        # the Tinker08 f(sigma). Mirrors cosmocnc_jax.hmf.g_sigma_tinker10_jit.
+        from scipy.special import gammaln
+
+        z_eff = min(redshift, 3.0)
+
+        beta = params.get_param("beta0",Delta)*(1.+z_eff)**0.20
+        gamma = params.get_param("gamma0",Delta)*(1.+z_eff)**(-0.01)
+        phi = params.get_param("phi0",Delta)*(1.+z_eff)**(-0.08)
+        eta = params.get_param("eta0",Delta)*(1.+z_eff)**0.27
+
+        alpha = 1.0/(2.0**(eta - phi - 0.5)*beta**(-2.0*phi)*gamma**(-0.5 - eta)
+                     *(2.0**phi*beta**(2.0*phi)*np.exp(gammaln(eta + 0.5))
+                       + gamma**phi*np.exp(gammaln(0.5 + eta - phi))))
+
+        nu = 1.686/sigma
+        f_nu = alpha*(1.0 + (beta*nu)**(-2.0*phi))*nu**(2.0*eta)*np.exp(-gamma*nu**2/2.0)
+        f = nu*f_nu
+
     return f
 
 class hmf_params:
@@ -323,9 +443,29 @@ class hmf_params:
 
             self.params = {"A":A,"b":b,"a":a,"c":c,"Delta":Delta}
 
+        elif self.hmf_type == "Tinker10":
+
+            # Tinker et al. 2010 Table 4 (z=0), same Delta_mean grid as Tinker08.
+            if other_params["interp_tinker"] == "log":
+
+                Delta = np.log10(np.array([200.,300.,400.,600.,800.,1200.,1600.,2400.,3200.]))
+
+            elif other_params["interp_tinker"] == "linear":
+
+                Delta = np.array([200.,300.,400.,600.,800.,1200.,1600.,2400.,3200.])
+
+            alpha0 = np.array([0.368,0.363,0.385,0.389,0.393,0.365,0.379,0.355,0.327])
+            beta0 = np.array([0.589,0.585,0.544,0.543,0.564,0.623,0.637,0.673,0.702])
+            gamma0 = np.array([0.864,0.922,0.987,1.09,1.20,1.34,1.50,1.68,1.81])
+            phi0 = np.array([-0.729,-0.789,-0.910,-1.05,-1.20,-1.26,-1.45,-1.50,-1.49])
+            eta0 = np.array([-0.243,-0.261,-0.261,-0.273,-0.278,-0.301,-0.301,-0.319,-0.336])
+
+            self.params = {"alpha0":alpha0,"beta0":beta0,"gamma0":gamma0,
+                           "phi0":phi0,"eta0":eta0,"Delta":Delta}
+
     def get_param(self,param,Delta):
 
-        if self.hmf_type == "Tinker08":
+        if self.hmf_type in ("Tinker08","Tinker10"):
 
             if self.other_params["interp_tinker"] == "log":
 
