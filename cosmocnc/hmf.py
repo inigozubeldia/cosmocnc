@@ -172,6 +172,13 @@ class halo_mass_function:
 
                     raise ValueError("hmf_type='Castro23' requires log=True (log-spaced mass grid)")
 
+                if self.mass_definition != "200c":
+
+                    # the 200c->vir conversion below assumes the mass grid is
+                    # M_200c (the production convention)
+                    raise ValueError("hmf_type='Castro23' requires mass_definition='200c' "
+                                     "(got %r)" % (self.mass_definition,))
+
                 rho_m = self.rho_c_0*self.cosmology.cosmo_params["Om0"]
 
                 if load_sigma_r is False:
