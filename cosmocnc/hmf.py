@@ -243,6 +243,14 @@ class halo_mass_function:
 
                 self.fsigma = nufnu
 
+                # audit/debug: per-z ingredient record (parity localization)
+                if not hasattr(self, "castro_debug"):
+                    self.castro_debug = {}
+                self.castro_debug[float(redshift)] = {
+                    "M_vir": M_vir, "sigma_vir": sigma_vir,
+                    "dlns": dlns_dlnR, "jac": jac_vir,
+                    "Om_nonu": Om_z_nonu, "rho_c_z": rho_c_z, "D_z": D_z}
+
                 # dn/dln M_200c [1/Mpc^3]
                 hmf = nufnu*rho_m/M_vir*(-dlns_dlnR/3.0)*jac_vir
                 M_eval = np.log(M_vec/1e14)
