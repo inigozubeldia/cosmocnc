@@ -239,20 +239,7 @@ class halo_mass_function:
                 dlns_dlnR = R_vir*dsigmadR_vir/sigma_vir
 
                 # Castro23 multiplicity (ROCKSTAR calibration; KS96 delta_c)
-                delta_c = (3.0/20.0)*(12.0*np.pi)**(2.0/3.0)*(1.0 + 0.012299*np.log10(Om_z_nonu))
-                nu = delta_c/sigma_vir
-
-                aR = 0.7962 + 0.1449*(dlns_dlnR + 0.6125)**2
-                qR = 0.3688 - 0.2804*(dlns_dlnR + 0.5)
-                a_c = aR*Om_z_nonu**(-0.0658)
-                p_c = -0.5612 - 0.4743*(dlns_dlnR + 0.5)
-                q_c = qR*Om_z_nonu**0.0251
-
-                A_pq = 1.0/(2.0**(-0.5 - p_c + q_c/2.0)/np.sqrt(np.pi)
-                            *(2.0**p_c*np.exp(gammaln(q_c/2.0)) + np.exp(gammaln(-p_c + q_c/2.0))))
-
-                nufnu = (A_pq*np.sqrt(2.0*a_c*nu**2/np.pi)*np.exp(-a_c*nu**2/2.0)
-                         *(1.0 + 1.0/(a_c*nu**2)**p_c)*(nu*np.sqrt(a_c))**(q_c - 1.0))
+                nufnu = castro23_nuf_nu(sigma_vir, dlns_dlnR, Om_z_nonu)
 
                 self.fsigma = nufnu
 
@@ -384,6 +371,35 @@ class sigma_R:
 
 #Delta is w.r.t. mean
 
+def castro23_nuf_nu(sigma, dlns_dlnR, Om_z_nonu):
+    """Castro et al. 2023 multiplicity nu*f(nu) (their Eqs. 3-4, 12-16; ROCKSTAR
+    Table-4 calibration; KS96 eq. A.6 delta_c). NumPy twin of
+    cosmocnc_jax.hmf.nuf_nu_castro23_jit — must stay numerically identical.
+
+    Args: sigma at R(M_vir) [cb convention]; dln(sigma)/dlnR at R(M_vir)
+    (negative); nu-free (cb) Omega_m(z).
+    """
+    from scipy.special import gamma as _sgamma
+
+    delta_c = (3.0/20.0)*(12.0*np.pi)**(2.0/3.0)*(1.0 + 0.012299*np.log10(Om_z_nonu))
+    nu = delta_c/sigma
+
+    aR = 0.7962 + 0.1449*(dlns_dlnR + 0.6125)**2
+    qR = 0.3688 - 0.2804*(dlns_dlnR + 0.5)
+    a_c = aR*Om_z_nonu**(-0.0658)
+    p_c = -0.5612 - 0.4743*(dlns_dlnR + 0.5)
+    q_c = qR*Om_z_nonu**0.0251
+
+    # SIGNED Gamma: -p+q/2 < 0 for dlns_dlnR < -2.7317 (outside the model's
+    # normalisable domain but must match the signed CCToolkit/scipy convention;
+    # audit 2026-08-15).
+    A_pq = 1.0/(2.0**(-0.5 - p_c + q_c/2.0)/np.sqrt(np.pi)
+                *(2.0**p_c*_sgamma(q_c/2.0) + _sgamma(-p_c + q_c/2.0)))
+
+    return (A_pq*np.sqrt(2.0*a_c*nu**2/np.pi)*np.exp(-a_c*nu**2/2.0)
+            *(1.0 + 1.0/(a_c*nu**2)**p_c)*(nu*np.sqrt(a_c))**(q_c - 1.0))
+
+
 def f_sigma(sigma,redshift=None,hmf_type="Tinker08",Delta=None,mass_definition="500c",other_params=None):
 
     params = hmf_params(hmf_type=hmf_type,mass_definition=mass_definition,other_params=other_params)
@@ -406,7 +422,7 @@ def f_sigma(sigma,redshift=None,hmf_type="Tinker08",Delta=None,mass_definition="
         # (closed form of the integral constraint, as in the `hmf` package)
         # evaluated with the z-evolved parameters. Same dn/dlnM assembly slot as
         # the Tinker08 f(sigma). Mirrors cosmocnc_jax.hmf.g_sigma_tinker10_jit.
-        from scipy.special import gammaln
+        from scipy.special import gamma as _sgamma
 
         z_eff = min(redshift, 3.0)
 
@@ -416,8 +432,8 @@ def f_sigma(sigma,redshift=None,hmf_type="Tinker08",Delta=None,mass_definition="
         eta = params.get_param("eta0",Delta)*(1.+z_eff)**0.27
 
         alpha = 1.0/(2.0**(eta - phi - 0.5)*beta**(-2.0*phi)*gamma**(-0.5 - eta)
-                     *(2.0**phi*beta**(2.0*phi)*np.exp(gammaln(eta + 0.5))
-                       + gamma**phi*np.exp(gammaln(0.5 + eta - phi))))
+                     *(2.0**phi*beta**(2.0*phi)*_sgamma(eta + 0.5)
+                       + gamma**phi*_sgamma(0.5 + eta - phi)))
 
         nu = 1.686/sigma
         f_nu = alpha*(1.0 + (beta*nu)**(-2.0*phi))*nu**(2.0*eta)*np.exp(-gamma*nu**2/2.0)
