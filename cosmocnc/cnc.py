@@ -334,9 +334,14 @@ class cluster_number_counts:
 
                                 dn_dx1 = dn_dx0/dx1_dx0
 
+                            # [z-dep selection scatter 2026-08-18] other_params carries
+                            # 'zc' (this loop is per-z already) so scatter classes with
+                            # z-dependent sigma (e.g. sigma_lnq(z)) evaluate at this z;
+                            # z-independent classes ignore it — behaviour unchanged.
                             sigma_scatter = np.sqrt(self.scatter.get_cov(observable1=self.cnc_params["obs_select"],
                                                                         observable2=self.cnc_params["obs_select"],
-                                                                        layer=k,patch1=patch_index,patch2=patch_index))
+                                                                        layer=k,patch1=patch_index,patch2=patch_index,
+                                                                        other_params=other_params))
 
                             x_min = np.min(x1)
                             x_max = np.max(x1)
@@ -710,8 +715,12 @@ class cluster_number_counts:
 
                         for i in np.flip(layers_obs_select):
 
+                            # [z-dep selection scatter 2026-08-18] pass other_params ('zc' in
+                            # scope) so z-dependent sigma evaluates at the cluster z; classes
+                            # with constant sigma ignore it — behaviour unchanged.
                             sigma = np.sqrt(self.scatter_range.get_cov(observable1=obs_mass_def,observable2=obs_mass_def,
-                            layer=i,patch1=observable_patches[obs_mass_def],patch2=observable_patches[obs_mass_def]))
+                            layer=i,patch1=observable_patches[obs_mass_def],patch2=observable_patches[obs_mass_def],
+                            other_params=other_params))
                             DlnM = np.sqrt(DlnM**2+(1./derivative_list[i]*sigma)**2)
 
                         sigma_factor = self.cnc_params["sigma_mass_prior"]
