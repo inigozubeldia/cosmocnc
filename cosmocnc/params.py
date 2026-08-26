@@ -27,6 +27,13 @@ cnc_params_default = {
     "downsample_hmf_bc": 1,
     "padding_fraction": 0.,
     "pad_abundance": False,
+    # [direct-conv 2026-08-27, GATED default OFF] evaluate the SELECTION
+    # observable's FINAL-layer scatter convolution as an explicit quadrature in
+    # the layer's input (log-spaced) coordinate instead of the linear-in-output
+    # re-tabulation + FFT — makes the abundance convergent in M_min at fixed
+    # n_points. Requires a genuine, resolved final-layer scatter (e.g. the unit
+    # q noise). Twin of the cosmocnc_jax gate; see get_cluster_abundance.
+    "obs_select_conv_direct": False,
 
     #Observables and catalogue
 

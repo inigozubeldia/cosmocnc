@@ -321,6 +321,46 @@ class cluster_number_counts:
                                                         other_params=other_params,
                                                         patch_index=patch_index)
 
+                            # [direct-conv 2026-08-27, GATED default OFF] Final-layer scatter
+                            # convolution as an explicit quadrature in the layer's INPUT
+                            # (uniform, log-spaced) coordinate:
+                            #   n(q_i) = int dn/dx0(x0) N(q_i - x1(x0); sigma) dx0
+                            # evaluated directly on obs_select_vec — no derivative division
+                            # (the Jacobian is absorbed by integrating in x0), no
+                            # linear-in-output re-tabulation, no FFT. Keeps a mass power law
+                            # on its natively-resolved log grid => abundance convergent in
+                            # M_min at fixed n_points. Twin of the cosmocnc_jax
+                            # build_abundance_kernel direct branch. The post-loop
+                            # np.interp(obs_select_vec, x0, dn_dx0) is then the identity.
+                            # VALIDITY: requires a genuine, resolved final-layer scatter.
+                            if (self.cnc_params.get("obs_select_conv_direct",False) == True
+                                and k == self.scal_rel_selection.get_n_layers()-1):
+
+                                sigma_scatter = np.sqrt(self.scatter.get_cov(observable1=self.cnc_params["obs_select"],
+                                                                            observable2=self.cnc_params["obs_select"],
+                                                                            layer=k,patch1=patch_index,patch2=patch_index,
+                                                                            other_params=other_params))
+
+                                integrand = np.copy(dn_dx0)
+
+                                if self.cnc_params["apply_obs_cutoff"] != False:
+
+                                    if self.cnc_params["apply_obs_cutoff"][str([self.cnc_params["obs_select"]])] == True:
+
+                                        cutoff = self.scal_rel_selection.get_cutoff(layer=k)
+                                        integrand[np.where(x1 < cutoff)] = 0.
+
+                                h0 = x0[1]-x0[0]
+                                w = np.full(x0.shape,h0)
+                                w[0] = 0.5*h0
+                                w[-1] = 0.5*h0
+                                sig = max(float(sigma_scatter),self.cnc_params["sigma_scatter_min"])
+                                kernel = np.exp(-0.5*((self.obs_select_vec[:,None]-x1[None,:])/sig)**2)/(np.sqrt(2.*np.pi)*sig)
+                                dn_dx0 = kernel@(integrand*w)
+                                x0 = np.copy(self.obs_select_vec)
+
+                                continue
+
                             dx1_dx0 = self.scal_rel_selection.eval_derivative_scaling_relation(x0,
                                                                                             layer=k,
                                                                                             patch_index=patch_index,
