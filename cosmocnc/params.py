@@ -149,6 +149,7 @@ scal_rel_params_ref = {
 "f_false_detection":0.0, #N_F / (N_F + N_T) fraction of false detections to total detections
 "f_true_validated":1.,#fraction of true clusters which have been validated
 "q_cutoff":0.,
+"q_true_cutoff": None,   # [2026-08-28] pre-dof truncation variable; None = legacy q_cutoff applies
 
 #SZiFi Planck
 
@@ -205,6 +206,7 @@ scaling_relation_params_default = {
 "f_false_detection":0.0, #N_F / (N_F + N_T) fraction of false detections to total detections
 "f_true_validated":1.,#fraction of true clusters which have been validated
 "q_cutoff":0.,
+"q_true_cutoff": None,   # [2026-08-28] pre-dof truncation variable; None = legacy q_cutoff applies
 
 #SZiFi Planck
 

@@ -914,7 +914,16 @@ class cluster_number_counts:
 
                                                 if self.cnc_params["apply_obs_cutoff"][str(observable_set)] == True:
 
-                                                    mask = x_mesh[0,:] + x_obs[0] < self.scal_rel_params["q_cutoff"]
+                                                    # [2026-08-28] threshold from the survey's get_cutoff
+                                                    # (authority; can derive from q_true_cutoff); raw
+                                                    # "q_cutoff" read kept as the no-get_cutoff fallback.
+                                                    _sr0 = self.scaling_relations[observable_set[0]]
+                                                    if hasattr(_sr0, 'get_cutoff'):
+                                                        _sr0.params = self.scal_rel_params
+                                                        _cut0 = _sr0.get_cutoff(layer=_sr0.get_n_layers()-1)
+                                                    else:
+                                                        _cut0 = self.scal_rel_params["q_cutoff"]
+                                                    mask = x_mesh[0,:] + x_obs[0] < _cut0
                                                     mask = np.array(mask, dtype=bool)
                                                     cpdf[np.transpose(mask)] = 0
 
