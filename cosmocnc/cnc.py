@@ -413,8 +413,16 @@ class cluster_number_counts:
 
                                     cutoff = self.scal_rel_selection.get_cutoff(layer=k)
 
-                                    indices = np.where(x1_interp < cutoff)
-                                    dn_dx1[indices] = 0.
+                                    # [anti-aliased 2026-08-28] LAYER 0 ONLY (the pre-scatter
+                                    # q_mean_cutoff): fractional-cell edge weight — 2nd-order,
+                                    # continuous in a sampled cutoff. -inf -> weight 1 (no-op).
+                                    # Layers >= 1 keep the exact legacy binary mask.
+                                    if k == 0 and np.isfinite(cutoff):
+                                        _h = max(x1_interp[1] - x1_interp[0], 1e-30)
+                                        dn_dx1 = dn_dx1 * np.clip((x1_interp - cutoff) / _h + 0.5, 0., 1.)
+                                    elif k > 0:
+                                        indices = np.where(x1_interp < cutoff)
+                                        dn_dx1[indices] = 0.
 
                             dn_dx1 = convolve_1d(x1_interp,dn_dx1,
                                                 sigma=sigma_scatter,
@@ -992,6 +1000,28 @@ class cluster_number_counts:
 
                                         tt8 = time.time()
                                         self.t_88 = self.t_88 + tt8 - tt7
+
+                                # [q_mean_cutoff 2026-08-28] pre-scatter mass-floor
+                                # mask on the final mass-space cpdf: zero where the
+                                # SELECTION observable's layer-0 mean (ln q-bar on
+                                # the lnM grid) is below the survey's layer-0 cutoff
+                                # (ln q_mean_cutoff; -inf when unset -> no-op). Same
+                                # per-set gating as the observed-space cutoff above.
+                                if self.cnc_params["apply_obs_cutoff"] != False:
+                                    if self.cnc_params["apply_obs_cutoff"][str(observable_set)] == True:
+                                        _sr0 = self.scaling_relations[observable_set[0]]
+                                        if hasattr(_sr0, 'get_cutoff'):
+                                            _sr0.params = self.scal_rel_params
+                                            _mc = _sr0.get_cutoff(layer=0)
+                                            if np.isfinite(_mc):
+                                                _lnqbar = _sr0.eval_scaling_relation(
+                                                    lnM, layer=0,
+                                                    patch_index=int(observable_patches[observable_set[0]]),
+                                                    other_params=other_params)
+                                                # [anti-aliased 2026-08-28] fractional-cell
+                                                # edge weight (see cosmocnc_jax twin)
+                                                _d = np.maximum(np.abs(np.gradient(_lnqbar)), 1e-30)
+                                                cpdf = cpdf * np.clip((_lnqbar - _mc) / _d + 0.5, 0., 1.)
 
                                 cpdf_product = cpdf_product*cpdf
 
