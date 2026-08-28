@@ -35,6 +35,7 @@ _SR_INPUT_PARAMS = (
                      # sampled, calculate() falls back to the cnc_params mirror
     "dof",           # [2026-08-27] same, for optional dof-marginalization variants
     "q_true_cutoff", # [2026-08-28] pre-dof truncation variable as a sampled nuisance
+    "q_mean_cutoff", # [2026-08-28] pre-intrinsic-scatter (mean) truncation as a sampled nuisance
     "b_wl_m", "s_wl_m", "b_wl_0", "b_wl_1", "b_wl_2", "b_wl_3",
     "s_wl_0", "s_wl_1", "s_wl_2", "s_wl_3",
     "alpha", "log10_Y_star", "bias_cmblens", "sigma_lnq", "sigma_lnp",
@@ -145,6 +146,7 @@ class cnc(classy):
     dof: Optional[str] = 0
     q_cutoff: Optional[str] = 0
     q_true_cutoff: Optional[float] = None   # [2026-08-28] pre-dof truncation; supersedes q_cutoff when set
+    q_mean_cutoff: Optional[float] = None   # [2026-08-28] pre-intrinsic-scatter (mean) truncation; None = OFF
 
     # class_sz parameters
     cosmo_model: Optional[str] = "lcdm"
@@ -263,6 +265,7 @@ class cnc(classy):
         self.cnc.cnc_params["dof"] = self.dof
         self.cnc.cnc_params["q_cutoff"] = self.q_cutoff
         self.cnc.cnc_params["q_true_cutoff"] = self.q_true_cutoff  # [2026-08-28]
+        self.cnc.cnc_params["q_mean_cutoff"] = self.q_mean_cutoff  # [2026-08-28]
 
 
         # class_sz parameters
@@ -406,6 +409,8 @@ class cnc(classy):
         # survey's effective_q_cutoff derives sqrt(c^2+dof) from it. None = OFF.
         scal_rel_params['q_true_cutoff'] = self.cnc.cnc_params.get("q_true_cutoff", None)
         assign_parameter_value(scal_rel_params,params_values,"q_true_cutoff")
+        scal_rel_params['q_mean_cutoff'] = self.cnc.cnc_params.get("q_mean_cutoff", None)
+        assign_parameter_value(scal_rel_params,params_values,"q_mean_cutoff")
 
         self.cnc.update_params(cosmo_params,scal_rel_params)
 

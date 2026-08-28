@@ -150,6 +150,7 @@ scal_rel_params_ref = {
 "f_true_validated":1.,#fraction of true clusters which have been validated
 "q_cutoff":0.,
 "q_true_cutoff": None,   # [2026-08-28] pre-dof truncation variable; None = legacy q_cutoff applies
+"q_mean_cutoff": None,   # [2026-08-28] pre-intrinsic-scatter (mean) truncation; None = OFF
 
 #SZiFi Planck
 
@@ -207,6 +208,7 @@ scaling_relation_params_default = {
 "f_true_validated":1.,#fraction of true clusters which have been validated
 "q_cutoff":0.,
 "q_true_cutoff": None,   # [2026-08-28] pre-dof truncation variable; None = legacy q_cutoff applies
+"q_mean_cutoff": None,   # [2026-08-28] pre-intrinsic-scatter (mean) truncation; None = OFF
 
 #SZiFi Planck
 
