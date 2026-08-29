@@ -36,6 +36,7 @@ _SR_INPUT_PARAMS = (
     "dof",           # [2026-08-27] same, for optional dof-marginalization variants
     "q_true_cutoff", # [2026-08-28] pre-dof truncation variable as a sampled nuisance
     "q_mean_cutoff", # [2026-08-28] pre-intrinsic-scatter (mean) truncation as a sampled nuisance
+    "sigma_lnq_m_szifi", # [2026-08-29] mass-running of sigma_lnq (mass-dep scatter model)
     "b_wl_m", "s_wl_m", "b_wl_0", "b_wl_1", "b_wl_2", "b_wl_3",
     "s_wl_0", "s_wl_1", "s_wl_2", "s_wl_3",
     "alpha", "log10_Y_star", "bias_cmblens", "sigma_lnq", "sigma_lnp",
@@ -147,6 +148,7 @@ class cnc(classy):
     q_cutoff: Optional[str] = 0
     q_true_cutoff: Optional[float] = None   # [2026-08-28] pre-dof truncation; supersedes q_cutoff when set
     q_mean_cutoff: Optional[float] = None   # [2026-08-28] pre-intrinsic-scatter (mean) truncation; None = OFF
+    mass_dep_scatter: Optional[bool] = False  # [2026-08-29] gated layer-0 sigma(M, z) scatter
 
     # class_sz parameters
     cosmo_model: Optional[str] = "lcdm"
@@ -266,6 +268,7 @@ class cnc(classy):
         self.cnc.cnc_params["q_cutoff"] = self.q_cutoff
         self.cnc.cnc_params["q_true_cutoff"] = self.q_true_cutoff  # [2026-08-28]
         self.cnc.cnc_params["q_mean_cutoff"] = self.q_mean_cutoff  # [2026-08-28]
+        self.cnc.cnc_params["mass_dep_scatter"] = self.mass_dep_scatter  # [2026-08-29]
 
 
         # class_sz parameters
@@ -411,6 +414,7 @@ class cnc(classy):
         assign_parameter_value(scal_rel_params,params_values,"q_true_cutoff")
         scal_rel_params['q_mean_cutoff'] = self.cnc.cnc_params.get("q_mean_cutoff", None)
         assign_parameter_value(scal_rel_params,params_values,"q_mean_cutoff")
+        assign_parameter_value(scal_rel_params,params_values,"sigma_lnq_m_szifi")  # [2026-08-29]
 
         self.cnc.update_params(cosmo_params,scal_rel_params)
 

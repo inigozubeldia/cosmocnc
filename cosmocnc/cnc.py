@@ -361,6 +361,55 @@ class cluster_number_counts:
 
                                 continue
 
+                            # [mass-dep scatter 2026-08-29, GATED default OFF] layer 0 as an
+                            # explicit quadrature in the INPUT (log-M) coordinate with a
+                            # PER-MASS-POINT kernel width sigma(M, z) from the survey scatter
+                            # class (get_std_x). Twin of the cosmocnc_jax
+                            # build_abundance_kernel xdep_scatter_layer0 branch: integrates in
+                            # x0 (Jacobian absorbed), applies the layer-0 anti-aliased cutoff
+                            # weight pointwise on x1, and lands on the same padded uniform
+                            # grid the FFT path would build (fixed n_points), so later layers
+                            # proceed unchanged.
+                            if (self.cnc_params.get("mass_dep_scatter",False) == True and k == 0):
+
+                                sig_vec = self.scatter.get_std_x(observable1=self.cnc_params["obs_select"],
+                                                                 observable2=self.cnc_params["obs_select"],
+                                                                 layer=0,lnM=x0,
+                                                                 other_params=other_params)[0]
+
+                                integrand = np.copy(dn_dx0)
+
+                                if self.cnc_params["apply_obs_cutoff"] != False:
+
+                                    if self.cnc_params["apply_obs_cutoff"][str([self.cnc_params["obs_select"]])] == True:
+
+                                        cutoff = self.scal_rel_selection.get_cutoff(layer=k)
+
+                                        if np.isfinite(cutoff):
+
+                                            _d0 = np.maximum(np.abs(np.gradient(x1)),1e-30)
+                                            integrand = integrand*np.clip((x1-cutoff)/_d0+0.5,0.,1.)
+
+                                h0 = x0[1]-x0[0]
+                                w = np.full(x0.shape,h0)
+                                w[0] = 0.5*h0
+                                w[-1] = 0.5*h0
+                                sig_vec = np.maximum(sig_vec,self.cnc_params["sigma_scatter_min"])
+                                v = integrand*w/(np.sqrt(2.*np.pi)*sig_vec)
+
+                                pad = 0.
+
+                                if self.cnc_params["pad_abundance"] is True and np.max(sig_vec) > self.cnc_params["sigma_scatter_min"]:
+
+                                    pad = 8.*np.max(sig_vec)
+
+                                y_grid = np.linspace(np.min(x1)-pad,np.max(x1)+pad,self.cnc_params["n_points"])
+                                K = np.exp(-0.5*((y_grid[:,None]-x1[None,:])/sig_vec[None,:])**2)
+                                dn_dx0 = K@v
+                                x0 = y_grid
+
+                                continue
+
                             dx1_dx0 = self.scal_rel_selection.eval_derivative_scaling_relation(x0,
                                                                                             layer=k,
                                                                                             patch_index=patch_index,
@@ -962,31 +1011,73 @@ class cluster_number_counts:
 
                                         self.t_44 = self.t_44 + tt4b - tt4
 
-                                        if not np.all(covariance.cov[lay]==0):
+                                        # [mass-dep scatter 2026-08-29, GATED default OFF] 1D
+                                        # backward conv with a PER-MASS-POINT layer-0 width
+                                        # sigma(M, z) (survey get_std_x): one row-quadrature
+                                        # replaces [stationary kernel conv + interp] — row i
+                                        # (mass point lnM_i, layer-0 mean x_l0_i) integrates
+                                        # the layer-1 backward pdf against
+                                        # N(x_l0_i - x; sigma_i), normalised by the
+                                        # FULL-WINDOW kernel sum S(sigma_i). Twin of the
+                                        # cosmocnc_jax build_backward_conv_nd
+                                        # xdep_scatter_layer0 branch.
+                                        if (self.cnc_params.get("mass_dep_scatter",False) == True
+                                            and n_obs == 1 and lay == 0
+                                            and observable_set == [self.cnc_params["obs_select"]]):
 
-                                            kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
-                                            cpdf = convolve_nd(cpdf,kernel)
+                                            sig_i = np.maximum(
+                                                self.scatter.get_std_x(observable1=self.cnc_params["obs_select"],
+                                                                       observable2=self.cnc_params["obs_select"],
+                                                                       layer=0,lnM=lnM,
+                                                                       other_params=other_params)[0],1e-30)
+                                            target = x_list[lay][0,:]
+                                            x_lin_bc = x_p[0,:]
+                                            K = np.exp(-0.5*((target[:,None]-x_lin_bc[None,:])/sig_i[:,None])**2)
+                                            # full-window kernel-sum normalisation S(sigma_i)
+                                            # (stationary convention; NOT the row sum — see the
+                                            # cosmocnc_jax twin comment, test 34579952)
+                                            dxl_bc = x_lin_bc[1]-x_lin_bc[0]
+                                            x_kern_bc = x_lin_bc-np.mean(x_lin_bc)+0.5*dxl_bc
+                                            S_i = np.maximum(np.sum(
+                                                np.exp(-0.5*(x_kern_bc[None,:]/sig_i[:,None])**2),axis=1),1e-300)
+                                            cpdf_q = (K@cpdf)/S_i
+                                            cpdf_fb = np.interp(target,x_lin_bc,cpdf)
+                                            cpdf = np.where(sig_i > 1e-10,cpdf_q,cpdf_fb)
+                                            cpdf[np.where(cpdf < 0.)] = 0.
 
-                                        tt5 = time.time()
-                                        self.t_55 = self.t_55  + tt5 - tt4b
+                                            tt5 = time.time()
+                                            self.t_55 = self.t_55  + tt5 - tt4b
 
-                                        tt6 = time.time()
-                                        self.t_66 = self.t_66 + tt6 - tt5
-
-                                        cpdf[np.where(cpdf < 0.)] = 0.
-
-                                        if n_obs > 1:
-
-                                            x_mesh_interp = get_mesh(x_list[lay])
-                                            shape = x_mesh.shape
-                                            x_mesh_interp = np.transpose(x_mesh_interp.reshape(*x_mesh.shape[:-2],-1))
-
-                                            cpdf = interpolate.RegularGridInterpolator(x_p,cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp)
-                                            cpdf = np.transpose(cpdf.reshape(shape[1:]))
+                                            tt6 = time.time()
+                                            self.t_66 = self.t_66 + tt6 - tt5
 
                                         else:
 
-                                            cpdf = np.interp(x_list[lay][0,:],x_p[0,:],cpdf)
+                                            if not np.all(covariance.cov[lay]==0):
+
+                                                kernel = eval_gaussian_nd(x_p_mesh,cov=covariance.cov[lay])
+                                                cpdf = convolve_nd(cpdf,kernel)
+
+                                            tt5 = time.time()
+                                            self.t_55 = self.t_55  + tt5 - tt4b
+
+                                            tt6 = time.time()
+                                            self.t_66 = self.t_66 + tt6 - tt5
+
+                                            cpdf[np.where(cpdf < 0.)] = 0.
+
+                                            if n_obs > 1:
+
+                                                x_mesh_interp = get_mesh(x_list[lay])
+                                                shape = x_mesh.shape
+                                                x_mesh_interp = np.transpose(x_mesh_interp.reshape(*x_mesh.shape[:-2],-1))
+
+                                                cpdf = interpolate.RegularGridInterpolator(x_p,cpdf,method="linear",fill_value=0.,bounds_error=False)(x_mesh_interp)
+                                                cpdf = np.transpose(cpdf.reshape(shape[1:]))
+
+                                            else:
+
+                                                cpdf = np.interp(x_list[lay][0,:],x_p[0,:],cpdf)
 
                                         tt7 = time.time()
 

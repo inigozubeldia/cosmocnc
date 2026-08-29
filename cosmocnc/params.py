@@ -35,6 +35,12 @@ cnc_params_default = {
     # q noise). Twin of the cosmocnc_jax gate; see get_cluster_abundance.
     "obs_select_conv_direct": False,
 
+    # [mass-dep scatter 2026-08-29, GATED default OFF] layer-0 intrinsic scatter as an
+    # arbitrary sigma(M, z) (survey scatter class get_std_x), evaluated by explicit
+    # quadrature at the abundance layer 0 and the 1D backward conv. Twin of the
+    # cosmocnc_jax gate.
+    "mass_dep_scatter": False,
+
     #Observables and catalogue
 
     "load_catalogue": True,
