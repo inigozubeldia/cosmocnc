@@ -519,6 +519,15 @@ class cluster_number_counts:
 
     def get_log_lik_data(self):
 
+        #Patch indices are consumed positionally per cluster: they must be inside the
+        #selection observable's patch set for every cluster that is scored.
+        _patches = np.asarray(self.catalogue.catalogue_patch[self.cnc_params["obs_select"]],dtype=float)
+        _n_patches = len(self.scal_rel_selection.skyfracs)
+
+        if len(_patches) != len(self.catalogue.catalogue["z"]) or np.any(_patches < 0.) or np.any(_patches >= _n_patches):
+
+            raise ValueError("catalogue_patch['%s'] must hold one patch index in [0, %d) per cluster" % (self.cnc_params["obs_select"],_n_patches))
+
         indices_no_z = self.catalogue.indices_no_z #indices of clusters with no redshift
         indices_obs_select = self.catalogue.indices_obs_select #indices of clusters with redshift and only the selection observable
         indices_other_obs = self.catalogue.indices_other_obs #indices of clusters with redshift, the selection observable, and other observables

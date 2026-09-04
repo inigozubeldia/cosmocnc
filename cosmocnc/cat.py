@@ -60,6 +60,8 @@ class cluster_catalogue:
         self.catalogue = catalogue_survey.catalogue
         self.catalogue_patch = catalogue_survey.catalogue_patch
 
+        self.validate_per_cluster_arrays()
+
         if hasattr(catalogue_survey,'stacked_data_labels'):
 
             self.stacked_data_labels = catalogue_survey.stacked_data_labels
@@ -108,6 +110,62 @@ class cluster_catalogue:
                         self.number_counts[i,j] = len(indices)
 
 
+
+
+    def validate_per_cluster_arrays(self):
+
+        """Check that every per-cluster array the survey catalogue exposes has exactly one
+        entry per cluster, in the same order.
+
+        The observable columns, "z" and "z_std", and the per-observable patch indices in
+        catalogue_patch are all consumed positionally: cluster i of one array is paired with
+        cluster i of every other. A survey catalogue file that trims its cluster list after
+        building one of these arrays would silently pair clusters with the wrong data (e.g.
+        the wrong noise curve); that must fail loudly here instead. Ragged auxiliary entries
+        are checked for length only. Patch indices must be finite and non-negative wherever
+        the corresponding observable is present."""
+
+        n = len(self.catalogue[self.obs_select])
+
+        obs_names = [self.obs_select]
+
+        for obs_set in self.observables:
+
+            for obs in (obs_set if isinstance(obs_set,(list,tuple)) else [obs_set]):
+
+                if obs not in obs_names:
+
+                    obs_names.append(obs)
+
+        for key in ["z","z_std"] + obs_names:
+
+            if key in self.catalogue and len(self.catalogue[key]) != n:
+
+                raise ValueError("catalogue['%s'] has %d entries but the catalogue has %d clusters; per-cluster arrays are consumed positionally and must be cut together" % (key,len(self.catalogue[key]),n))
+
+        for key in obs_names:
+
+            if key not in self.catalogue_patch:
+
+                continue
+
+            patch = np.asarray(self.catalogue_patch[key],dtype=float)
+
+            if patch.ndim != 1 or len(patch) != n:
+
+                raise ValueError("catalogue_patch['%s'] has shape %s but the catalogue has %d clusters; patch indices are consumed positionally and must be cut together with the observables" % (key,str(patch.shape),n))
+
+            try:
+
+                present = np.isfinite(np.asarray(self.catalogue[key],dtype=float))
+
+            except (TypeError,ValueError):
+
+                present = np.zeros(n,dtype=bool)
+
+            if np.any(~np.isfinite(patch[present])) or np.any(patch[present] < 0.):
+
+                raise ValueError("catalogue_patch['%s'] holds a non-finite or negative patch index for a cluster that has that observable" % key)
 
     def get_precompute_cnc_quantities(self):
 
