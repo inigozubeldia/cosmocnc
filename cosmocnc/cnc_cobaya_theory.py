@@ -360,8 +360,8 @@ class cnc(classy):
         assign_parameter_value(scal_rel_params,params_values,"A_szifi")
         assign_parameter_value(scal_rel_params,params_values,"sigma_lnq_szifi")
 
-        # DES Y3 WL — 10-parameter Magneticum B13 calibration (joint Gaussian
-        # prior from wl_prior_magneticum_4sigma_trim.npz).
+        # weak-lensing 10-parameter calibration (mass slopes + per-z-bin
+        # bias/scatter amplitudes; joint Gaussian prior supplied by the analysis).
         assign_parameter_value(scal_rel_params,params_values,"b_wl_m")
         assign_parameter_value(scal_rel_params,params_values,"s_wl_m")
         assign_parameter_value(scal_rel_params,params_values,"b_wl_0")

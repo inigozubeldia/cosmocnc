@@ -257,16 +257,14 @@ scaling_relation_params_default = {
 "C0": 0.,
 "sigma_lnq_act": 0.2,
 
-#Planck DES Y3 — 10-parameter Magneticum B13 calibration. Defaults =
-# trimmed-chain mean (see planck_cosmology/wl_prior_magneticum_4sigma_trim.npz).
-# The joint Gaussian prior replaces the previous single-nuisance
-# `lnb_wl_sigma`.
+# Weak-lensing 10-parameter mass-bias calibration (mass slopes + per-z-bin
+# bias/scatter amplitudes). A joint Gaussian prior on these, supplied by the
+# calling analysis, replaces the previous single-nuisance `lnb_wl_sigma`.
 
 "b_wl_m": 1.029425,    # mass-slope α of the bias
 "s_wl_m": 0.071346,    # mass-slope α_σ of the scatter
-# b_wl_k / s_wl_k map positionally to the Magneticum snapshot redshifts
-# z = [0.01, 0.252, 0.470, 0.783]; see survey_sr_planck_szifi.py
-# (_Z_WL_BIN_CENTERS).
+# b_wl_k / s_wl_k map positionally to the survey file's calibration redshift
+# bins (its _Z_WL_BIN_CENTERS constant).
 "b_wl_0": -0.035675,   # ln b_wl at M_pivot, z bin 0 (z=0.01)
 "b_wl_1": -0.023322,   # ln b_wl at M_pivot, z bin 1 (z=0.252)
 "b_wl_2": -0.033240,   # ln b_wl at M_pivot, z bin 2 (z=0.470)

@@ -390,7 +390,7 @@ class cosmology_model:
 
         # Reproduces CAMB's CAMBdata_CosmomcTheta (the CosmoMC theta_MC that Planck reports),
         # so the Planck 100*theta_MC constraint can be used directly as a prior. Verified against
-        # camb.get_background(...).cosmomc_theta() to ~2e-6 (planck_cosmology/verify_theta_mc.py).
+        # camb.get_background(...).cosmomc_theta() to ~2e-6.
         # CAMB 1.6.6 fortran/results.f90::CAMBdata_CosmomcTheta:
         #   omdmh2 = omch2 + omnuh2;  zstar = 1048*(1+0.00124*ombh2^-0.738)*(1 + g1*(omdmh2+ombh2)^g2)
         #   rs = Integrate(dsound_da_approx, 1e-8, astar);  DA = AngularDiameterDistance(zstar)/astar
