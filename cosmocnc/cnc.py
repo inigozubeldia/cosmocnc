@@ -370,12 +370,17 @@ class cluster_number_counts:
                             # weight pointwise on x1, and lands on the same padded uniform
                             # grid the FFT path would build (fixed n_points), so later layers
                             # proceed unchanged.
-                            if (self.cnc_params.get("mass_dep_scatter",False) == True and k == 0):
+                            # [2026-09-08] only when the SELECTION observable declares
+                            # x-dependent layer-0 scatter (other observables may declare
+                            # it for their own 1-observable backward-conv sets instead)
+                            if (self.cnc_params.get("mass_dep_scatter",False) == True and k == 0
+                                and self.scatter.x_dep_scatter(self.cnc_params["obs_select"],
+                                                               self.cnc_params["obs_select"],0)):
 
                                 sig_vec = self.scatter.get_std_x(observable1=self.cnc_params["obs_select"],
                                                                  observable2=self.cnc_params["obs_select"],
                                                                  layer=0,lnM=x0,
-                                                                 other_params=other_params)[0]
+                                                                 other_params=dict(other_params,h=float(self.cosmology.cosmo_params["h"])))[0]
 
                                 integrand = np.copy(dn_dx0)
 
@@ -1030,15 +1035,18 @@ class cluster_number_counts:
                                         # FULL-WINDOW kernel sum S(sigma_i). Twin of the
                                         # cosmocnc_jax build_backward_conv_nd
                                         # xdep_scatter_layer0 branch.
+                                        # [2026-09-08] any 1-observable set whose observable declares
+                                        # x-dependent layer-0 scatter (twin of the cosmocnc_jax
+                                        # per-set flag); every other set keeps the stationary kernel
                                         if (self.cnc_params.get("mass_dep_scatter",False) == True
                                             and n_obs == 1 and lay == 0
-                                            and observable_set == [self.cnc_params["obs_select"]]):
+                                            and self.scatter.x_dep_scatter(observable_set[0],observable_set[0],0)):
 
                                             sig_i = np.maximum(
-                                                self.scatter.get_std_x(observable1=self.cnc_params["obs_select"],
-                                                                       observable2=self.cnc_params["obs_select"],
+                                                self.scatter.get_std_x(observable1=observable_set[0],
+                                                                       observable2=observable_set[0],
                                                                        layer=0,lnM=lnM,
-                                                                       other_params=other_params)[0],1e-30)
+                                                                       other_params=dict(other_params,h=float(self.cosmology.cosmo_params["h"])))[0],1e-30)
                                             target = x_list[lay][0,:]
                                             x_lin_bc = x_p[0,:]
                                             K = np.exp(-0.5*((target[:,None]-x_lin_bc[None,:])/sig_i[:,None])**2)
