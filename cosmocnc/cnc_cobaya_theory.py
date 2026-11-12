@@ -39,6 +39,10 @@ _SR_INPUT_PARAMS = (
     "sigma_lnq_m_szifi", # [2026-08-29] mass-running of sigma_lnq (mass-dep scatter model)
     "b_wl_m", "s_wl_m", "b_wl_0", "b_wl_1", "b_wl_2", "b_wl_3",
     "s_wl_0", "s_wl_1", "s_wl_2", "s_wl_3",
+    # weak-lensing PCA-score calibration nuisances: the survey file's alternative WL
+    # calibration model (scores on the calibration's principal modes, up to 5 per profile)
+    "b_wl_pc1", "b_wl_pc2", "b_wl_pc3", "b_wl_pc4", "b_wl_pc5",
+    "s_wl_pc1", "s_wl_pc2", "s_wl_pc3", "s_wl_pc4", "s_wl_pc5",
     "alpha", "log10_Y_star", "bias_cmblens", "sigma_lnq", "sigma_lnp",
     "corr_lnq_lnp", "a_lens",
     "A_sz", "B_sz", "C_sz", "A_x", "B_x", "C_x", "dlnMg_dlnr",
@@ -46,6 +50,37 @@ _SR_INPUT_PARAMS = (
     "WLbias", "WLscatter", "HSTbias", "HSTscatterLSS",
     "MegacamBias", "MegacamScatterLSS", "SZmPivot",
 )
+
+
+# ---------------------------------------------------------------------------
+# Weak-lensing calibration model switch. A survey file may implement more than one
+# WL calibration model, selected by cnc_params["catalogue_params"]["wl_calibration_model"]:
+#   "zbin" (default): mass slopes + per-z-bin amplitudes (b_wl_0..3, s_wl_0..3)
+#   "pca":            mass slopes + PCA scores (b_wl_pc*, s_wl_pc*)
+# The amplitudes are inert under "pca" and the scores under "zbin": a run config whose
+# WL parameter set does not match the model would sample inert parameters against
+# their prior while the calibration stays frozen at its defaults, silently. Such
+# configs are refused at model construction (initialize_with_params, i.e. once the
+# input parameters have been assigned to this theory).
+# ---------------------------------------------------------------------------
+_WL_ZBIN_AMPLITUDES = ("b_wl_0", "b_wl_1", "b_wl_2", "b_wl_3",
+                       "s_wl_0", "s_wl_1", "s_wl_2", "s_wl_3")
+_WL_PCA_SCORES = ("b_wl_pc1", "b_wl_pc2", "b_wl_pc3", "b_wl_pc4", "b_wl_pc5",
+                  "s_wl_pc1", "s_wl_pc2", "s_wl_pc3", "s_wl_pc4", "s_wl_pc5")
+
+
+def check_wl_calibration_param_set(cnc_params, input_params):
+    """Raise if the run's WL parameters include ones the selected WL calibration model ignores."""
+    model = (cnc_params.get("catalogue_params") or {}).get("wl_calibration_model", "zbin")
+    inert = _WL_ZBIN_AMPLITUDES if model == "pca" else _WL_PCA_SCORES
+    bad = sorted(set(input_params) & set(inert))
+    if bad:
+        raise ValueError(
+            f"wl_calibration_model = {model!r} but the run config defines the WL parameters "
+            f"{bad}, which that model does not use (per-z-bin amplitudes belong to 'zbin', "
+            "PCA scores to 'pca'): remove them and their prior from the run config, or "
+            "switch the model.")
+
 
 class cnc(classy):
 
@@ -293,6 +328,11 @@ class cnc(classy):
         self.derived_extra = []
         self.log.info("Initialized")
 
+    def initialize_with_params(self):
+        super().initialize_with_params()
+        # the run's WL parameter set must match the survey file's WL calibration model
+        check_wl_calibration_param_set(self.cnc.cnc_params, list(self.input_params))
+
     def get_can_support_params(self):
         # THE ROUTING FIX (2026-07-08, mirrored from cosmocnc_jax). See the
         # _COSMO_INPUT_PARAMS/_SR_INPUT_PARAMS comment block.
@@ -372,6 +412,16 @@ class cnc(classy):
         assign_parameter_value(scal_rel_params,params_values,"s_wl_1")
         assign_parameter_value(scal_rel_params,params_values,"s_wl_2")
         assign_parameter_value(scal_rel_params,params_values,"s_wl_3")
+        assign_parameter_value(scal_rel_params,params_values,"b_wl_pc1")
+        assign_parameter_value(scal_rel_params,params_values,"b_wl_pc2")
+        assign_parameter_value(scal_rel_params,params_values,"b_wl_pc3")
+        assign_parameter_value(scal_rel_params,params_values,"b_wl_pc4")
+        assign_parameter_value(scal_rel_params,params_values,"b_wl_pc5")
+        assign_parameter_value(scal_rel_params,params_values,"s_wl_pc1")
+        assign_parameter_value(scal_rel_params,params_values,"s_wl_pc2")
+        assign_parameter_value(scal_rel_params,params_values,"s_wl_pc3")
+        assign_parameter_value(scal_rel_params,params_values,"s_wl_pc4")
+        assign_parameter_value(scal_rel_params,params_values,"s_wl_pc5")
 
         # SPT-style parameters:
 
