@@ -72,7 +72,7 @@ class catalogue_generator:
         get_std_x(lnM=(n_x,), other_params={"zc": (n_zc,), "h": h}) returns the (n_zc, n_x) table the
         likelihood uses; here it is evaluated on a chunk of clusters and its diagonal taken, so entry k
         is sigma(z_k, M_k). ln_M is ln(M / 1e14 Msun) on the generator's own mass grid convention
-        (number_counts.ln_M), h the generation value.
+        (number_counts.ln_M); h = cosmo_params["h"], the value the likelihood passes.
         """
         ln_M = np.asarray(ln_M,dtype=np.float64)
         z = np.asarray(z,dtype=np.float64)
@@ -302,7 +302,8 @@ class catalogue_generator:
                                 f"sim_mass_dep_scatter=True: observable {_o} declares x-dependent scatter at "
                                 f"layer {i}, which the simulator supports only at layer 0 of a multi-layer "
                                 "observable with cov_constant['0'] False")
-                        sig_x[_o] = self._std_x_per_cluster(_o,ln_M_samples,z_samples,other_params["H0"]/100.)
+                        sig_x[_o] = self._std_x_per_cluster(_o,ln_M_samples,z_samples,
+                        float(self.number_counts.cosmology.cosmo_params["h"]))
                         xdep_applied.append(_o)
 
                 #Same covariance for all clusters 
