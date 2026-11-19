@@ -40,6 +40,12 @@ cnc_params_default = {
     # quadrature at the abundance layer 0 and the 1D backward conv. Twin of the
     # cosmocnc_jax gate.
     "mass_dep_scatter": False,
+    # Catalogue simulator only (sim.py): layer-0 intrinsic scatter of the observables for which the
+    # survey scatter class declares x_dep_scatter taken from get_std_x at each simulated cluster's own
+    # (ln M, z). Default False = the covariance from get_cov. Independent of "mass_dep_scatter" (the
+    # likelihood's gate). Twin of the cosmocnc_jax simulator switch.
+    "sim_mass_dep_scatter": False,
+    "sim_store_layer_values": False,   # simulator: keep each layer's values before / after the scatter (tests)
 
     #Observables and catalogue
 

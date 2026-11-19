@@ -18,6 +18,17 @@ class catalogue_generator:
         self.std_vec_dict = std_vec_dict
         self.patches_from_coord = patches_from_coord
 
+        # x-dependent (mass- and redshift-dependent) intrinsic scatter at generation, GATED by
+        # cnc_params["sim_mass_dep_scatter"] (default False = the covariance from scatter.get_cov, as always).
+        # When on, the layer-0 standard deviation of every observable for which the survey scatter class
+        # declares x_dep_scatter(obs, obs, 0) is taken from scatter.get_std_x at each cluster's own
+        # (ln M, z): the same function, called in the same way, that the likelihood uses. Twin of the
+        # cosmocnc_jax simulator switch.
+        self._sim_xdep_on = bool(self.params_cnc.get("sim_mass_dep_scatter",False))
+        # Optional record of each layer's values before / after the scatter and of the variances used (tests only).
+        self._store_layers = bool(self.params_cnc.get("sim_store_layer_values",False))
+        self.layer_values = []
+
         if seed is not None:
 
             np.random.seed(seed=seed)
@@ -26,6 +37,11 @@ class catalogue_generator:
 
         self.scaling_relations = self.number_counts.scaling_relations
         self.scatter = self.number_counts.scatter
+        if self._sim_xdep_on and not (hasattr(self.scatter,"x_dep_scatter") and hasattr(self.scatter,"get_std_x")):
+            raise NotImplementedError(
+                "sim_mass_dep_scatter=True but the survey scatter class has no "
+                "x_dep_scatter(observable1, observable2, layer) / "
+                "get_std_x(observable1, observable2, layer, lnM, other_params)")
         self.skyfracs = self.scaling_relations[self.params_cnc["obs_select"]].skyfracs
 
         if self.sky_frac is None:
@@ -37,6 +53,41 @@ class catalogue_generator:
         self.hmf_matrix = self.number_counts.hmf_matrix*4.*np.pi*self.sky_frac
         self.ln_M = self.number_counts.ln_M
         self.redshift_vec = self.number_counts.redshift_vec
+
+    @staticmethod
+    def _snapshot(v):
+        """Copy of a layer's values as a float array, or None if they are not a regular array."""
+        try:
+            return np.array(v,dtype=np.float64)
+        except (TypeError,ValueError):
+            return None
+
+    def _xdep_declared(self,obs,layer):
+        """Whether the x-dependent scatter is to be used for (obs, layer) in this generation."""
+        return bool(self._sim_xdep_on and self.scatter.x_dep_scatter(obs,obs,layer))
+
+    def _std_x_per_cluster(self,obs,ln_M,z,h,chunk=256):
+        """Layer-0 standard deviation of `obs` at each cluster's own (ln M, z), from scatter.get_std_x.
+
+        get_std_x(lnM=(n_x,), other_params={"zc": (n_zc,), "h": h}) returns the (n_zc, n_x) table the
+        likelihood uses; here it is evaluated on a chunk of clusters and its diagonal taken, so entry k
+        is sigma(z_k, M_k). ln_M is ln(M / 1e14 Msun) on the generator's own mass grid convention
+        (number_counts.ln_M), h the generation value.
+        """
+        ln_M = np.asarray(ln_M,dtype=np.float64)
+        z = np.asarray(z,dtype=np.float64)
+        assert ln_M.shape == z.shape and ln_M.ndim == 1
+        out = np.empty(len(z),dtype=np.float64)
+        for a in range(0,len(z),chunk):
+            n = len(z[a:a+chunk])
+            sx = np.asarray(self.scatter.get_std_x(observable1=obs,observable2=obs,layer=0,
+            lnM=ln_M[a:a+chunk],other_params={"zc":z[a:a+chunk],"h":float(h)}),dtype=np.float64)
+            if sx.shape != (n,n):
+                raise ValueError(f"get_std_x must return (n_zc, n_lnM) = ({n}, {n}); got {sx.shape}")
+            out[a:a+chunk] = np.diagonal(sx)
+        if not (np.all(np.isfinite(out)) and np.all(out > 0.)):
+            raise ValueError(f"get_std_x returned a non-finite or non-positive standard deviation for {obs}")
+        return out
 
     def get_total_number_clusters(self):
 
@@ -185,6 +236,11 @@ class catalogue_generator:
 
                     observable_patches[observable] = self.sky_patches[observable]
 
+            xdep_applied = []
+            if self._store_layers:
+                self.layer_values.append({"ln_M":np.asarray(ln_M_samples,dtype=np.float64),
+                "z":np.asarray(z_samples,dtype=np.float64),"layers":[]})
+
             for i in range(0,n_layers):
 
                 x1 = {}
@@ -230,6 +286,25 @@ class catalogue_generator:
                             other_params=other_params_cluster)[0]
                             x1[observable].append(a)                        
 
+                if self._store_layers:
+                    _before = {o:self._snapshot(x1[o]) for o in self.params_cnc["observables"][0]}
+                    _var_used = {o:np.full(n_clusters,np.nan) for o in self.params_cnc["observables"][0]}
+
+                # x-dependent scatter is implemented for the per-cluster covariance of layer 0 only (its
+                # argument is the mass, the input of layer 0). Anything else that declares it stops here.
+                sig_x = {}
+                if self._sim_xdep_on:
+                    for _o in self.params_cnc["observables"][0]:
+                        if not self._xdep_declared(_o,i):
+                            continue
+                        if not (i == 0 and n_layers > 1 and self.params_cnc["cov_constant"][str(i)] is False):
+                            raise NotImplementedError(
+                                f"sim_mass_dep_scatter=True: observable {_o} declares x-dependent scatter at "
+                                f"layer {i}, which the simulator supports only at layer 0 of a multi-layer "
+                                "observable with cov_constant['0'] False")
+                        sig_x[_o] = self._std_x_per_cluster(_o,ln_M_samples,z_samples,other_params["H0"]/100.)
+                        xdep_applied.append(_o)
+
                 #Same covariance for all clusters 
 
                 if self.params_cnc["cov_constant"][str(i)] is True:
@@ -273,6 +348,25 @@ class catalogue_generator:
                             observable_patches=observable_patches_cluster,layer=np.arange(n_layers),other_params=other_params_cluster)
                             cov = covariance.cov[i]
 
+                            # x-dependent scatter: the standard deviation that get_cov gave for a declaring
+                            # observable is replaced by get_std_x at this cluster's own (ln M, z). Row and
+                            # column of that observable are rescaled by the ratio, so its variance becomes
+                            # sigma(M, z)^2 and its correlation coefficients with the others are unchanged.
+                            if len(sig_x) > 0:
+                                cov = np.array(cov,dtype=np.float64)
+                                for _idx,_o in enumerate(self.params_cnc["observables"][0]):
+                                    if _o not in sig_x:
+                                        continue
+                                    if not (np.isfinite(cov[_idx,_idx]) and cov[_idx,_idx] > 0.):
+                                        raise ValueError(
+                                            f"sim_mass_dep_scatter: get_cov variance of {_o} at layer {i} is not positive")
+                                    _fac = sig_x[_o][k]/np.sqrt(cov[_idx,_idx])
+                                    cov[_idx,:] = cov[_idx,:]*_fac
+                                    cov[:,_idx] = cov[:,_idx]*_fac
+                            if self._store_layers:
+                                for _idx,_o in enumerate(self.params_cnc["observables"][0]):
+                                    _var_used[_o][k] = np.asarray(cov)[_idx,_idx]
+
                             noise = np.transpose(np.random.multivariate_normal(np.zeros(n_observables),cov,size=1))
 
                             kk = 0 
@@ -303,7 +397,17 @@ class catalogue_generator:
                                         noise = np.random.normal(loc=0.0,scale=1.0,size=len(std))*std
                                         x1[observable][k] = x1[observable][k] + noise
 
+                if self._store_layers:
+                    self.layer_values[-1]["layers"].append({o:{"before":_before[o],"after":self._snapshot(x1[o]),
+                    "var_used":_var_used[o]} for o in self.params_cnc["observables"][0]})
+
                 x0 = x1
+
+            if self._sim_xdep_on and len(xdep_applied) == 0:
+                raise NotImplementedError(
+                    "sim_mass_dep_scatter=True but the survey scatter class declares x-dependent layer-0 "
+                    "scatter for none of the simulated observables")
+            self.xdep_scatter_applied = list(xdep_applied)
 
             indices_select = np.where(np.array(x1[self.params_cnc["obs_select"]]) > self.params_cnc["obs_select_min"])[0]
             
