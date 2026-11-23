@@ -184,6 +184,12 @@ class cnc(classy):
     q_true_cutoff: Optional[float] = None   # [2026-08-28] pre-dof truncation; supersedes q_cutoff when set
     q_mean_cutoff: Optional[float] = None   # [2026-08-28] pre-intrinsic-scatter (mean) truncation; None = OFF
     mass_dep_scatter: Optional[bool] = False  # [2026-08-29] gated layer-0 sigma(M, z) scatter
+    # reduced-cost abundance layer-0 integral for x-dependent scatter (default OFF)
+    xdep_abundance_fast: Optional[bool] = False
+    xdep_abundance_src_bin: Optional[int] = 8
+    xdep_abundance_out_stride: Optional[int] = 1
+    xdep_abundance_tol: Optional[float] = 1e-7
+    xdep_abundance_refine: Optional[list] = None
 
     # class_sz parameters
     cosmo_model: Optional[str] = "lcdm"
@@ -304,6 +310,11 @@ class cnc(classy):
         self.cnc.cnc_params["q_true_cutoff"] = self.q_true_cutoff  # [2026-08-28]
         self.cnc.cnc_params["q_mean_cutoff"] = self.q_mean_cutoff  # [2026-08-28]
         self.cnc.cnc_params["mass_dep_scatter"] = self.mass_dep_scatter  # [2026-08-29]
+        self.cnc.cnc_params["xdep_abundance_fast"] = self.xdep_abundance_fast
+        self.cnc.cnc_params["xdep_abundance_src_bin"] = int(self.xdep_abundance_src_bin)
+        self.cnc.cnc_params["xdep_abundance_out_stride"] = int(self.xdep_abundance_out_stride)
+        self.cnc.cnc_params["xdep_abundance_tol"] = float(self.xdep_abundance_tol)
+        self.cnc.cnc_params["xdep_abundance_refine"] = self.xdep_abundance_refine
 
 
         # class_sz parameters

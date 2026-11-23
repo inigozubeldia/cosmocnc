@@ -40,6 +40,21 @@ cnc_params_default = {
     # quadrature at the abundance layer 0 and the 1D backward conv. Twin of the
     # cosmocnc_jax gate.
     "mass_dep_scatter": False,
+    # Reduced-cost evaluation of the abundance layer-0 integral when the selection observable's
+    # scatter is x-dependent (mass_dep_scatter): sources merged in groups of xdep_abundance_src_bin
+    # mass points (each group = its moment-matched Gaussian times the group's exact expansion to
+    # order 8); with xdep_abundance_out_stride > 1 the outputs are evaluated on every
+    # xdep_abundance_out_stride-th grid point and interpolated in between (8-point Lagrange).
+    # The setting is used when its error estimate is within xdep_abundance_tol; otherwise the
+    # [src_bin, out_stride] pairs of xdep_abundance_refine are tried in order (e.g. [[4, 2], [2, 1]]),
+    # and the standard quadrature only when none passes. Default off. Twin of the cosmocnc_jax
+    # settings (decided there per group of patches, here per patch and redshift). See
+    # xdep_abundance_fast_layer0 in cnc.py.
+    "xdep_abundance_fast": False,
+    "xdep_abundance_src_bin": 8,
+    "xdep_abundance_out_stride": 1,
+    "xdep_abundance_tol": 1e-7,
+    "xdep_abundance_refine": None,
     # Catalogue simulator only (sim.py): layer-0 intrinsic scatter of the observables for which the
     # survey scatter class declares x_dep_scatter taken from get_std_x at each simulated cluster's own
     # (ln M, z). Default False = the covariance from get_cov. Independent of "mass_dep_scatter" (the

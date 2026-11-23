@@ -13,6 +13,105 @@ import time
 import importlib.util
 import sys
 
+def xdep_abundance_fast_layer0(m,x1,sig,y_min,y_max,n_points,src_bin,out_stride,estimate_only=False):
+    """Reduced-cost evaluation of the abundance layer-0 integral with a per-mass-point
+    kernel width,
+
+        dn/dy(y_i) = sum_j m_j N(y_i - x1_j; sig_j),
+
+    on the uniform grid of n_points points from y_min to y_max. Twin of the xdep_fast
+    branch of the cosmocnc_jax build_abundance_kernel (same arithmetic).
+
+    (1) Sources: consecutive mass points are merged in groups of src_bin. A group is its
+        Gaussian of total weight M, weighted mean position X and total variance V
+        (weighted mean of sig_j^2 plus the spread of the positions), times a polynomial:
+        the exact expansion
+            sum_j m_j N(y - x_j; v_j) = sum_n C_n d^n/dy^n N(y - X; V),
+            C_n = sum_j m_j sum_{p + 2q = n} (-d_j)^p / p! (e_j / 2)^q / q!,
+        d_j = x_j - X, e_j = v_j - V (shift = -d/dy, variance = half the second
+        derivative), of which the orders 3 ... 8 are kept (C_1 = C_2 = 0).
+    (2) Outputs: with out_stride > 1 the sum is evaluated on every out_stride-th grid
+        point (plus 4 coarse points on each side) and the others are obtained by 8-point
+        Lagrange interpolation; out_stride = 1: every point, no interpolation.
+
+    Returns (dn_dy, err), or err alone if estimate_only (no integral evaluated). err =
+    weight-averaged size of the last orders kept (7 and 8) relative to the group's peak,
+    plus (out_stride > 1) the weight-averaged interpolation term 0.112 (h_coarse / S)^8.
+    """
+
+    assert n_points % src_bin == 0 and n_points % out_stride == 0, (
+        f"src_bin={src_bin} and out_stride={out_stride} must divide n_points={n_points}")
+
+    n_b = n_points//src_bin
+    mb = m.reshape(n_b,src_bin)
+    xb = x1.reshape(n_b,src_bin)
+    vb = (sig**2).reshape(n_b,src_bin)
+    M_b = np.sum(mb,axis=1)
+    has = M_b > 0.
+    M_safe = np.where(has,M_b,1.)
+    X_b = np.where(has,np.sum(mb*xb,axis=1)/M_safe,np.mean(xb,axis=1))
+    d_b = xb-X_b[:,None]
+    V_b = np.where(has,np.sum(mb*(vb+d_b**2),axis=1)/M_safe,np.mean(vb,axis=1))
+    S_b = np.sqrt(V_b)
+    e_b = np.where(has[:,None],vb-V_b[:,None],0.)
+    dd = np.where(has[:,None],d_b,0.)
+
+    t3 = -np.sum(mb*(-dd**3/6.-dd*e_b/2.),axis=1)/S_b**3
+    t4 = np.sum(mb*(dd**4/24.+dd**2*e_b/4.+e_b**2/8.),axis=1)/S_b**4
+    t5 = -np.sum(mb*(-dd**5/120.-dd**3*e_b/12.-dd*e_b**2/8.),axis=1)/S_b**5
+    t6 = np.sum(mb*(dd**6/720.+dd**4*e_b/48.+dd**2*e_b**2/16.+e_b**3/48.),axis=1)/S_b**6
+    t7 = -np.sum(mb*(-dd**7/5040.-dd**5*e_b/240.-dd**3*e_b**2/48.-dd*e_b**3/48.),axis=1)/S_b**7
+    t8 = np.sum(mb*(dd**8/40320.+dd**6*e_b/1440.+dd**4*e_b**2/192.+dd**2*e_b**3/96.+e_b**4/384.),axis=1)/S_b**8
+
+    dy = (y_max-y_min)/(n_points-1)
+    h_c = out_stride*dy
+    inv_s_b = 1./S_b
+    M_tot = max(np.sum(M_b),1e-300)
+    err = np.sum(35.6*np.abs(t7)+105.*np.abs(t8))/M_tot
+
+    if out_stride > 1:
+
+        err = err + 0.112*np.sum(M_b*(h_c*inv_s_b)**8)/M_tot
+
+    if estimate_only == True:
+
+        return err
+
+    # monomial coefficients in u of [M + t3 He3 + ... + t8 He8] / (sqrt(2 pi) S)
+
+    nrm = 1./(np.sqrt(2.*np.pi)*S_b)
+    a0 = (M_b+3.*t4-15.*t6+105.*t8)*nrm
+    a1 = (-3.*t3+15.*t5-105.*t7)*nrm
+    a2 = (-6.*t4+45.*t6-420.*t8)*nrm
+    a3 = (t3-10.*t5+105.*t7)*nrm
+    a4 = (t4-15.*t6+210.*t8)*nrm
+    a5 = (t5-21.*t7)*nrm
+    a6 = (t6-28.*t8)*nrm
+    a7 = t7*nrm
+    a8 = t8*nrm
+
+    # coarse output grid: every out_stride-th point of the grid, 4 more on each side
+
+    n_m = n_points//out_stride
+    n_c = n_m+8
+    y_c = y_min+(np.arange(n_c,dtype=np.float64)-4.)*h_c
+    u = (y_c[:,None]-X_b[None,:])*inv_s_b[None,:]
+    pol = a0+u*(a1+u*(a2+u*(a3+u*(a4+u*(a5+u*(a6+u*(a7+u*a8)))))))
+    out_c = np.sum(np.exp(-0.5*u*u)*pol,axis=1)
+
+    # 8-point Lagrange interpolation: fine point m*stride + r sits r/stride of a coarse
+    # cell above coarse point m + 4; nodes m + 1 ... m + 8
+
+    t = np.arange(out_stride,dtype=np.float64)/out_stride
+    nod = np.arange(-3,5,dtype=np.float64)
+    lag_w = np.stack([np.prod([(t-nod[jj])/(nod[kk]-nod[jj]) for jj in range(8) if jj != kk],axis=0)
+                      for kk in range(8)],axis=1)
+    nodes = np.stack([out_c[1+kk:1+kk+n_m] for kk in range(8)],axis=1)
+    dn_dy = np.maximum((nodes@lag_w.T).reshape(-1),0.)
+
+    return dn_dy,err
+
+
 class cluster_number_counts:
 
     def __init__(self,cnc_params=cnc_params_default):
@@ -409,8 +508,46 @@ class cluster_number_counts:
                                     pad = 8.*np.max(sig_vec)
 
                                 y_grid = np.linspace(np.min(x1)-pad,np.max(x1)+pad,self.cnc_params["n_points"])
-                                K = np.exp(-0.5*((y_grid[:,None]-x1[None,:])/sig_vec[None,:])**2)
-                                dn_dx0 = K@v
+
+                                # Reduced-cost evaluation (xdep_abundance_fast, default off;
+                                # twin of the cosmocnc_jax setting): the settings (the first,
+                                # then those of xdep_abundance_refine) are tried in order; the
+                                # estimate of a setting is obtained from the group sums alone,
+                                # and the first setting within xdep_abundance_tol is used. The
+                                # standard quadrature below only when none is. Decided here per
+                                # (patch, redshift).
+
+                                dn_fast = None
+
+                                if self.cnc_params.get("xdep_abundance_fast",False) == True:
+
+                                    levels = [(int(self.cnc_params.get("xdep_abundance_src_bin",8)),
+                                               int(self.cnc_params.get("xdep_abundance_out_stride",1)))]
+                                    levels = levels + [(int(lv[0]),int(lv[1])) for lv in (self.cnc_params.get("xdep_abundance_refine",None) or [])]
+                                    tol = float(self.cnc_params.get("xdep_abundance_tol",1e-7))
+
+                                    for (src_bin,out_stride) in levels:
+
+                                        err = xdep_abundance_fast_layer0(integrand*w,x1,sig_vec,y_grid[0],y_grid[-1],
+                                                                         self.cnc_params["n_points"],src_bin,out_stride,
+                                                                         estimate_only=True)
+
+                                        if err <= tol:
+
+                                            dn_fast,err = xdep_abundance_fast_layer0(integrand*w,x1,sig_vec,y_grid[0],y_grid[-1],
+                                                                                     self.cnc_params["n_points"],src_bin,out_stride)
+
+                                            break
+
+                                if dn_fast is not None:
+
+                                    dn_dx0 = dn_fast
+
+                                else:
+
+                                    K = np.exp(-0.5*((y_grid[:,None]-x1[None,:])/sig_vec[None,:])**2)
+                                    dn_dx0 = K@v
+
                                 x0 = y_grid
 
                                 continue
