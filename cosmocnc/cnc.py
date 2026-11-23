@@ -1393,11 +1393,35 @@ class cluster_number_counts:
                                                                             patch2=cluster_patch,
                                                                             other_params=other_params))
 
-                            cpdf = convolve_1d(x1_interp,cpdf,
-                                                    sigma=sigma_scatter,
-                                                    #type=self.cnc_params["abundance_integral_type"],
-                                                    sigma_min=self.cnc_params["sigma_scatter_min"])
-                            
+                            # x-dependent layer-0 scatter (mass_dep_scatter, same gate as the
+                            # per-cluster backward convolution): every mass point carries its
+                            # own width sigma(lnM, z) (survey get_std_x); the stationary
+                            # convolution is replaced by the direct sum
+                            # pdf(y_j) = sum_i pdf(x_i) N(y_j - x_i; sigma_i) on the same uniform
+                            # layer-0 grid (normalised below). Twin of the cosmocnc_jax
+                            # build_stacked_kernel xdep_scatter_layer0 branch.
+                            if (self.cnc_params.get("mass_dep_scatter",False) == True and k == 0
+                                and self.scaling_relations[stacked_observable].get_n_layers_stacked() == 2
+                                and self.scatter.x_dep_scatter(stacked_observable,stacked_observable,0)):
+
+                                sig_m = self.scatter.get_std_x(observable1=stacked_observable,
+                                                               observable2=stacked_observable,
+                                                               layer=0,lnM=lnM_vec,
+                                                               other_params=dict(other_params,h=float(self.cosmology.cosmo_params["h"])))[0]
+                                sig_i = np.maximum(np.interp(x1_interp,x1,sig_m),1e-30)
+
+                                if np.min(sig_i) > self.cnc_params["sigma_scatter_min"]:
+
+                                    K = np.exp(-0.5*((x1_interp[:,None]-x1_interp[None,:])/sig_i[None,:])**2)
+                                    cpdf = K@(cpdf/sig_i)
+
+                            else:
+
+                                cpdf = convolve_1d(x1_interp,cpdf,
+                                                        sigma=sigma_scatter,
+                                                        #type=self.cnc_params["abundance_integral_type"],
+                                                        sigma_min=self.cnc_params["sigma_scatter_min"])
+
                             x0 = x1_interp
 
                     cpdf = cpdf/integrate.simpson(cpdf,x=x0)
