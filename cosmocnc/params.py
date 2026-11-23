@@ -25,6 +25,7 @@ cnc_params_default = {
     "n_points_data_lik": 128, #number of points for the computation of the cluster data part of the likelihood
     "sigma_mass_prior": 5.,
     "downsample_hmf_bc": 1,
+    "bc_hmf_z_interp": "linear", # per-cluster redshift interpolation of the HMF matrix: "linear" | "log" (ln of the mass function proper, volume element rebuilt at the cluster's z)
     "padding_fraction": 0.,
     "pad_abundance": False,
     # [direct-conv 2026-08-27, GATED default OFF] evaluate the SELECTION

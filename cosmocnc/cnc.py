@@ -709,7 +709,39 @@ class cluster_number_counts:
             n_cores = self.cnc_params["number_cores_data"]
             indices_split = np.array_split(indices_other_obs,n_cores)
 
-            hmf_interp = interpolate.interp1d(self.redshift_vec,self.hmf_matrix[:,::self.cnc_params["downsample_hmf_bc"]],axis=0,kind="linear")
+            # bc_hmf_z_interp selects how the HMF matrix is interpolated in redshift to each
+            # cluster's z for the per-cluster (backward-convolution) terms:
+            #   "linear" : linear in z between grid points (the original behaviour).
+            #   "log"    : the HMF matrix carries the comoving volume element dV/dz/dOmega
+            #              (~ z^2 at low z), which dominates the linear-interpolation error on
+            #              a coarse grid. Here ln(hmf * E/chi^2) -- the mass function proper,
+            #              smooth in z -- is interpolated linearly and chi^2/E is rebuilt at
+            #              the cluster's z from the interpolated D_A and E_z (chi = D_A (1+z)).
+            #              Twin of the cosmocnc_jax option of the same name.
+
+            hmf_z_interp_type = self.cnc_params.get("bc_hmf_z_interp","linear")
+
+            if hmf_z_interp_type not in ("linear","log"):
+
+                raise ValueError("bc_hmf_z_interp must be 'linear' or 'log', got " + repr(hmf_z_interp_type))
+
+            if hmf_z_interp_type == "linear":
+
+                hmf_interp = interpolate.interp1d(self.redshift_vec,self.hmf_matrix[:,::self.cnc_params["downsample_hmf_bc"]],axis=0,kind="linear")
+
+            elif hmf_z_interp_type == "log":
+
+                vol_grid = (self.D_A*(1.+self.redshift_vec))**2/self.E_z #chi^2/E on the grid (constant factors drop out)
+                ln_f_interp = interpolate.interp1d(self.redshift_vec,
+                np.log(np.maximum(self.hmf_matrix[:,::self.cnc_params["downsample_hmf_bc"]]/vol_grid[:,None],1e-300)),axis=0,kind="linear")
+
+                def hmf_interp(z_eval):
+
+                    D_A_eval = np.interp(z_eval,self.redshift_vec,self.D_A)
+                    E_z_eval = np.interp(z_eval,self.redshift_vec,self.E_z)
+
+                    return np.exp(ln_f_interp(z_eval))*(D_A_eval*(1.+z_eval))**2/E_z_eval
+
             lnM0 = self.ln_M[::self.cnc_params["downsample_hmf_bc"]]
 
             t1 = time.time()
