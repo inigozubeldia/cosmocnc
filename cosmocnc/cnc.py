@@ -3,6 +3,7 @@ import pylab as pl
 import scipy.integrate as integrate
 import scipy.interpolate as interpolate
 import scipy.stats as stats
+import scipy.special as special
 from .cosmo import *
 from .hmf import *
 from .sr import *
@@ -127,6 +128,35 @@ class cluster_number_counts:
 
             self.MT_emulator = MiraTitanHMFemulator.Emulator()
             self.hmf_extra_params["emulator"] = self.MT_emulator
+
+        # [mass-estimation pass] settings of the internal instance built by get_masses
+        # (flag "_mass_estimation_instance"); on an ordinary instance every observable
+        # is used and the selection observable keeps its ordinary factor.
+
+        self._me_instance = bool(self.cnc_params.get("_mass_estimation_instance",False))
+        self._me_obs = None
+        self._me_selection_probability = False
+
+        if self._me_instance:
+
+            obs_select_name = self.cnc_params["obs_select"]
+            self._me_obs = set(o for s in self._mass_estimation_sets() for o in s)
+
+            if obs_select_name not in self._me_obs:
+
+                # stays in the product, as the detection probability
+
+                self._me_selection_probability = True
+
+                if [obs_select_name] not in [list(s) for s in self.cnc_params["observables"]]:
+
+                    raise NotImplementedError("observables_mass_estimation without the selection observable is supported "
+                    "only when the selection observable is alone in its correlation set")
+
+                if self.scaling_relations[obs_select_name].get_n_layers() < 2:
+
+                    raise NotImplementedError("observables_mass_estimation without the selection observable needs a "
+                    "selection observable with at least 2 layers")
 
     #Updates parameter values (cosmological and scaling relation)
 
@@ -679,7 +709,39 @@ class cluster_number_counts:
             n_cores = self.cnc_params["number_cores_data"]
             indices_split = np.array_split(indices_other_obs,n_cores)
 
-            hmf_interp = interpolate.interp1d(self.redshift_vec,self.hmf_matrix[:,::self.cnc_params["downsample_hmf_bc"]],axis=0,kind="linear")
+            # bc_hmf_z_interp selects how the HMF matrix is interpolated in redshift to each
+            # cluster's z for the per-cluster (backward-convolution) terms:
+            #   "linear" : linear in z between grid points (the original behaviour).
+            #   "log"    : the HMF matrix carries the comoving volume element dV/dz/dOmega
+            #              (~ z^2 at low z), which dominates the linear-interpolation error on
+            #              a coarse grid. Here ln(hmf * E/chi^2) -- the mass function proper,
+            #              smooth in z -- is interpolated linearly and chi^2/E is rebuilt at
+            #              the cluster's z from the interpolated D_A and E_z (chi = D_A (1+z)).
+            #              Twin of the cosmocnc_jax option of the same name.
+
+            hmf_z_interp_type = self.cnc_params.get("bc_hmf_z_interp","linear")
+
+            if hmf_z_interp_type not in ("linear","log"):
+
+                raise ValueError("bc_hmf_z_interp must be 'linear' or 'log', got " + repr(hmf_z_interp_type))
+
+            if hmf_z_interp_type == "linear":
+
+                hmf_interp = interpolate.interp1d(self.redshift_vec,self.hmf_matrix[:,::self.cnc_params["downsample_hmf_bc"]],axis=0,kind="linear")
+
+            elif hmf_z_interp_type == "log":
+
+                vol_grid = (self.D_A*(1.+self.redshift_vec))**2/self.E_z #chi^2/E on the grid (constant factors drop out)
+                ln_f_interp = interpolate.interp1d(self.redshift_vec,
+                np.log(np.maximum(self.hmf_matrix[:,::self.cnc_params["downsample_hmf_bc"]]/vol_grid[:,None],1e-300)),axis=0,kind="linear")
+
+                def hmf_interp(z_eval):
+
+                    D_A_eval = np.interp(z_eval,self.redshift_vec,self.D_A)
+                    E_z_eval = np.interp(z_eval,self.redshift_vec,self.E_z)
+
+                    return np.exp(ln_f_interp(z_eval))*(D_A_eval*(1.+z_eval))**2/E_z_eval
+
             lnM0 = self.ln_M[::self.cnc_params["downsample_hmf_bc"]]
 
             t1 = time.time()
@@ -742,6 +804,16 @@ class cluster_number_counts:
                         #Select observables that are available for cluster cluster_index
 
                         observables_select = self.catalogue.observable_dict[cluster_index]
+
+                        if self._me_instance:
+
+                            # [mass-estimation pass] only the sets of observables_mass_estimation;
+                            # the selection observable's set always stays (ordinary factor, or the
+                            # detection probability if it is not in observables_mass_estimation)
+
+                            observables_select = [s for s in observables_select if (s[0] in self._me_obs)
+                            or (s == [self.cnc_params["obs_select"]])]
+
                         observable_patches = {}
 
                         for observable_set in observables_select:
@@ -841,6 +913,13 @@ class cluster_number_counts:
 
                         # lnM_min = lnM0[0]
                         # lnM_max = lnM0[-1]
+
+                        if self._me_instance and self.cnc_params.get("mass_estimation_full_range",False) == True:
+
+                            # [mass-estimation pass] full mass range of the mass function
+
+                            lnM_min = float(lnM0[0])
+                            lnM_max = float(lnM0[-1])
 
                         lnM = np.linspace(lnM_min,lnM_max,self.cnc_params["n_points_data_lik"])
 
@@ -971,6 +1050,20 @@ class cluster_number_counts:
                                             tt3 = time.time()
                                             x_mesh = get_mesh(x1)
                                             cpdf = eval_gaussian_nd(x_mesh,cov=covariance.cov[lay+1])
+
+                                            if self._me_selection_probability and observable_set == [self.cnc_params["obs_select"]]:
+
+                                                # [mass-estimation pass] detection probability instead of the
+                                                # pdf of the observed value: P(obs_select_min < observed <
+                                                # obs_select_max | last-layer mean), Gaussian of variance
+                                                # cov[last layer]; erfc keeps the far tail accurate. Twin of
+                                                # the cosmocnc_jax build_backward_conv_nd selection_probability
+                                                # branch.
+
+                                                _mu_sel = x1[0,:] + x_obs[0]
+                                                _s_sel = np.sqrt(2.*np.asarray(covariance.cov[lay+1],dtype=float).ravel()[0])
+                                                cpdf = 0.5*(special.erfc((self.cnc_params["obs_select_min"]-_mu_sel)/_s_sel)
+                                                - special.erfc((self.cnc_params["obs_select_max"]-_mu_sel)/_s_sel))
 
                                             #Benchmarking stuff
 
@@ -1521,7 +1614,79 @@ class cluster_number_counts:
     #Retrieve cluster mean log masses, use only after the unbinned likelihood
     #has been calculated with the backward convolutional approach. Eddington bias included.
 
+    def _mass_estimation_sets(self):
+
+        #Correlation sets used for the mass estimates: observables_mass_estimation, or the
+        #likelihood's own sets when it is None. Each set must be one of the correlation sets
+        #of "observables".
+
+        obs = [list(s) for s in self.cnc_params["observables"]]
+        me = self.cnc_params.get("observables_mass_estimation",None)
+
+        if me is None:
+
+            return obs
+
+        if len(me) == 0 or not all(isinstance(s,(list,tuple)) for s in me):
+
+            raise ValueError("observables_mass_estimation must be None or a list of correlation sets "
+            "(a list of lists of observable names); got " + str(me))
+
+        me = [list(s) for s in me]
+
+        for s in me:
+
+            if s not in obs:
+
+                raise ValueError("observables_mass_estimation: " + str(s) + " is not one of the correlation sets of "
+                "'observables' (" + str(obs) + "); the mass estimates use a subset of those sets")
+
+        return me
+
+    def _mass_estimation_is_dedicated(self):
+
+        #True if the mass estimates need their own pass, i.e. if any of the mass-estimation
+        #settings differs from the likelihood's.
+
+        obs = [list(s) for s in self.cnc_params["observables"]]
+        me = self._mass_estimation_sets()
+        same_sets = (len(me) == len(obs)) and all(s in me for s in obs)
+
+        return ((not same_sets)
+        or self.cnc_params.get("n_points_mass_estimation",None) is not None
+        or self.cnc_params.get("mass_estimation_full_range",False) == True)
+
+    #Mass estimates of the clusters, from their mass posteriors.
+    #
+    #Default settings (observables_mass_estimation None or equal to observables,
+    #n_points_mass_estimation None, mass_estimation_full_range False): mean and standard
+    #deviation of ln M from the posteriors of the last likelihood evaluation.
+    #
+    #Otherwise a dedicated pass is run at the current parameters, on an internal instance
+    #built once, so that the likelihood evaluation itself is not changed:
+    #  - the posterior of each cluster is the product of the factors of the correlation sets
+    #    in observables_mass_estimation and the mass function;
+    #  - if the selection observable is not in observables_mass_estimation, its factor is
+    #    replaced by the detection probability, P(obs_select_min < observed < obs_select_max | M),
+    #    with the same scatter and cutoffs as in the likelihood, and a cluster that has none of
+    #    the other observables of observables_mass_estimation gets no estimate (NaN);
+    #  - n_points_mass_estimation mass points (default n_points_data_lik);
+    #  - mass_estimation_full_range True: the grid spans the full mass range of the mass
+    #    function instead of the window around the selection observable.
+    #A cluster whose redshift error is integrated over gets no estimate, as in the default case.
+    #Results, all in catalogue order, NaN where there is no estimate:
+    #  mass_posterior_lnM  (n_clusters, n_points)  ln M grid of each cluster
+    #  mass_posterior_pdf  (n_clusters, n_points)  posterior of ln M, unit integral
+    #  cluster_lnM, cluster_lnM_std                mean and standard deviation of ln M
+    #  mass_posterior_available (n_clusters,) bool
+
     def get_masses(self):
+
+        if self._mass_estimation_is_dedicated():
+
+            self._get_masses_dedicated()
+
+            return
 
         self.indices_bc
         self.cluster_lnM = np.zeros(len(self.indices_bc))
@@ -1532,6 +1697,91 @@ class cluster_number_counts:
             cluster_index = int(cluster_index)
             self.cluster_lnM[cluster_index] = self.cpdf_dict["lnM_mean_" + str(cluster_index)]
             self.cluster_lnM_std[cluster_index] = self.cpdf_dict["lnM_std_" + str(cluster_index)]
+
+    def _get_masses_dedicated(self):
+
+        #one internal instance per combination of mass-estimation settings, built once
+
+        _key = (repr(self._mass_estimation_sets()),
+        self.cnc_params.get("n_points_mass_estimation",None),
+        self.cnc_params.get("mass_estimation_full_range",False) == True)
+
+        if not hasattr(self,"_mass_nc_cache"):
+
+            self._mass_nc_cache = {}
+
+        if _key not in self._mass_nc_cache:
+
+            p = dict(self.cnc_params)
+
+            #undo the M_min_extended bookkeeping of __init__, which is applied again
+
+            if p.get("M_min_cutoff",None) is not None:
+
+                p["M_min"] = p["M_min_cutoff"]
+
+            n_me = p.get("n_points_mass_estimation",None)
+
+            p.update({"_mass_estimation_instance":True,
+            "n_points_data_lik":int(p["n_points_data_lik"] if n_me is None else n_me),
+            "data_lik_from_abundance":False, #every cluster with a redshift gets a posterior
+            "data_lik_type":"backward_convolutional",
+            "get_masses":False,
+            "stacked_likelihood":False,
+            "priors":False})
+
+            h = cluster_number_counts(cnc_params=p)
+            h.cosmo_params = dict(self.cosmo_params)
+            h.scal_rel_params = dict(self.scal_rel_params)
+            h.initialise()
+            self._mass_nc_cache[_key] = h
+
+        h = self._mass_nc_cache[_key]
+        self._mass_nc = h
+        h.update_params(dict(self.cosmo_params),dict(self.scal_rel_params))
+        h.get_log_lik_unbinned()
+
+        obs_select_name = self.cnc_params["obs_select"]
+        n_cat = len(self.catalogue.catalogue[obs_select_name])
+        n_pts = int(h.cnc_params["n_points_data_lik"])
+
+        self.mass_posterior_lnM = np.full((n_cat,n_pts),np.nan)
+        self.mass_posterior_pdf = np.full((n_cat,n_pts),np.nan)
+        self.cluster_lnM = np.full(n_cat,np.nan)
+        self.cluster_lnM_std = np.full(n_cat,np.nan)
+        self.mass_posterior_available = np.zeros(n_cat,dtype=bool)
+
+        for cluster_index in h.indices_bc:
+
+            cluster_index = int(cluster_index)
+
+            #clusters whose redshift error is integrated over: no estimate
+
+            if ("cpdf_" + str(cluster_index) + "_1") in h.cpdf_dict:
+
+                continue
+
+            #when the selection observable enters only through the detection probability,
+            #a cluster needs at least one of the other observables of observables_mass_estimation
+
+            if h._me_selection_probability:
+
+                sets = [s for s in h.catalogue.observable_dict[cluster_index] if s[0] in h._me_obs]
+
+                if len(sets) == 0:
+
+                    continue
+
+            cpdf = h.cpdf_dict["cpdf_" + str(cluster_index) + "_0"]
+            lnM = h.cpdf_dict["lnm_vec_" + str(cluster_index) + "_0"]
+            pdf = cpdf/integrate.simpson(cpdf,x=lnM)
+            mean = integrate.simpson(lnM*pdf,x=lnM)
+
+            self.mass_posterior_lnM[cluster_index,:] = lnM
+            self.mass_posterior_pdf[cluster_index,:] = pdf
+            self.cluster_lnM[cluster_index] = mean
+            self.cluster_lnM_std[cluster_index] = np.sqrt(np.maximum(integrate.simpson((lnM-mean)**2*pdf,x=lnM),0.))
+            self.mass_posterior_available[cluster_index] = True
 
     #Computes the integrated cluster number counts as a function of redshift, selection
     #observable, and the total number counts

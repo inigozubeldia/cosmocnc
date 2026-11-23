@@ -25,6 +25,7 @@ cnc_params_default = {
     "n_points_data_lik": 128, #number of points for the computation of the cluster data part of the likelihood
     "sigma_mass_prior": 5.,
     "downsample_hmf_bc": 1,
+    "bc_hmf_z_interp": "linear", # per-cluster redshift interpolation of the HMF matrix: "linear" | "log" (ln of the mass function proper, volume element rebuilt at the cluster's z)
     "padding_fraction": 0.,
     "pad_abundance": False,
     # [direct-conv 2026-08-27, GATED default OFF] evaluate the SELECTION
@@ -62,6 +63,16 @@ cnc_params_default = {
     "catalogue_params":{"downsample":True},
     "apply_obs_cutoff":False,
     "get_masses":False,
+    # Mass estimates (get_masses()). With the three settings below at their defaults the
+    # estimates are the mean and standard deviation of ln M of the posteriors of the last
+    # likelihood evaluation. Otherwise get_masses() runs its own pass at the current
+    # parameters, without changing the likelihood evaluation (see cnc.get_masses).
+    "observables_mass_estimation": None, # None = the correlation sets of "observables"; or a subset of them,
+                                         # e.g. [["obs_a"], ["obs_b"]]. If the selection observable is left out,
+                                         # its factor is replaced by the detection probability.
+    "n_points_mass_estimation": None,    # number of mass points of the pass (None = n_points_data_lik)
+    "mass_estimation_full_range": False, # True: mass grid over the full M_min-M_max range instead of the
+                                         # window around the selection observable
     "delta_m_with_ref":False,
 
     #Range of abundance observables
