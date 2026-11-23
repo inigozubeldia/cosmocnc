@@ -110,7 +110,9 @@ class cnc(classy):
     obs_select : Optional[str] =  "q_mmf3_mean" #"q_mmf3_mean",
     observables : Optional[str] =  [["q_mmf3_mean","p_zc19"]]
 #    "observables": [["q_mmf3_mean"]],
-    observables_mass_estimation : Optional[str] =  ["q_mmf3_mean"]
+    observables_mass_estimation : Optional[str] =  None   # None = the correlation sets of "observables"; see cnc.get_masses
+    n_points_mass_estimation : Optional[int] = None
+    mass_estimation_full_range : Optional[bool] = False
     cluster_catalogue :Optional[str] =  "zc19_simulated_12"
     #"cluster_catalogue":"zc19_simulated_12",#"Planck_MMF3_cosmo",
     #"cluster_catalogue":"q_mlens_simulated",
@@ -238,6 +240,9 @@ class cnc(classy):
         self.cnc.cnc_params["likelihood_type"] = self.likelihood_type # "unbinned", #"unbinned", "binned", or "extreme_value"
         self.cnc.cnc_params["obs_select"] = self.obs_select # "q_mmf3_mean", #"q_mmf3_mean",
         self.cnc.cnc_params["observables"] = self.observables # [["q_mmf3_mean","p_zc19"]],
+        self.cnc.cnc_params["observables_mass_estimation"] = self.observables_mass_estimation
+        self.cnc.cnc_params["n_points_mass_estimation"] = self.n_points_mass_estimation
+        self.cnc.cnc_params["mass_estimation_full_range"] = self.mass_estimation_full_range
     #    "observables": [["q_mmf3_mean"]],
         self.cnc.cnc_params["cluster_catalogue"] = self.cluster_catalogue #"zc19_simulated_12",
         #"cluster_catalogue":"zc19_simulated_12",#"Planck_MMF3_cosmo",
