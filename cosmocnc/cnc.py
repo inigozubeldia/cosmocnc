@@ -14,6 +14,187 @@ import time
 import importlib.util
 import sys
 
+def _lagrange6(t):
+    """Weights of the 6-point Lagrange interpolation at offset t from the first of six
+    equally spaced nodes (nodes at 0 ... 5). t: (...,) -> (..., 6)."""
+
+    ws = []
+
+    for k in range(6):
+
+        w = np.ones_like(t,dtype=float)
+
+        for j in range(6):
+
+            if j != k:
+
+                w = w*(t-j)/(k-j)
+
+        ws.append(w)
+
+    return np.stack(ws,axis=-1)
+
+
+def xdep_backward_conv_2obs(p_a,p_b,x_lin_a,x_lin_b,X_a,X_b,s_a,s_b,rho,a_xdep,b_xdep,n_nodes=16,i_batch=64,i_stride=1):
+    """Backward convolution of a 2-observable correlation set whose layer-0 scatter
+    depends on the mass point (x-dependent widths of one or both observables, with a
+    correlation coefficient rho). Twin of the cosmocnc_jax build_2d_xdep_conv_fn (same
+    arithmetic and conventions).
+
+    Valid when the layer-1 covariance of the two observables is diagonal, so that the
+    layer-1 pdf is p_a(x_a) p_b(x_b) (given here on the linear grids x_lin_a, x_lin_b).
+    With D one observable and T the other, the correlated layer-0 Gaussian factorises as
+    N(d_D; s_D) N(d_T - rho (s_T / s_D) d_D; s_T sqrt(1 - rho^2)), and the value at mass
+    point i (layer-0 means X_D, X_T, widths s_D, s_T there) is
+
+        I_i = sum_l p_D(x_l) N(X_D - x_l; s_D) F(X_T - rho (s_T / s_D) (X_D - x_l); s_T sqrt(1 - rho^2)),
+
+    F(y; s) = p_T convolved with a Gaussian of width s, tabulated on the zero-padded
+    grid of T. D ("direct") is an observable WITH x-dependent scatter: b if only b has
+    it, a otherwise. T ("tabulated") is the other one: without x-dependent scatter F is
+    ONE convolution; with it (both observables have it) F is tabulated at n_nodes
+    log-spaced widths, 6-point Lagrange in ln s. F is looked up by 6-point Lagrange.
+    For T WITHOUT x-dependent scatter the result is obtained with T at the two grid
+    points bracketing its mean and interpolated linearly (the scheme of the stationary
+    1-observable path, kept at every rho). Gaussian weights are normalised by the
+    full-window kernel sum on the observable's own grid; rho = 0 then gives the product
+    of the two 1-observable backward convolutions as the separate sets evaluate them.
+
+    i_stride > 1: evaluated at every i_stride-th mass point (and at the points after the
+    last of those) and interpolated (6-point Lagrange in the mass index, of the
+    logarithm where the stencil values are positive): faster, less accurate; 1
+    (default) = every mass point.
+    """
+
+    assert a_xdep == True or b_xdep == True
+
+    swap = (b_xdep == True and a_xdep == False)
+    t_xdep = (a_xdep == True and b_xdep == True)
+
+    s_a = np.maximum(s_a,1e-30)
+    s_b = np.maximum(s_b,1e-30)
+
+    if swap == True:
+
+        p_D,p_T,X_D,X_T,s_D,s_T,x_lin_D,x_lin_T = p_b,p_a,X_b,X_a,s_b,s_a,x_lin_b,x_lin_a
+
+    else:
+
+        p_D,p_T,X_D,X_T,s_D,s_T,x_lin_D,x_lin_T = p_a,p_b,X_a,X_b,s_a,s_b,x_lin_a,x_lin_b
+
+    n = len(p_D)
+    n_pad = n//2
+    n_big = n+2*n_pad
+    dxD = x_lin_D[1]-x_lin_D[0]
+    dxT = x_lin_T[1]-x_lin_T[0]
+    kcD = x_lin_D-np.mean(x_lin_D)+0.5*dxD
+    kcT = x_lin_T-np.mean(x_lin_T)+0.5*dxT
+
+    c = rho*s_T/s_D
+    s = np.maximum(s_T*np.sqrt(1.-rho**2),1e-3*np.abs(dxT))
+
+    p_T_pad = np.zeros(n_big)
+    p_T_pad[n_pad:n_pad+n] = p_T
+    kc_pad = (np.arange(n_big,dtype=np.float64)-n_big/2.+1.)*dxT
+
+    def row(sn):
+
+        kern = np.exp(-0.5*(kc_pad/sn)**2)
+
+        return convolve_nd(p_T_pad,kern)*np.sum(kern)/max(np.sum(np.exp(-0.5*(kcT/sn)**2)),1e-300)
+
+    if t_xdep == True:
+
+        ln_s0 = np.log(np.min(s))
+        dln = max((np.log(np.max(s))-ln_s0)/(n_nodes-1),1e-12)
+        table = np.array([row(sn) for sn in np.exp(ln_s0+dln*np.arange(n_nodes,dtype=np.float64))])
+
+    else:
+
+        row0 = row(s[0])
+
+    y0 = x_lin_T[0]-n_pad*dxT
+
+    def F(trow,y):
+
+        # trow (nb,n_big), y (nb,n) -> (nb,n)
+
+        v = (y-y0)/dxT
+        inside = (v >= 0.) & (v <= n_big-1.)
+        rows = np.arange(trow.shape[0])[:,None]
+
+        l0 = np.clip(np.floor(v).astype(np.int64)-2,0,n_big-6)
+        w = _lagrange6(v-l0)
+        f = np.sum(w*trow[rows[:,:,None],l0[:,:,None]+np.arange(6)[None,None,:]],axis=-1)
+
+        return np.where(inside,f,0.)
+
+    idx_c = np.arange(0,n,i_stride)
+    idx_all = np.concatenate([idx_c,np.arange(idx_c[-1]+1,n)])
+    vals = np.zeros(len(idx_all))
+
+    for i0 in range(0,len(idx_all),i_batch):
+
+        sl = idx_all[i0:min(i0+i_batch,len(idx_all))]
+
+        if t_xdep == True:
+
+            u = (np.log(s[sl])-ln_s0)/dln
+            j0 = np.clip(np.floor(u).astype(np.int64)-2,0,n_nodes-6)
+            trow = np.einsum("bk,bkn->bn",_lagrange6(u-j0),table[j0[:,None]+np.arange(6)[None,:],:])
+
+        else:
+
+            trow = np.broadcast_to(row0,(len(sl),n_big))
+
+        S_D = np.maximum(np.sum(np.exp(-0.5*(kcD[None,:]/s_D[sl][:,None])**2),axis=1),1e-300)
+        d = X_D[sl][:,None]-x_lin_D[None,:]
+        wD = p_D[None,:]*np.exp(-0.5*(d/s_D[sl][:,None])**2)
+
+        if t_xdep == True:
+
+            vals[i0:i0+len(sl)] = np.sum(wD*F(trow,X_T[sl][:,None]-c[sl][:,None]*d),axis=1)/S_D
+
+        else:
+
+            # T without x-dependent scatter: the stationary scheme (value at the two grid
+            # points of T bracketing its mean, linear interpolation). The two points are
+            # one cell apart: one look-up in the table blended with its copy shifted by
+            # one cell; index in the padded table of the point for g is
+            # g + n_pad - c d / dxT.
+
+            fi = np.clip((X_T[sl]-x_lin_T[0])/dxT,0.,n-1-1e-7)
+            g = np.clip(np.floor(fi).astype(np.int64),0,n-2)
+            t = (fi-g)[:,None]
+            tblend = (1.-t)*row0[None,:-1]+t*row0[None,1:]
+            v = (g+n_pad)[:,None]-c[sl][:,None]*d/dxT
+            inside = (v >= 0.) & (v <= n_big-2.)
+            l0 = np.clip(np.floor(v).astype(np.int64)-2,0,n_big-7)
+            rows = np.arange(len(sl))[:,None,None]
+            f = np.sum(_lagrange6(v-l0)*tblend[rows,l0[:,:,None]+np.arange(6)[None,None,:]],axis=-1)
+            vals[i0:i0+len(sl)] = np.sum(wD*np.where(inside,f,0.),axis=1)/S_D
+
+    if i_stride == 1:
+
+        cpdf = vals
+
+    else:
+
+        coarse = vals[:len(idx_c)]
+        pos = np.arange(n,dtype=np.float64)/i_stride
+        j0 = np.clip(np.floor(pos).astype(np.int64)-2,0,len(idx_c)-6)
+        w6 = _lagrange6(pos-j0)
+        st = coarse[j0[:,None]+np.arange(6)[None,:]]
+        cpdf = np.where(np.min(st,axis=-1) > 1e-250,
+                        np.exp(np.sum(w6*np.log(np.maximum(st,1e-300)),axis=-1)),
+                        np.sum(w6*st,axis=-1))
+        cpdf[idx_c[-1]+1:] = vals[len(idx_c):]
+
+    cpdf[np.where(cpdf < 0.)] = 0.
+
+    return cpdf
+
+
 def xdep_abundance_fast_layer0(m,x1,sig,y_min,y_max,n_points,src_bin,out_stride,estimate_only=False):
     """Reduced-cost evaluation of the abundance layer-0 integral with a per-mass-point
     kernel width,
@@ -1268,7 +1449,87 @@ class cluster_number_counts:
                                         # [2026-09-08] any 1-observable set whose observable declares
                                         # x-dependent layer-0 scatter (twin of the cosmocnc_jax
                                         # per-set flag); every other set keeps the stationary kernel
-                                        if (self.cnc_params.get("mass_dep_scatter",False) == True
+                                        # 2-observable set with x-dependent layer-0 scatter of one or
+                                        # both observables (a correlation coefficient taken from the
+                                        # layer-0 covariance, independent of the mass): the factorised
+                                        # backward convolution, directly on the mass points (twin of
+                                        # the cosmocnc_jax build_2d_xdep_conv_fn). Needs a diagonal
+                                        # layer-1 covariance and two 2-layer observables.
+                                        _xdep2 = False
+
+                                        if self.cnc_params.get("mass_dep_scatter",False) == True and n_obs >= 2 and lay == 0:
+
+                                            _decl = [bool(self.scatter.x_dep_scatter(_o,_o,0)) for _o in observable_set]
+
+                                            if any(_decl):
+
+                                                if n_obs > 2 or len(layers) != 2:
+
+                                                    raise NotImplementedError("mass_dep_scatter=True: x-dependent layer-0 scatter in a "
+                                                    "correlation set is supported for one observable alone or for two 2-layer "
+                                                    "observables; got " + str(observable_set))
+
+                                                _c0 = np.asarray(covariance.cov[0],dtype=float)
+                                                _c1 = np.asarray(covariance.cov[1],dtype=float)
+
+                                                if _c1[0,1] != 0. or _c1[1,0] != 0.:
+
+                                                    raise NotImplementedError("mass_dep_scatter=True: a 2-observable correlation set "
+                                                    "with x-dependent layer-0 scatter requires a diagonal layer-1 covariance "
+                                                    "(observables " + str(observable_set) + ")")
+
+                                                _xdep2 = True
+
+                                        if _xdep2 == True:
+
+                                            _sig = []
+
+                                            for _j in range(2):
+
+                                                if _decl[_j] == True:
+
+                                                    _sig.append(np.maximum(self.scatter.get_std_x(observable1=observable_set[_j],
+                                                    observable2=observable_set[_j],layer=0,lnM=lnM,
+                                                    other_params=dict(other_params,h=float(self.cosmology.cosmo_params["h"])))[0],1e-30))
+
+                                                else:
+
+                                                    _sig.append(np.full(len(lnM),np.sqrt(_c0[_j,_j])))
+
+                                            _p_a = gaussian_1d(x1[0,:],np.sqrt(_c1[0,0]))
+                                            _p_b = gaussian_1d(x1[1,:],np.sqrt(_c1[1,1]))
+
+                                            if self.cnc_params["apply_obs_cutoff"] != False:
+
+                                                if self.cnc_params["apply_obs_cutoff"][str(observable_set)] == True:
+
+                                                    _sr0 = self.scaling_relations[observable_set[0]]
+
+                                                    if hasattr(_sr0,'get_cutoff'):
+
+                                                        _sr0.params = self.scal_rel_params
+                                                        _cut0 = _sr0.get_cutoff(layer=_sr0.get_n_layers()-1)
+
+                                                    else:
+
+                                                        _cut0 = self.scal_rel_params["q_cutoff"]
+
+                                                    _p_a = np.where(x1[0,:]+x_obs[0] < _cut0,0.,_p_a)
+
+                                            cpdf = xdep_backward_conv_2obs(_p_a,_p_b,x_p[0,:],x_p[1,:],
+                                                                           x_list[lay][0,:],x_list[lay][1,:],
+                                                                           _sig[0],_sig[1],
+                                                                           _c0[0,1]/np.sqrt(_c0[0,0]*_c0[1,1]),
+                                                                           _decl[0],_decl[1],
+                                                                           i_stride=int(self.cnc_params.get("bc_xdep_2obs_mass_stride",1)))
+
+                                            tt5 = time.time()
+                                            self.t_55 = self.t_55  + tt5 - tt4b
+
+                                            tt6 = time.time()
+                                            self.t_66 = self.t_66 + tt6 - tt5
+
+                                        elif (self.cnc_params.get("mass_dep_scatter",False) == True
                                             and n_obs == 1 and lay == 0
                                             and self.scatter.x_dep_scatter(observable_set[0],observable_set[0],0)):
 
@@ -1332,7 +1593,7 @@ class cluster_number_counts:
 
                                         if lay == layers[0]:
 
-                                            if n_obs > 1:
+                                            if n_obs > 1 and _xdep2 == False:
 
                                                 cpdf = extract_diagonal(cpdf)
 

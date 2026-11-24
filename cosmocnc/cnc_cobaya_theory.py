@@ -193,6 +193,7 @@ class cnc(classy):
     xdep_abundance_out_stride: Optional[int] = 1
     xdep_abundance_tol: Optional[float] = 1e-7
     xdep_abundance_refine: Optional[list] = None
+    bc_xdep_2obs_mass_stride: Optional[int] = 1
 
     # class_sz parameters
     cosmo_model: Optional[str] = "lcdm"
@@ -322,6 +323,7 @@ class cnc(classy):
         self.cnc.cnc_params["xdep_abundance_out_stride"] = int(self.xdep_abundance_out_stride)
         self.cnc.cnc_params["xdep_abundance_tol"] = float(self.xdep_abundance_tol)
         self.cnc.cnc_params["xdep_abundance_refine"] = self.xdep_abundance_refine
+        self.cnc.cnc_params["bc_xdep_2obs_mass_stride"] = int(self.bc_xdep_2obs_mass_stride)
 
 
         # class_sz parameters
