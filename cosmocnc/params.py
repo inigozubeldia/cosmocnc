@@ -110,6 +110,9 @@ cnc_params_default = {
     "M_min_extended": None,
     "hmf_calc": "cnc", #"cnc", "hmf", "MiraTitan", or "classy_sz"
     "hmf_type": "Tinker08",
+    "hmf_calibration_modes_file": None, # optional: path of a file of modes of a multiplicative perturbation of the Tinker08 mass function,
+                                        # n -> n * exp(Sum_k a_k mode_k(log10(1/sigma), z)), amplitudes a_k = scal_rel_params "hmf_mode_amp_<k>"
+                                        # (k from 1); None = off. Only with hmf_calc "cnc" and hmf_type "Tinker08". See hmf.load_hmf_calibration_modes.
     "mass_definition": "500c",
     "hmf_type_deriv": "numerical", #"analytical" or "numerical"
     "power_spectrum_type": "cosmopower",

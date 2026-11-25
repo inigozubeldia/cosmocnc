@@ -49,7 +49,8 @@ _SR_INPUT_PARAMS = (
     "sigma_lnYx", "corr_xi_Yx", "corr_xi_WL", "corr_Yx_WL",
     "WLbias", "WLscatter", "HSTbias", "HSTscatterLSS",
     "MegacamBias", "MegacamScatterLSS", "SZmPivot",
-)
+    # amplitudes of the optional mass-function modes (cnc_params["hmf_calibration_modes_file"])
+) + tuple(f"hmf_mode_amp_{_k}" for _k in range(1, 21))
 
 
 # ---------------------------------------------------------------------------
@@ -67,6 +68,18 @@ _WL_ZBIN_AMPLITUDES = ("b_wl_0", "b_wl_1", "b_wl_2", "b_wl_3",
                        "s_wl_0", "s_wl_1", "s_wl_2", "s_wl_3")
 _WL_PCA_SCORES = ("b_wl_pc1", "b_wl_pc2", "b_wl_pc3", "b_wl_pc4", "b_wl_pc5",
                   "s_wl_pc1", "s_wl_pc2", "s_wl_pc3", "s_wl_pc4", "s_wl_pc5")
+
+
+def check_hmf_mode_param_set(n_modes, input_params):
+    """Raise if the run's mass-function mode amplitudes do not match the modes file: with a file of n modes, the n
+    amplitudes hmf_mode_amp_1..n must all be in the run (an absent one would stay at 0, silently); amplitudes beyond n,
+    or any amplitude without a file, would be sampled against their prior with no effect."""
+    names = [p for p in input_params if p.startswith("hmf_mode_amp_")]
+    need = {f"hmf_mode_amp_{k}" for k in range(1, n_modes + 1)}
+    missing = sorted(need - set(names)); extra = sorted(set(names) - need)
+    if missing or extra:
+        raise ValueError(f"hmf_calibration_modes_file gives {n_modes} mass-function modes, but the run config's amplitudes do "
+                         f"not match: missing {missing}, without effect {extra}.")
 
 
 def check_wl_calibration_param_set(cnc_params, input_params):
@@ -142,6 +155,8 @@ class cnc(classy):
     M_max : Optional[str] =  1e16
     hmf_calc : Optional[str] =  "cnc" #"cnc", "hmf", or "MiraTitan"
     hmf_type : Optional[str] =  "Tinker08"
+    # optional modes of a multiplicative perturbation of the Tinker08 mass function (see cosmocnc.hmf); None = off
+    hmf_calibration_modes_file : Optional[str] = None
     mass_definition : Optional[str] =  "500c"
     hmf_type_deriv : Optional[str] =  "numerical" #"analytical" or "numerical"
     power_spectrum_type : Optional[str] =  "cosmopower"
@@ -278,6 +293,7 @@ class cnc(classy):
         self.cnc.cnc_params["M_max"] = float(self.M_max) # 1e16,
         self.cnc.cnc_params["hmf_calc"] = self.hmf_calc # "cnc", #"cnc", "hmf", or "MiraTitan"
         self.cnc.cnc_params["hmf_type"] = self.hmf_type # "Tinker08",
+        self.cnc.cnc_params["hmf_calibration_modes_file"] = self.hmf_calibration_modes_file
         self.cnc.cnc_params["mass_definition"] = self.mass_definition # "500c",
         self.cnc.cnc_params["hmf_type_deriv"] = self.hmf_type_deriv # "numerical", #"analytical" or "numerical"
         self.cnc.cnc_params["power_spectrum_type"] = self.power_spectrum_type # "cosmopower",
@@ -352,6 +368,8 @@ class cnc(classy):
         super().initialize_with_params()
         # the run's WL parameter set must match the survey file's WL calibration model
         check_wl_calibration_param_set(self.cnc.cnc_params, list(self.input_params))
+        # the run's mass-function mode amplitudes must match the modes file (none without a file)
+        check_hmf_mode_param_set(len(getattr(self.cnc, "_hmf_mode_names", ())), list(self.input_params))
 
     def get_can_support_params(self):
         # THE ROUTING FIX (2026-07-08, mirrored from cosmocnc_jax). See the
@@ -485,6 +503,10 @@ class cnc(classy):
         scal_rel_params['q_mean_cutoff'] = self.cnc.cnc_params.get("q_mean_cutoff", None)
         assign_parameter_value(scal_rel_params,params_values,"q_mean_cutoff")
         assign_parameter_value(scal_rel_params,params_values,"sigma_lnq_m_szifi")  # [2026-08-29]
+
+        # amplitudes of the optional mass-function modes
+        for _k in range(1, 21):
+            assign_parameter_value(scal_rel_params,params_values,f"hmf_mode_amp_{_k}")
 
         self.cnc.update_params(cosmo_params,scal_rel_params)
 

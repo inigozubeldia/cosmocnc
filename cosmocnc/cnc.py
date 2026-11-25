@@ -328,6 +328,21 @@ class cluster_number_counts:
         set_verbosity(self.cnc_params["cosmocnc_verbose"])
         self.logger = logging.getLogger(__name__)
 
+        # Optional modes of a multiplicative perturbation of the mass function (off unless a file is given).
+        # Gated: only for the internal Tinker08 calculation, whose sigma(M, z) the modes are defined against.
+        self._hmf_modes = None
+        self._hmf_mode_names = ()
+        _modes_path = self.cnc_params.get("hmf_calibration_modes_file", None)
+        if _modes_path is not None:
+            if self.cnc_params["hmf_calc"] != "cnc" or self.cnc_params["hmf_type"] != "Tinker08":
+                raise ValueError("hmf_calibration_modes_file is only supported with hmf_calc = 'cnc' and hmf_type = 'Tinker08' "
+                                 f"(got hmf_calc = {self.cnc_params['hmf_calc']!r}, hmf_type = {self.cnc_params['hmf_type']!r})")
+            _x, _z, _m = load_hmf_calibration_modes(_modes_path)
+            self._hmf_modes = (_x, _z, _m)
+            self._hmf_mode_names = tuple(f"{HMF_MODE_AMP_PREFIX}{k + 1}" for k in range(_m.shape[2]))
+            self.logger.info(f"mass-function modes: {_m.shape[2]} modes from {_modes_path} on x = log10(1/sigma) "
+                             f"[{_x[0]:.3f}, {_x[-1]:.3f}], z [{_z[0]:.3f}, {_z[-1]:.3f}]; amplitudes {self._hmf_mode_names[0]} ...")
+
         # Load the survey data
 
         path_to_survey = self.cnc_params["survey_sr"]
@@ -490,7 +505,9 @@ class cluster_number_counts:
         self.halo_mass_function = halo_mass_function(cosmology=self.cosmology,hmf_type=self.cnc_params["hmf_type"],
         mass_definition=self.cnc_params["mass_definition"],M_min=self.cnc_params["M_min"],M_min_cutoff=self.cnc_params["M_min_cutoff"],
         M_max=self.cnc_params["M_max"],n_points=self.cnc_params["n_points"],type_deriv=self.cnc_params["hmf_type_deriv"],
-        hmf_calc=self.cnc_params["hmf_calc"],extra_params=self.hmf_extra_params,logger = self.logger,interp_tinker=self.cnc_params["interp_tinker"])
+        hmf_calc=self.cnc_params["hmf_calc"],extra_params=self.hmf_extra_params,logger = self.logger,interp_tinker=self.cnc_params["interp_tinker"],
+        calibration_modes=(None if getattr(self, "_hmf_modes", None) is None else
+                           self._hmf_modes + (np.array([float(self.scal_rel_params.get(_n, 0.)) for _n in self._hmf_mode_names]),)))
 
         n_cores = self.cnc_params["number_cores_hmf"]
         indices_split = np.array_split(np.arange(self.cnc_params["n_z"]),n_cores)

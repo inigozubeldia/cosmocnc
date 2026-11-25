@@ -3,6 +3,45 @@ from mcfit import TophatVar
 import time
 import logging
 
+# Optional multiplicative perturbation of the Tinker08 mass function by modes (cnc_params["hmf_calibration_modes_file"];
+# off by default). Mirrors cosmocnc_jax/hmf.py exactly (same file format, same order of interpolation).
+
+HMF_MODE_AMP_PREFIX = "hmf_mode_amp_"   # amplitude k (k = 1, 2, ...) is scal_rel_params[HMF_MODE_AMP_PREFIX + str(k)]
+HMF_MODES_MAX = 20
+
+
+def load_hmf_calibration_modes(path):
+    """Read a file of modes of a perturbation of the mass function: an .npz with
+      x_grid : (n_x,) strictly increasing values of x = log10(1/sigma),
+      z_grid : (n_z,) strictly increasing redshifts,
+      modes  : (n_x, n_z, n_modes) values of each mode of ln(n_true / n_Tinker) on that grid (1 <= n_modes <= HMF_MODES_MAX).
+    The mass function becomes n * exp(Sum_k a_k mode_k(x, z)) with a_k = scal_rel_params[HMF_MODE_AMP_PREFIX + str(k)]
+    (k from 1). Returns (x_grid, z_grid, modes) as float64 arrays."""
+    d = np.load(path)
+    for key in ("x_grid", "z_grid", "modes"):
+        if key not in d.files:
+            raise ValueError(f"hmf_calibration_modes_file {path}: missing array {key!r} (needs x_grid, z_grid, modes)")
+    x = np.asarray(d["x_grid"], dtype=np.float64); z = np.asarray(d["z_grid"], dtype=np.float64)
+    modes = np.asarray(d["modes"], dtype=np.float64)
+    if x.ndim != 1 or z.ndim != 1 or len(x) < 2 or len(z) < 2 or np.any(np.diff(x) <= 0) or np.any(np.diff(z) <= 0):
+        raise ValueError(f"hmf_calibration_modes_file {path}: x_grid and z_grid must be 1-D, strictly increasing, of length >= 2")
+    if modes.ndim != 3 or modes.shape[:2] != (len(x), len(z)) or not (1 <= modes.shape[2] <= HMF_MODES_MAX):
+        raise ValueError(f"hmf_calibration_modes_file {path}: modes must have shape (len(x_grid), len(z_grid), n_modes) with "
+                         f"1 <= n_modes <= {HMF_MODES_MAX}; got {modes.shape}")
+    if not (np.all(np.isfinite(x)) and np.all(np.isfinite(z)) and np.all(np.isfinite(modes))):
+        raise ValueError(f"hmf_calibration_modes_file {path}: non-finite values")
+    return x, z, modes
+
+
+def hmf_calibration_ln_factor(sigma, redshift, x_grid, z_grid, modes, amps):
+    """ln of the multiplicative factor of the mass function at one redshift: Sum_k amps[k] mode_k(x, redshift) with
+    x = log10(1/sigma). Linear interpolation in z (per x node of the table), then in x; outside the table the edge
+    values are used (np.interp clamps). Same order as cosmocnc_jax.hmf.hmf_calibration_ln_factor."""
+    F = np.tensordot(modes, np.asarray(amps, dtype=np.float64), axes=([2], [0]))   # (n_x, n_z_table)
+    Fz = np.array([np.interp(redshift, z_grid, row) for row in F])                  # (n_x,)
+    return np.interp(np.log10(1. / np.asarray(sigma)), x_grid, Fz)
+
+
 class halo_mass_function:
 
     def __init__(self,
@@ -16,8 +55,11 @@ class halo_mass_function:
                  hmf_calc="cnc",
                  extra_params=None,
                  logger = None,
-                 interp_tinker=None):
+                 interp_tinker=None,
+                 calibration_modes=None):
 
+        # optional (x_grid, z_grid, modes, amplitudes) of a multiplicative perturbation (Tinker08 only; None = off)
+        self.calibration_modes = calibration_modes
         self.hmf_type = hmf_type
         self.mass_definition = mass_definition
         self.cosmology = cosmology
@@ -147,6 +189,11 @@ class halo_mass_function:
                 self.fsigma = fsigma
 
                 hmf = -fsigma*rho_m/M_vec/dMdR*dsigmadR/sigma
+
+                # optional multiplicative perturbation by modes (cnc_params["hmf_calibration_modes_file"]; off by default)
+                if self.calibration_modes is not None and self.hmf_type == "Tinker08":
+                    hmf = hmf*np.exp(hmf_calibration_ln_factor(sigma, redshift, *self.calibration_modes))
+
                 M_eval = M_vec
 
                 hmf = hmf*1e14
